@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="br" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0a46b"/><stop offset="1" stop-color="#9a5b2b"/></linearGradient>
+    <linearGradient id="si" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e5e7eb"/><stop offset="1" stop-color="#9ca3af"/></linearGradient>
+    <linearGradient id="go" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient>
+    <linearGradient id="pl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cffafe"/><stop offset="1" stop-color="#0891b2"/></linearGradient>
+  </defs>
+  <rect width="1200" height="360" rx="24" fill="#0f172a"/>
+  <text x="40" y="52" font-size="26" font-weight="700" fill="#f8fafc">Weekly tiers</text>
+  <text x="40" y="80" font-size="16" fill="#94a3b8">Your tier is set by your Monday-to-Sunday total. Reset every week, so anyone can climb.</text>
+  <path d="M60 330H1140" stroke="#334155" stroke-width="2"/>
+
+  <rect x="90" y="260" width="230" height="70" rx="12" fill="url(#br)"/>
+  <text x="205" y="292" text-anchor="middle" font-size="22" font-weight="800" fill="#3b1d06">BRONZE</text>
+  <text x="205" y="316" text-anchor="middle" font-size="15" fill="#3b1d06">0 – 34,999</text>
+
+  <rect x="350" y="210" width="230" height="120" rx="12" fill="url(#si)"/>
+  <text x="465" y="252" text-anchor="middle" font-size="22" font-weight="800" fill="#1f2937">SILVER</text>
+  <text x="465" y="276" text-anchor="middle" font-size="15" fill="#1f2937">35,000 – 59,999</text>
+
+  <rect x="610" y="160" width="230" height="170" rx="12" fill="url(#go)"/>
+  <text x="725" y="202" text-anchor="middle" font-size="22" font-weight="800" fill="#451a03">GOLD</text>
+  <text x="725" y="226" text-anchor="middle" font-size="15" fill="#451a03">60,000 – 89,999</text>
+
+  <rect x="870" y="110" width="230" height="220" rx="12" fill="url(#pl)"/>
+  <text x="985" y="152" text-anchor="middle" font-size="22" font-weight="800" fill="#083344">PLATINUM</text>
+  <text x="985" y="176" text-anchor="middle" font-size="15" fill="#083344">90,000+</text>
+  <text x="985" y="214" text-anchor="middle" font-size="13" fill="#083344">unlocks the</text>
+  <text x="985" y="232" text-anchor="middle" font-size="13" fill="#083344">Platinum Walker badge</text>
+</svg>

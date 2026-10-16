@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" width="1200" height="560" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="560" rx="24" fill="#f8fafc"/>
+  <text x="40" y="52" font-size="26" font-weight="700" fill="#0f172a">How a step travels through StrideBoard</text>
+
+  <!-- column labels -->
+  <text x="40" y="100" font-size="14" font-weight="700" fill="#64748b" letter-spacing="1.5">1 · PHONES COLLECT</text>
+  <text x="455" y="100" font-size="14" font-weight="700" fill="#64748b" letter-spacing="1.5">2 · SERVER DECIDES</text>
+  <text x="860" y="100" font-size="14" font-weight="700" fill="#64748b" letter-spacing="1.5">3 · EVERYONE SEES</text>
+
+  <!-- iPhone -->
+  <rect x="40" y="120" width="320" height="150" rx="18" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="64" y="156" font-size="20" font-weight="700" fill="#0f172a">iPhone</text>
+  <rect x="64" y="172" width="128" height="40" rx="10" fill="#fee2e2"/>
+  <text x="128" y="198" font-size="15" text-anchor="middle" fill="#991b1b" font-weight="600">Apple Health</text>
+  <rect x="210" y="172" width="128" height="40" rx="10" fill="#e0e7ff"/>
+  <text x="274" y="198" font-size="15" text-anchor="middle" fill="#3730a3" font-weight="600">Shortcut</text>
+  <path d="M192 192H206" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="64" y="244" font-size="14" fill="#475569">07:00 + 21:30 automations,</text>
+  <text x="64" y="262" font-size="14" fill="#475569">plus a 1-tap sync button</text>
+
+  <!-- Android -->
+  <rect x="40" y="300" width="320" height="150" rx="18" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="64" y="336" font-size="20" font-weight="700" fill="#0f172a">Android</text>
+  <rect x="64" y="352" width="128" height="40" rx="10" fill="#dcfce7"/>
+  <text x="128" y="378" font-size="15" text-anchor="middle" fill="#166534" font-weight="600">Health Connect</text>
+  <rect x="210" y="352" width="128" height="40" rx="10" fill="#e0e7ff"/>
+  <text x="274" y="378" font-size="15" text-anchor="middle" fill="#3730a3" font-weight="600">WorkManager</text>
+  <path d="M192 372H206" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="64" y="424" font-size="14" fill="#475569">Background sync every 3 h,</text>
+  <text x="64" y="442" font-size="14" fill="#475569">nightly ~23:30, and on app open</text>
+
+  <!-- Manual -->
+  <rect x="40" y="476" width="320" height="56" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="64" y="510" font-size="15" fill="#475569"><tspan font-weight="700" fill="#0f172a">Anyone:</tspan> manual entry on the /log page</text>
+
+  <!-- arrows to API -->
+  <path d="M360 195C410 195 410 250 450 250" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arr)"/>
+  <path d="M360 375C410 375 410 300 450 300" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arr)"/>
+  <path d="M360 504C420 504 430 340 455 330" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+
+  <!-- Server -->
+  <rect x="455" y="120" width="330" height="412" rx="20" fill="#0f172a"/>
+  <rect x="479" y="144" width="282" height="54" rx="12" fill="#134e4a"/>
+  <text x="620" y="169" font-size="17" text-anchor="middle" fill="#99f6e4" font-family="Consolas, Menlo, monospace" font-weight="700">POST /api/steps</text>
+  <text x="620" y="189" font-size="13" text-anchor="middle" fill="#5eead4">token check · validation · upsert</text>
+  <g font-size="15" fill="#e2e8f0">
+    <rect x="479" y="214" width="282" height="44" rx="10" fill="#1e293b"/>
+    <text x="499" y="242"><tspan font-family="Consolas, Menlo, monospace" fill="#fde047">calc.py</tspan>  tiers · streaks · badges</text>
+    <rect x="479" y="268" width="282" height="44" rx="10" fill="#1e293b"/>
+    <text x="499" y="296"><tspan font-family="Consolas, Menlo, monospace" fill="#fde047">data.py</tspan>  every SQL query lives here</text>
+    <rect x="479" y="322" width="282" height="44" rx="10" fill="#1e293b"/>
+    <text x="499" y="350"><tspan font-family="Consolas, Menlo, monospace" fill="#fde047">app.py</tspan>  website pages (Flask + Jinja)</text>
+  </g>
+  <path d="M620 372V398" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <!-- database cylinder -->
+  <g>
+    <rect x="545" y="410" width="150" height="80" fill="#0e7490"/>
+    <ellipse cx="620" cy="490" rx="75" ry="16" fill="#0e7490"/>
+    <ellipse cx="620" cy="410" rx="75" ry="16" fill="#22d3ee"/>
+    <text x="620" y="462" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">SQLite</text>
+  </g>
+  <text x="620" y="525" text-anchor="middle" font-size="12" fill="#94a3b8">clock locked to Asia/Dubai · Mon–Sun weeks</text>
+
+  <!-- arrow to website -->
+  <path d="M785 326H850" stroke="#475569" stroke-width="2.5" marker-end="url(#arr)"/>
+
+  <!-- Website -->
+  <rect x="860" y="120" width="300" height="412" rx="20" fill="#ffffff" stroke="#14b8a6" stroke-width="3"/>
+  <text x="884" y="158" font-size="20" font-weight="700" fill="#0f172a">The website</text>
+  <g font-size="15" fill="#334155">
+    <text x="884" y="192">• Dashboard + progress ring</text>
+    <text x="884" y="218">• 5 live leaderboards</text>
+    <text x="884" y="244">• School challenges</text>
+    <text x="884" y="270">• Weekly Wrap-Up</text>
+    <text x="884" y="296">• Badges + avatars</text>
+    <text x="884" y="322">• Admin tools</text>
+  </g>
+  <text x="884" y="364" font-size="14" font-weight="700" fill="#64748b" letter-spacing="1">OPENS AS</text>
+  <rect x="884" y="378" width="252" height="40" rx="10" fill="#dcfce7"/>
+  <text x="1010" y="404" text-anchor="middle" font-size="15" fill="#166534" font-weight="600">Android app (WebView)</text>
+  <rect x="884" y="426" width="252" height="40" rx="10" fill="#fee2e2"/>
+  <text x="1010" y="452" text-anchor="middle" font-size="15" fill="#991b1b" font-weight="600">iPhone Home Screen app (PWA)</text>
+  <rect x="884" y="474" width="252" height="40" rx="10" fill="#f1f5f9"/>
+  <text x="1010" y="500" text-anchor="middle" font-size="15" fill="#334155" font-weight="600">Any browser</text>
+</svg>

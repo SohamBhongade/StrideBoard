@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" width="1200" height="430" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="430" rx="24" fill="#f8fafc"/>
+  <text x="40" y="52" font-size="26" font-weight="700" fill="#0f172a">The weekly game loop</text>
+  <text x="40" y="80" font-size="16" fill="#64748b">Four stages, repeated every Monday-to-Sunday week</text>
+
+  <!-- Stage cards -->
+  <g>
+    <rect x="40" y="110" width="250" height="220" rx="20" fill="#ffffff" stroke="#0ea5e9" stroke-width="3"/>
+    <circle cx="80" cy="150" r="22" fill="#0ea5e9"/>
+    <text x="80" y="157" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">1</text>
+    <text x="114" y="158" font-size="21" font-weight="700" fill="#0f172a">Set the goal</text>
+    <g font-size="15" fill="#475569">
+      <text x="64" y="200">Personal daily goal from</text>
+      <text x="64" y="222">age band, then adapted to</text>
+      <text x="64" y="244">your own 14-day average.</text>
+      <text x="64" y="280">Dashboard shows goal,</text>
+      <text x="64" y="302">tier and why it matters.</text>
+    </g>
+  </g>
+  <g>
+    <rect x="330" y="110" width="250" height="220" rx="20" fill="#ffffff" stroke="#14b8a6" stroke-width="3"/>
+    <circle cx="370" cy="150" r="22" fill="#14b8a6"/>
+    <text x="370" y="157" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">2</text>
+    <text x="404" y="158" font-size="19" font-weight="700" fill="#0f172a">Move &amp; compete</text>
+    <g font-size="15" fill="#475569">
+      <text x="354" y="200">Steps sync from phones.</text>
+      <text x="354" y="222">Teacher, student,</text>
+      <text x="354" y="244">department, effort and</text>
+      <text x="354" y="266">improvement leaderboards,</text>
+      <text x="354" y="288">streaks and challenges.</text>
+    </g>
+  </g>
+  <g>
+    <rect x="620" y="110" width="250" height="220" rx="20" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>
+    <circle cx="660" cy="150" r="22" fill="#f59e0b"/>
+    <text x="660" y="157" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">3</text>
+    <text x="694" y="158" font-size="21" font-weight="700" fill="#0f172a">Level up</text>
+    <g font-size="15" fill="#475569">
+      <text x="644" y="200">Bronze → Silver → Gold</text>
+      <text x="644" y="222">→ Platinum each week.</text>
+      <text x="644" y="258">7 badges, each one</text>
+      <text x="644" y="280">unlocking a new avatar.</text>
+    </g>
+  </g>
+  <g>
+    <rect x="910" y="110" width="250" height="220" rx="20" fill="#ffffff" stroke="#a855f7" stroke-width="3"/>
+    <circle cx="950" cy="150" r="22" fill="#a855f7"/>
+    <text x="950" y="157" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">4</text>
+    <text x="984" y="158" font-size="21" font-weight="700" fill="#0f172a">Reflect</text>
+    <g font-size="15" fill="#475569">
+      <text x="934" y="200">Weekly Wrap-Up: change</text>
+      <text x="934" y="222">vs last week, tier change,</text>
+      <text x="934" y="244">best day, mood-vs-steps</text>
+      <text x="934" y="266">chart and a personal</text>
+      <text x="934" y="288">insight sentence.</text>
+    </g>
+  </g>
+
+  <!-- forward arrows -->
+  <path d="M292 220H326" stroke="#64748b" stroke-width="3" marker-end="url(#a)"/>
+  <path d="M582 220H616" stroke="#64748b" stroke-width="3" marker-end="url(#a)"/>
+  <path d="M872 220H906" stroke="#64748b" stroke-width="3" marker-end="url(#a)"/>
+  <!-- loop back -->
+  <path d="M1035 332V370Q1035 392 1013 392H187Q165 392 165 370V334" fill="none" stroke="#64748b" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#a)"/>
+  <rect x="490" y="378" width="220" height="30" rx="15" fill="#f8fafc"/>
+  <text x="600" y="399" text-anchor="middle" font-size="16" font-weight="600" fill="#334155">New week · new goal</text>
+</svg>
