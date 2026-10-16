@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">StrideBoard</string>
+
+    <!-- Main screen -->
+    <string name="offline_title">You\'re offline</string>
+    <string name="offline_body">StrideBoard couldn\'t load. Check your Wi-Fi or mobile data, then try again.</string>
+    <string name="try_again">Try again</string>
+
+    <!-- Setup screen -->
+    <string name="setup_title">Set up StrideBoard</string>
+    <string name="setup_intro">This app shows the StrideBoard website and sends your daily step totals to it automatically.</string>
+    <string name="step1_label">1. Website address</string>
+    <string name="server_hint">sohambhongade.pythonanywhere.com</string>
+    <string name="step2_label">2. Your token</string>
+    <string name="step2_help">Log in on the website, open Settings, and copy your token. Tip: tap \"Open StrideBoard\" below to log in, then tap the bar at the top of the website to come back here.</string>
+    <string name="token_hint">Paste your token here</string>
+    <string name="step3_label">3. Step access</string>
+    <string name="allow_steps">Allow step access</string>
+    <string name="open_hc">Open Health Connect</string>
+    <string name="step4_label">4. Sync</string>
+    <string name="sync_now">Sync now</string>
+    <string name="open_site">Open StrideBoard</string>
+    <string name="privacy_link">What does this app read? (Privacy)</string>
+
+    <!-- Privacy screen -->
+    <string name="privacy_title">Privacy</string>
+    <string name="privacy_body">StrideBoard reads only one kind of health data: your total number of steps for yesterday and today, from Health Connect.\n\nIt sends those daily totals, with the date and your personal StrideBoard token, to your school\'s StrideBoard website, where they appear on your dashboard and the leaderboards.\n\nIt does not read your location, heart rate, sleep, workouts or any other health data, and it never writes anything into Health Connect. Your data is not sold or shared with anyone outside the StrideBoard website.\n\nYou can stop it at any time: open Health Connect → App permissions → StrideBoard and turn Steps off, or uninstall the app. To delete step history that was already sent, ask your StrideBoard admin.</string>
+    <string name="close">Close</string>
+</resources>

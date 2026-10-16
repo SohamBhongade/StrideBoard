@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Challenges{% endblock %}
+{% block content %}
+
+{{ m.page_head("School", "challenges", "Every step you take adds to the whole school's total.") }}
+
+{% if challenges %}
+<div class="row row-even" style="margin-top:0; align-items:start">
+  {% for c in challenges %}
+  <section class="card {{ 'card-blue' if c.kind == 'school_distance' else 'card-peri' }}" aria-labelledby="ch-{{ c.id }}">
+    <div class="challenge-head">
+      <span class="icon-circle">{{ m.icon('mountain' if c.kind == 'school_distance' else 'users') }}</span>
+      <div style="flex:1;min-width:0">
+        <h2 id="ch-{{ c.id }}">{{ c.title }}</h2>
+        <p class="small muted">{{ c.start_date|nice_date }} to {{ c.end_date|nice_date }}</p>
+      </div>
+      <span class="chip chip-dark">
+        {% if c.days_left > 1 %}{{ c.days_left }} days left{% elif c.days_left == 1 %}Last day tomorrow{% elif c.days_left == 0 %}Last day!{% else %}Ended{% endif %}
+      </span>
+    </div>
+    {% if c.description %}<p>{{ c.description }}</p>{% endif %}
+
+    {% if c.kind == 'school_distance' %}
+      <div class="km"><strong>{{ c.km }}</strong><span class="muted">km of {{ c.target_km }} km</span></div>
+      {% set pct = c.percent or 0 %}
+      <div class="bar" role="img" aria-label="{{ pct }}% complete"><span style="--w: {{ pct }}%; background: var(--ink)"></span></div>
+      <div class="bar-labels muted"><span>{% if pct >= 100 %}Goal reached!{% else %}{{ pct }}% there{% endif %}</span><span>{{ c.total_steps|num }} steps together</span></div>
+    {% else %}
+      <div class="inner">
+        <p class="label-text" style="margin-bottom:10px">Average steps per member</p>
+        {% if c.standings %}
+        <ol class="rank-list">
+          {% for s in c.standings[:5] %}
+          <li class="rank-row rank-{{ loop.index }}{% if s.department == user.department %} me{% endif %}" style="background:var(--soft)">
+            <span class="rank-num">{{ loop.index }}</span>
+            <span class="rank-who"><strong>{{ s.department }}{% if s.department == user.department %} (yours){% endif %}</strong></span>
+            <span class="rank-val">{{ s.label or (s.value|num) }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}
+          <p class="muted">No steps yet. The first class to move takes the lead!</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% else %}
+<section class="card card-soft">
+  {{ m.empty("No challenges right now", "Your school will start one soon. Keep moving so you're ready!", "flag") }}
+</section>
+{% endif %}
+{% endblock %}

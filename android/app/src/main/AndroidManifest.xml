@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Talk to the StrideBoard server -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Health Connect: read step counts only (nothing else) -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <!-- Lets the sync keep working while the app is closed (phones that support it) -->
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
+
+    <!-- Needed so the app can find the Health Connect app on Android 13 and lower -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+
+    <!--
+      allowBackup="false": the token is a password, so it must not be copied into cloud backups.
+      usesCleartextTraffic comes from build.gradle.kts: true in debug builds (laptop testing over
+      http), false in release builds (HTTPS only).
+      If your theme has a different name, change android:theme to match res/values/themes.xml.
+    -->
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="StrideBoard"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.StrideBoard"
+        android:usesCleartextTraffic="${usesCleartextTraffic}">
+
+        <!-- Main screen: the website in a WebView. Opens the setup screen on first run. -->
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Setup screen: website address, token, step permission, sync status -->
+        <activity
+            android:name=".SetupActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Privacy screen. Health Connect opens this when the user asks why we need steps. -->
+        <activity
+            android:name=".PrivacyActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Android 14+ uses this alias to show the same privacy screen from system settings -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity=".PrivacyActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
+    </application>
+</manifest>

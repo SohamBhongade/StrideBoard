@@ -1,0 +1,123 @@
+{% import "_macros.html" as m with context %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}StrideBoard{% endblock %} · StrideBoard</title>
+  <meta name="description" content="Move more in the school day: steps, leaderboards, tiers and a weekly wrap-up.">
+
+  {# PWA: installable on iPhone (Add to Home Screen) and Android #}
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#C9DCCC">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="StrideBoard">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ ASSET_VERSION }}">
+  <script>
+    // Intro animations (counting numbers, filling bars) play only the first time
+    // a page is opened in this tab. Coming back to it, or saving a form, shows it
+    // straight away instead of replaying everything.
+    (function () {
+      var key = "sb_seen:" + location.pathname + location.search;
+      try {
+        if (sessionStorage.getItem(key)) document.documentElement.classList.add("no-intro");
+        else sessionStorage.setItem(key, "1");
+      } catch (e) { /* storage blocked: just play the animations */ }
+    })();
+  </script>
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+{%- macro nav_link(endpoint, label, icon_name) -%}
+  <a href="{{ url_for(endpoint) }}" class="side-link{% if request.endpoint == endpoint %} active{% endif %}"
+     {% if request.endpoint == endpoint %}aria-current="page"{% endif %} aria-label="{{ label }}" title="{{ label }}">
+    {{ m.icon(icon_name) }}
+  </a>
+{%- endmacro -%}
+
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="app{% if not user %} app-solo{% endif %}">
+  {% if user %}
+  <nav class="side" aria-label="Main">
+    <a href="{{ url_for('dashboard') }}" class="side-logo" aria-label="StrideBoard home">{{ m.logo(38) }}</a>
+    {{ nav_link('dashboard', 'Dashboard', 'home') }}
+    {{ nav_link('log', 'Log steps, mood and water', 'plus') }}
+    {{ nav_link('leaderboard', 'Leaderboards', 'trophy') }}
+    {{ nav_link('challenges', 'Challenges', 'flag') }}
+    {{ nav_link('insights', 'Weekly Wrap-Up', 'chart') }}
+    <span class="side-spacer"></span>
+    {% if user.role == 'admin' %}{{ nav_link('admin', 'Admin', 'users') }}{% endif %}
+    {{ nav_link('settings', 'Settings', 'gear') }}
+    <a href="{{ url_for('logout') }}" class="side-link" aria-label="Log out" title="Log out">{{ m.icon('logout') }}</a>
+    <a href="{{ url_for('settings') }}" class="avatar" aria-label="Your settings ({{ user.display_name }})">{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 52) }}</a>
+  </nav>
+  {% endif %}
+
+  <main class="main" id="main">
+    {% if user %}
+    {# Phone-only top bar: logo, admin, settings (the sidebar is hidden on phones) #}
+    <div class="topbar">
+      <a href="{{ url_for('dashboard') }}" class="topbar-logo" aria-label="StrideBoard home">{{ m.logo(30) }}<span>StrideBoard</span></a>
+      <div class="topbar-actions">
+        {% if user.role == 'admin' %}<a href="{{ url_for('admin') }}" class="round-btn" aria-label="Admin">{{ m.icon('users', 20) }}</a>{% endif %}
+        <a href="{{ url_for('settings') }}" class="avatar-btn" aria-label="Settings">{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 44) }}</a>
+      </div>
+    </div>
+    {% endif %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flashes" role="status">
+        {% for cat, msg in messages %}
+        <p class="flash flash-{{ cat }}">{{ m.icon('star' if cat == 'badge' else ('info' if cat == 'error' else 'check'), 20) }}<span>{{ msg }}</span></p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    {% if user %}
+    {# In-site reminders, shown by app.js. Hidden until due. #}
+    <div class="nudge nudge-pink" id="stand-nudge" data-minutes="{{ STAND_MINUTES }}" hidden>
+      <span class="icon-circle">{{ m.icon('stand') }}</span>
+      <div class="nudge-text"><strong>Time to stand up</strong><span>Stretch or walk for 2 minutes. Your body will thank you.</span></div>
+      <button type="button" class="btn btn-dark btn-sm" data-dismiss-stand>Done</button>
+    </div>
+    <div class="nudge nudge-blue" id="ios-hint" hidden>
+      <span class="icon-circle">{{ m.icon('share') }}</span>
+      <div class="nudge-text"><strong>Add StrideBoard to your Home Screen</strong><span>In Safari, tap Share, then "Add to Home Screen".</span></div>
+      <button type="button" class="btn btn-outline btn-sm" data-dismiss-ios>Got it</button>
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+    <footer class="footer">
+      <p>Goals are general suggestions, not medical advice.</p>
+    </footer>
+  </main>
+</div>
+
+{% if user %}
+{# Phone navigation (the sidebar is hidden on small screens) #}
+<nav class="bottom-nav" aria-label="Main">
+  {% for ep, label, ic in [('dashboard','Home','home'), ('log','Log','plus'), ('leaderboard','Ranks','trophy'), ('challenges','Challenges','flag'), ('insights','Wrap-Up','chart')] %}
+  <a href="{{ url_for(ep) }}" class="{% if request.endpoint == ep %}active{% endif %}" {% if request.endpoint == ep %}aria-current="page"{% endif %}>
+    {{ m.icon(ic, 22) }}<span>{{ label }}</span>
+  </a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/app.js') }}?v={{ ASSET_VERSION }}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

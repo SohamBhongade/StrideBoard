@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Leaderboards{% endblock %}
+{% block content %}
+
+{{ m.page_head("This week's", "leaderboards", "Monday to Sunday. Resets every Monday, so everyone gets a fresh start.") }}
+
+<nav class="pills" aria-label="Leaderboard view">
+  {% for key, label in views %}
+  <a class="pill{% if key == view %} active{% endif %}" href="{{ url_for('leaderboard', view=key) }}"
+     {% if key == view %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+
+{% set explain = {
+  'student': 'Total steps this week.',
+  'teacher': 'Total steps this week.',
+  'department': 'Average weekly steps per member. Members with no steps count as 0, so get everyone moving!',
+  'effort': 'Percent of your own weekly goal. Fair for everyone, whatever your goal.',
+  'improvement': 'Change compared with last week.'
+} %}
+
+{% macro is_me(r) -%}
+{{ 'me' if (r.user_id and r.user_id == user.id) or (r.user_id is none and r.name == user.department) }}
+{%- endmacro %}
+
+<section class="card card-soft" aria-labelledby="board-h">
+  <div class="card-title-row">
+    <h2 id="board-h" class="card-title">{{ view_name }}</h2>
+    <span class="muted small right">{{ explain[view] }}</span>
+  </div>
+
+  {% if rows %}
+    {% if rows|length >= 3 %}
+    <div class="podium" aria-hidden="true">
+      {% for i in [1, 0, 2] %}{% set r = rows[i] %}
+      <div class="podium-spot podium-{{ r.rank }}">
+        {% if r.user_id %}{{ m.avatar(r.name, r.avatar, r.avatar_color, 52) }}{% endif %}
+        <span class="podium-name">{{ r.name }}</span>
+        <div class="podium-block"><strong>{{ r.rank }}</strong><span>{{ r.label or (r.value|num) }}</span></div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <ol class="rank-list">
+      {% for r in rows %}
+      {% set me = is_me(r) %}
+      <li class="rank-row rank-{{ r.rank }} {{ me }}">
+        <span class="rank-num">{{ r.rank }}</span>
+        {% if r.user_id %}{{ m.avatar(r.name, r.avatar, r.avatar_color, 40) }}{% endif %}
+        <span class="rank-who"><strong>{{ r.name }}{% if me %} ({{ 'yours' if r.user_id is none else 'you' }}){% endif %}</strong><span>{{ r.department }}</span></span>
+        <span class="rank-val">{{ r.label or (r.value|num) }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    {{ m.empty("No steps yet this week", "Once people's phones sync, this board fills up. Be the first!", "trophy") }}
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/page_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_title"
+            android:textColor="@color/brand_dark"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/setup_intro"
+            android:textColor="@color/text_soft"
+            android:textSize="15sp" />
+
+        <!-- 1. Website address -->
+        <TextView
+            style="@style/SetupLabel"
+            android:text="@string/step1_label" />
+
+        <EditText
+            android:id="@+id/server_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/server_hint"
+            android:importantForAutofill="no"
+            android:inputType="textUri"
+            android:minHeight="48dp" />
+
+        <!-- 2. Token -->
+        <TextView
+            style="@style/SetupLabel"
+            android:text="@string/step2_label" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/step2_help"
+            android:textColor="@color/text_soft"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/token_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:hint="@string/token_hint"
+            android:importantForAutofill="no"
+            android:inputType="textPassword"
+            android:minHeight="48dp" />
+
+        <!-- 3. Step access -->
+        <TextView
+            style="@style/SetupLabel"
+            android:text="@string/step3_label" />
+
+        <TextView
+            android:id="@+id/hc_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_main"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/allow_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/allow_steps" />
+
+        <Button
+            android:id="@+id/hc_settings_button"
+            style="@android:style/Widget.Material.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/open_hc"
+            android:visibility="gone" />
+
+        <!-- 4. Sync -->
+        <TextView
+            style="@style/SetupLabel"
+            android:text="@string/step4_label" />
+
+        <Button
+            android:id="@+id/sync_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/sync_now" />
+
+        <TextView
+            android:id="@+id/last_sync"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/text_main"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/open_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:backgroundTint="@color/brand"
+            android:text="@string/open_site"
+            android:textColor="#FFFFFF" />
+
+        <TextView
+            android:id="@+id/privacy_link"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:minHeight="48dp"
+            android:gravity="center"
+            android:text="@string/privacy_link"
+            android:textColor="@color/brand"
+            android:textSize="15sp" />
+    </LinearLayout>
+</ScrollView>

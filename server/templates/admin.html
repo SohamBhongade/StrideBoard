@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+
+{{ m.page_head("School", "admin", "Add people, run challenges and see the impact for the demo video.") }}
+
+{# ---- Impact stats ---- #}
+{% set before, during = stats.avg_before or 0, stats.avg_during or 0 %}
+<section class="card card-dark" aria-labelledby="impact-h">
+  <div class="card-head">
+    <span class="icon-circle" style="background:var(--ink-2);color:#fff">{{ m.icon('trend') }}</span>
+    <h2 id="impact-h">Wellbeing impact</h2>
+  </div>
+  <div class="stats four" style="color:var(--ink)">
+    <div class="stat">
+      <span class="label">Average daily steps</span>
+      <span class="value">{{ before|num }} → {{ during|num }}</span>
+      <span class="note {{ 'up' if during >= before else 'down' }}">
+        {% if before %}{{ '+' if during >= before }}{{ ((during - before) * 100 / before)|round|int }}% {% endif %}before vs during StrideBoard</span>
+    </div>
+    <div class="stat">
+      <span class="label">People hitting their goal</span>
+      <span class="value">{{ stats.users_hitting_goal|num }}</span>
+      <span class="note muted">this week</span>
+    </div>
+    <div class="stat">
+      <span class="label">Average mood</span>
+      <span class="value">{{ stats.mood_goal_days or '–' }} vs {{ stats.mood_other_days or '–' }}</span>
+      <span class="note muted">goal days vs other days (out of 5)</span>
+    </div>
+    <div class="stat">
+      <span class="label">Entries by source</span>
+      {% set by = stats.entries_by_source or {} %}
+      {% set total = by.values()|sum %}
+      {% for src, n in by.items() %}
+      <div class="bar-labels small" style="margin-top:4px"><span>{{ {'ios_shortcut': 'iPhone', 'android_app': 'Android', 'manual': 'By hand'}.get(src, src|capitalize) }}</span><span>{{ n|num }}</span></div>
+      <div class="bar" style="height:8px"><span style="--w: {{ (n * 100 / total)|round|int if total else 0 }}%; background: var(--ink)"></span></div>
+      {% else %}<span class="note muted">No entries yet</span>{% endfor %}
+    </div>
+  </div>
+  <p class="small muted">"Before" means days before each person joined StrideBoard.</p>
+</section>
+
+<div class="row row-even">
+
+  {# ---- Add users from CSV ---- #}
+  <section class="card card-soft" aria-labelledby="add-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('upload') }}</span>
+      <h2 id="add-h">Add people</h2>
+    </div>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="add_users">
+      <div class="field">
+        <label for="csv">Paste rows from a spreadsheet (CSV)</label>
+        <textarea class="input" id="csv" name="csv" spellcheck="false" required
+                  placeholder="username,display_name,role,department,age_band,pin&#10;sara_k,Sara K.,student,Grade 10A,teen_13_17,4821">{{ csv_text }}</textarea>
+        <span class="hint">Columns: username, display_name, role (student / teacher / admin), department, age_band, pin. A header row is fine.</span>
+      </div>
+      <button class="btn btn-dark" type="submit">{{ m.icon('plus', 18) }} Add people</button>
+    </form>
+    {% if result and result.errors %}
+    <div class="inner">
+      <p class="label-text">Rows that need fixing</p>
+      <ul class="small" style="margin:8px 0 0;padding-left:20px">
+        {% for e in result.errors %}<li>{{ e }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </section>
+
+  {# ---- Create a challenge ---- #}
+  <section class="card card-blue" aria-labelledby="new-ch-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('flag') }}</span>
+      <h2 id="new-ch-h">New challenge</h2>
+    </div>
+    <form method="post" class="form" id="challenge-form" data-per-day="{{ per_day }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="create_challenge">
+      <div class="field">
+        <label for="title">Title</label>
+        <input class="input" id="title" name="title" placeholder="Walk to Jebel Jais" required>
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <input class="input" id="description" name="description" placeholder="One short sentence">
+      </div>
+      <div class="field">
+        <label for="kind">Type</label>
+        <select class="input" id="kind" name="kind">
+          <option value="school_distance">Whole-school distance</option>
+          <option value="department">Class vs class (average steps)</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="start_date">Starts</label><input class="input" type="date" id="start_date" name="start_date" value="{{ start }}" required></div>
+        <div class="field"><label for="end_date">Ends</label><input class="input" type="date" id="end_date" name="end_date" value="{{ end }}" required></div>
+      </div>
+      <div class="field" data-distance-only>
+        <label for="target_steps">Target steps (whole school)</label>
+        <input class="input" id="target_steps" name="target_steps" inputmode="numeric" value="{{ suggested }}">
+        <span class="hint" id="target-hint">Suggested: active people × 7,000 × days = {{ suggested|num }} steps ({{ (suggested * 0.0007)|round(1) }} km).</span>
+      </div>
+      <button class="btn btn-dark" type="submit">{{ m.icon('plus', 18) }} Create challenge</button>
+    </form>
+  </section>
+</div>
+
+{# ---- Running challenges ---- #}
+<section class="card card-soft" style="margin-top:16px" aria-labelledby="running-h">
+  <h2 id="running-h" class="card-title">Running challenges</h2>
+  {% if challenges %}
+  <ul class="history">
+    {% for c in challenges %}
+    <li>
+      <span class="h-date"><strong>{{ c.title }}</strong><br><span class="small muted">{{ c.start_date|nice_date }} to {{ c.end_date|nice_date }} · {{ 'Distance' if c.kind == 'school_distance' else 'Class vs class' }}</span></span>
+      <form method="post" class="inline-form" data-confirm="Close &quot;{{ c.title }}&quot;? It will disappear from the Challenges page.">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="close_challenge">
+        <input type="hidden" name="challenge_id" value="{{ c.id }}">
+        <button class="btn btn-danger btn-sm" type="submit">Close</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    {{ m.empty("No challenges running", "Create one above to get the school moving together.", "flag") }}
+  {% endif %}
+</section>
+
+{# ---- Everyone ---- #}
+<section class="card card-soft" style="margin-top:16px" aria-labelledby="users-h">
+  <div class="card-title-row">
+    <h2 id="users-h" class="card-title">People</h2>
+    <span class="right muted">{{ users|length }} total</span>
+  </div>
+  {% if users %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Class / department</th><th>Age band</th><th>Daily goal</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr><td>{{ u.display_name }}</td><td>{{ u.username }}</td><td>{{ u.role|capitalize }}</td><td>{{ u.department }}</td>
+            <td>{{ age_labels.get(u.age_band, u.age_band) }}</td><td>{{ u.daily_goal|num }}{% if u.goal_is_custom %} (own){% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ m.empty("No one yet", "Paste a CSV above to add your first people.", "users") }}
+  {% endif %}
+</section>
+{% endblock %}

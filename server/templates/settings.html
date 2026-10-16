@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+
+{% call m.page_head("Your", "settings", me.display_name ~ " · @" ~ me.username ~ " · " ~ me.department) %}
+  <a class="btn btn-outline" href="{{ url_for('logout') }}">{{ m.icon('logout', 18) }} Log out</a>
+{% endcall %}
+
+<div class="row row-even" style="margin-top:0">
+
+  {# ---- Token: how the phone proves it's you ---- #}
+  <section class="card card-dark" aria-labelledby="token-h">
+    <div class="card-head">
+      <span class="icon-circle" style="background:var(--ink-2);color:#fff">{{ m.icon('phone') }}</span>
+      <h2 id="token-h">Phone token</h2>
+    </div>
+    <p class="muted">Your phone uses this to send your steps. Treat it like a password: never share it or post it.</p>
+    {% if me.api_token %}
+    <div class="token-box" style="color:var(--ink)">
+      <code id="token" data-token="{{ me.api_token }}" aria-live="polite">••••••••••••••••••••••••</code>
+      <button type="button" class="btn btn-outline btn-sm" data-toggle-token aria-controls="token">Show</button>
+      <button type="button" class="btn btn-dark btn-sm" data-copy="{{ me.api_token }}">{{ m.icon('copy', 17) }} Copy</button>
+    </div>
+    {% else %}
+    <p>No token yet. Make one below.</p>
+    {% endif %}
+    <form method="post" data-confirm="Make a new token? Your phone will stop syncing until you paste the new one into it.">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="new_token">
+      <button class="btn btn-light" type="submit">{{ m.icon('refresh', 18) }} Make new token</button>
+    </form>
+    <p class="small muted">Make a new one if you think someone else has seen it. The old one stops working straight away.</p>
+  </section>
+
+  {# ---- Goal and age band ---- #}
+  <section class="card card-peri" aria-labelledby="goal-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('flag') }}</span>
+      <h2 id="goal-h">Daily goal</h2>
+      <span class="chip chip-dark">{{ me.daily_goal|num }} steps</span>
+    </div>
+    <p class="small">
+      {% if me.goal_is_custom %}You set this goal yourself, so it stays fixed.
+      {% else %}Your goal adjusts every Monday once you have two weeks of steps: about 10% above your recent average.{% endif %}
+    </p>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="goal">
+      <div class="field">
+        <label for="goal">Set my own goal</label>
+        <input class="input input-big" id="goal" name="goal" inputmode="numeric" pattern="[0-9,]*" value="{{ me.daily_goal }}" required>
+        <span class="hint">Setting it here turns off the automatic goal.</span>
+      </div>
+      <button class="btn btn-dark" type="submit">Save goal</button>
+    </form>
+
+    <form method="post" class="form" style="margin-top:6px">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="age_band">
+      <div class="field">
+        <label for="age_band">Age band</label>
+        <select class="input" id="age_band" name="age_band">
+          {% for value, label in age_bands %}<option value="{{ value }}" {% if me.age_band == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <span class="hint">Used for your starting goal. We never ask your exact age.</span>
+      </div>
+      <button class="btn btn-outline" type="submit">Save age band</button>
+    </form>
+  </section>
+</div>
+
+{# ---- Avatar: emoji + colour, no photos (many users are minors) ---- #}
+<section class="card card-soft" aria-labelledby="avatar-h" style="margin-top:16px">
+  <div class="card-head">
+    <span data-av-preview>{{ m.avatar(me.display_name, me.avatar, me.avatar_color, 56) }}</span>
+    <h2 id="avatar-h">Your avatar</h2>
+  </div>
+  <p class="small muted">Shown next to your name on the leaderboards. Earn badges to unlock the special ones.</p>
+  <form method="post" class="form avatar-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="avatar">
+    <fieldset class="plain">
+      <legend class="label-text">Pick one</legend>
+      <div class="av-grid">
+        {% for o in avatar_options %}
+        <label class="av-choice{% if not o.unlocked %} locked{% endif %}"
+               title="{{ 'Unlock with the ' ~ o.badge_name ~ ' badge' if not o.unlocked else o.key|title }}">
+          <input type="radio" name="avatar" value="{{ o.key }}" required data-emoji="{{ o.emoji }}"
+                 {% if me.avatar == o.key %}checked{% endif %} {% if not o.unlocked %}disabled{% endif %}>
+          <span class="av-choice-emoji" aria-hidden="true">{{ o.emoji }}</span>
+          <span class="{{ 'av-lock' if not o.unlocked else 'visually-hidden' }}">{{ o.badge_name if not o.unlocked else o.key|title }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <fieldset class="plain">
+      <legend class="label-text">Background</legend>
+      <div class="swatches">
+        {% for c in AVATAR_COLORS %}
+        <label class="swatch av-{{ c }}">
+          <input type="radio" name="avatar_color" value="{{ c }}" {% if (me.avatar_color or 'peri') == c %}checked{% endif %}>
+          <span class="visually-hidden">{{ c|title }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <button class="btn btn-dark" type="submit">Save avatar</button>
+  </form>
+</section>
+
+{# ---- Phone setup (Agent 2): matches ios/README.md and android/README.md ---- #}
+<div class="row row-even">
+  <section class="card card-soft" aria-labelledby="ios-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('phone') }}</span>
+      <h2 id="ios-h">iPhone setup</h2>
+    </div>
+    <ol class="steps-list">
+      <li>Open the <strong>StrideBoard Sync</strong> Shortcut link from your teacher and tap <strong>Get Shortcut</strong>.</li>
+      <li>When it asks, paste your <strong>phone token</strong> (copy it above). For the server address, use <code>{{ server_url }}</code> (no slash at the end).</li>
+      <li>Run it once and tap <strong>Allow</strong> so it can read <strong>Steps</strong> from Health.</li>
+      <li>In Shortcuts, open <strong>Automation</strong> and add two daily automations, at <strong>07:00</strong> and <strong>21:30</strong>, that run StrideBoard Sync. Choose <strong>Run Immediately</strong>.</li>
+      <li>In Safari, open this site, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</li>
+      <li>Any time you want fresh numbers, tap <strong>Sync from Apple Health</strong> on your dashboard. (iPhones lock Health data while the phone is locked, so a timed run can miss; this button always works.)</li>
+    </ol>
+  </section>
+
+  <section class="card card-soft" aria-labelledby="android-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('phone') }}</span>
+      <h2 id="android-h">Android setup</h2>
+    </div>
+    <ol class="steps-list">
+      <li>Install the StrideBoard app file (APK) your teacher shares. Allow "install unknown apps" if asked.</li>
+      <li>Open it. For the website address, use <code>{{ server_url }}</code>, then paste your <strong>phone token</strong>.</li>
+      <li>Tap <strong>Allow step access</strong> and turn on <strong>Steps</strong> (and background access if offered).</li>
+      <li>Tap <strong>Sync now</strong>. You should see "Sent: Yesterday &hellip; Today &hellip;".</li>
+      <li>In your phone's Settings, set the StrideBoard app's battery use to <strong>Unrestricted</strong> so it keeps syncing in the background.</li>
+    </ol>
+  </section>
+</div>
+{% endblock %}

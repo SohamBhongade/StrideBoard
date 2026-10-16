@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Log{% endblock %}
+{% block content %}
+
+{{ m.page_head("Log your", "day", "Your phone sends steps automatically. Use this if it missed some.") }}
+
+<div class="row row-even" style="margin-top:0">
+
+  <section class="card card-peri" aria-labelledby="steps-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('foot') }}</span>
+      <h2 id="steps-h">Steps</h2>
+    </div>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="steps">
+      <div class="form-row">
+        <div class="field">
+          <label for="steps-date">Day</label>
+          <select class="input" id="steps-date" name="date">
+            {% for day in dates %}<option value="{{ day }}">{{ day|nice_date }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="steps">Steps that day</label>
+          <input class="input input-big" id="steps" name="steps" inputmode="numeric" pattern="[0-9,]*"
+                 placeholder="{{ d.daily_goal|num }}" autocomplete="off" required>
+        </div>
+      </div>
+      <p class="hint">Enter the day's total, not just the extra. It replaces what's saved for that day. Up to 100,000.</p>
+      <button class="btn btn-dark" type="submit">{{ m.icon('check', 18) }} Save steps</button>
+    </form>
+  </section>
+
+  <section class="card card-soft" aria-labelledby="recent-h">
+    <h2 id="recent-h" class="card-title">Last 7 days</h2>
+    {% if recent %}
+    <ul class="history">
+      {% for r in recent %}
+      <li>
+        <span class="h-date">{{ r.date|nice_date }}</span>
+        {% if r.goal_met %}<span class="chip" style="background:var(--peri-bg)">{{ m.icon('check', 15) }} Goal</span>{% endif %}
+        <span class="src">{{ {'ios_shortcut': 'iPhone', 'android_app': 'Android', 'manual': 'By hand'}.get(r.source, 'Other') }}</span>
+        <span class="h-steps">{{ r.steps|num }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      {{ m.empty("No steps yet this week", "Once your phone syncs, or you save steps here, they'll show up in this list.", "foot") }}
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid-3" style="margin-top:16px">
+
+  <section class="card card-soft" aria-labelledby="mood-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('smile') }}</span>
+      <h2 id="mood-h">Mood</h2>
+    </div>
+    <form method="post" class="form" style="gap:12px">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="mood">
+      <div class="field">
+        <label for="mood-date">Day</label>
+        <select class="input" id="mood-date" name="date">
+          {% for day in dates %}<option value="{{ day }}">{{ day|nice_date }}</option>{% endfor %}
+        </select>
+      </div>
+      <span class="label-text" id="mood-q">How did you feel?</span>
+      <div class="moods" role="group" aria-labelledby="mood-q">
+        {% for n, label in MOODS %}
+        <button class="mood-btn" type="submit" name="mood" value="{{ n }}" aria-pressed="false"><strong>{{ n }}</strong><span>{{ label }}</span></button>
+        {% endfor %}
+      </div>
+    </form>
+  </section>
+
+  <section class="card card-blue" aria-labelledby="water-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('glass') }}</span>
+      <h2 id="water-h">Water today</h2>
+    </div>
+    <div class="steps-top">
+      <div class="big-num"><strong>{{ d.water_today or 0 }}</strong><span>/ {{ water_target }} glasses</span></div>
+      <div class="stepper">
+        {% for change, label, ic, cls in [('minus', 'Remove a glass', 'minus', ''), ('plus', 'Add a glass', 'plus', 'dark')] %}
+        <form method="post" class="inline-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="water"><input type="hidden" name="change" value="{{ change }}">
+          <button class="icon-btn {{ cls }}" type="submit" aria-label="{{ label }}" {% if change == 'minus' and not d.water_today %}disabled{% endif %}>{{ m.icon(ic) }}</button>
+        </form>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="blocks blocks-8 blocks-blue" aria-hidden="true">
+      {% for i in range(water_target) %}<span class="block{% if i < (d.water_today or 0) %} on{% endif %}" style="--i: {{ i }}"></span>{% endfor %}
+    </div>
+  </section>
+
+  <section class="card card-pink" aria-labelledby="act-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('stand') }}</span>
+      <h2 id="act-h">Activity</h2>
+    </div>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="activity">
+      <div class="field">
+        <label for="act-type">What did you do?</label>
+        <select class="input" id="act-type" name="type">
+          {% for value, label in activity_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="act-min">Minutes</label>
+          <input class="input" id="act-min" name="minutes" inputmode="numeric" pattern="[0-9]*" placeholder="30" required>
+        </div>
+        <div class="field">
+          <label for="act-date">Day</label>
+          <select class="input" id="act-date" name="date">
+            {% for day in dates %}<option value="{{ day }}">{{ day|nice_date }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-dark" type="submit">{{ m.icon('plus', 18) }} Add activity</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

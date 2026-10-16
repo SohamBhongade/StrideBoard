@@ -1,0 +1,22 @@
+# never commit the database or secrets
+*.sqlite3
+*.db
+.env
+instance/
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Android build output and machine-specific files
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.apk
+*.jks
+*.keystore

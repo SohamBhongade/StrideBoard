@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="login-brand"><span class="mark">{{ m.logo(34) }}</span> StrideBoard</div>
+
+  <div>
+    <h1 class="hero"><span class="light">Every step</span> counts here.</h1>
+    <p class="muted hero-sub">Move more in the school day, climb the leaderboards and level up from Bronze to Platinum.</p>
+  </div>
+
+  <div class="login-tiles" aria-hidden="true">
+    <span style="background:var(--bronze)"></span><span style="background:var(--silver)"></span>
+    <span style="background:var(--gold)"></span><span style="background:var(--platinum)"></span>
+  </div>
+
+  <form method="post" class="card card-soft form" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="username">Username</label>
+      <input class="input" id="username" name="username" value="{{ username }}" autocomplete="username"
+             autocapitalize="none" autocorrect="off" spellcheck="false" required>
+    </div>
+    <div class="field">
+      <label for="pin">PIN</label>
+      <input class="input" id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
+      <span class="hint">Your teacher or the StrideBoard admin gives you your username and PIN.</span>
+    </div>
+    <button class="btn btn-dark btn-block" type="submit">Log in {{ m.icon('play', 16) }}</button>
+  </form>
+</div>
+{% endblock %}

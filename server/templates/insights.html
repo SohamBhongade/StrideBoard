@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Weekly Wrap-Up{% endblock %}
+{% block content %}
+
+{{ m.page_head("Weekly", "Wrap-Up", "Stage 4: look back at your week and how moving links to your mood.") }}
+
+{% if not w.this_week %}
+<section class="card card-soft">
+  {{ m.empty("No steps yet this week", "Your wrap-up appears as soon as your first steps of the week arrive.", "chart") }}
+</section>
+{% else %}
+
+<div class="row row-wide-left" style="margin-top:0">
+  <section class="card card-dark tier-{{ w.tier|lower }}" aria-labelledby="insight-h">
+    <div class="steps-top" style="align-items:flex-start">
+      <p id="insight-h" class="muted">This week's insight</p>
+      <span class="icon-circle" style="background:var(--ink-2);color:#fff">{{ m.icon('bulb') }}</span>
+    </div>
+    <p class="insight">{{ w.insight }}</p>
+    <div class="steps-top" style="margin-top:auto">
+      <span class="tier-tag">{{ m.icon('gem', 16) }} {{ w.tier }} this week</span>
+      <a class="btn btn-light btn-sm" href="{{ url_for('leaderboard') }}">Leaderboards</a>
+    </div>
+  </section>
+
+  <section class="card card-soft" aria-labelledby="sum-h">
+    <h2 id="sum-h" class="card-title">Your week</h2>
+    <div class="stats">
+      <div class="stat">
+        <span class="label">This week</span>
+        <span class="value">{{ w.this_week|num }}</span>
+        <span class="note muted">steps</span>
+      </div>
+      <div class="stat">
+        <span class="label">vs last week</span>
+        {% if w.change_percent is none %}
+          <span class="value">New</span><span class="note muted">no steps last week</span>
+        {% else %}
+          <span class="value {{ 'up' if w.change_percent >= 0 else 'down' }}">{{ '+' if w.change_percent > 0 }}{{ w.change_percent }}%</span>
+          <span class="note muted">{{ w.last_week|num }} last week</span>
+        {% endif %}
+      </div>
+      <div class="stat">
+        <span class="label">Tier</span>
+        <span class="value" style="font-size:24px">{{ w.last_tier }} → {{ w.tier }}</span>
+        <span class="note {{ 'up' if tier_up > 0 else ('down' if tier_up < 0 else 'muted') }}">
+          {% if tier_up > 0 %}Levelled up!{% elif tier_up < 0 %}One to win back{% else %}Holding steady{% endif %}</span>
+      </div>
+      <div class="stat">
+        <span class="label">Best day</span>
+        <span class="value" style="font-size:24px">{{ w.best_day.date|nice_date('day') }}</span>
+        <span class="note muted">{{ w.best_day.steps|num }} steps</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="card card-soft" style="margin-top:16px" aria-labelledby="chart-h">
+  <div class="card-title-row">
+    <h2 id="chart-h" class="card-title">Mood and steps</h2>
+    <span class="chip"><span class="dot" style="background:var(--blue)"></span>Steps</span>
+    <span class="chip"><span class="dot" style="background:#E58AAB"></span>Mood (1 to 5)</span>
+  </div>
+  <div class="inner">
+    <div class="chart-box">
+      <canvas id="moodChart" role="img" aria-label="Bar chart of steps per day with mood shown as a line. {% for i in range(chart.labels|length) %}{{ chart.labels[i] }}: {{ chart.steps[i]|num }} steps{% if chart.moods[i] %}, mood {{ chart.moods[i] }}{% endif %}. {% endfor %}"></canvas>
+    </div>
+  </div>
+  <p class="small muted">Days without a mood check-in show steps only. Check in on the dashboard to see more of the pattern.</p>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if w.this_week %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  // Chart data comes from data.weekly_wrapup(), passed safely with tojson.
+  window.STRIDE_CHART = {{ chart|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/wrapup.js') }}"></script>
+{% endif %}
+{% endblock %}

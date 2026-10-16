@@ -1,0 +1,27 @@
+{% import "_macros.html" as m with context %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Offline · StrideBoard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ ASSET_VERSION }}">
+</head>
+<body>
+  {# Cached by the service worker and shown when there is no internet. #}
+  <div class="app app-solo">
+    <main class="main">
+      <div class="login-wrap">
+        <div class="login-brand"><span class="mark">{{ m.logo(34) }}</span> StrideBoard</div>
+        <div class="card card-soft">
+          {{ m.empty("You're offline", "No internet right now. Your phone keeps counting steps and will sync them when you're back online.", "wifi-off") }}
+          <button class="btn btn-dark" type="button" onclick="location.reload()">Try again</button>
+        </div>
+      </div>
+      <footer class="footer">
+        <p>Goals are general suggestions, not medical advice.</p>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

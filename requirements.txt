@@ -1,0 +1,4 @@
+# Agent 1 (database)
+Flask>=3.0,<4
+tzdata>=2024.1      # time zone data, needed on Windows laptops
+pytest>=8           # only for running the tests

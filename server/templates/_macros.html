@@ -1,0 +1,82 @@
+{# Small reusable pieces: icons, page header, empty state. #}
+
+{% macro icon(name, size=22) -%}
+{%- set p = {
+  "home": '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
+  "plus": '<path d="M12 5v14M5 12h14"/>',
+  "minus": '<path d="M5 12h14"/>',
+  "trophy": '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>',
+  "flag": '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
+  "chart": '<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>',
+  "gear": '<path d="M10.3 3.2a1.8 1.8 0 0 1 3.4 0l.3 1a1.8 1.8 0 0 0 2.5 1l.9-.5a1.8 1.8 0 0 1 2.4 2.4l-.5.9a1.8 1.8 0 0 0 1 2.5l1 .3a1.8 1.8 0 0 1 0 3.4l-1 .3a1.8 1.8 0 0 0-1 2.5l.5.9a1.8 1.8 0 0 1-2.4 2.4l-.9-.5a1.8 1.8 0 0 0-2.5 1l-.3 1a1.8 1.8 0 0 1-3.4 0l-.3-1a1.8 1.8 0 0 0-2.5-1l-.9.5a1.8 1.8 0 0 1-2.4-2.4l.5-.9a1.8 1.8 0 0 0-1-2.5l-1-.3a1.8 1.8 0 0 1 0-3.4l1-.3a1.8 1.8 0 0 0 1-2.5l-.5-.9a1.8 1.8 0 0 1 2.4-2.4l.9.5a1.8 1.8 0 0 0 2.5-1z"/><circle cx="12" cy="12" r="3"/>',
+  "bulb": '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.8.6 1.1 1.3 1.1 2.2h5c0-.9.3-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',
+  "sliders": '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+  "logout": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
+  "foot": '<path d="M7 3c1.7 0 2.5 2 2.5 4.5S8.7 12 7 12 4.5 10 4.5 7.5 5.3 3 7 3z"/><path d="M4.8 15.5h4.4l-.4 2.5a2 2 0 0 1-3.6 0z"/><path d="M17 7c1.7 0 2.5 2 2.5 4.5S18.7 16 17 16s-2.5-2-2.5-4.5S15.3 7 17 7z"/><path d="M14.8 19.5h4.4"/>',
+  "glass": '<path d="M6 3h12l-1.6 16.2A2 2 0 0 1 14.4 21H9.6a2 2 0 0 1-2-1.8z"/><path d="M6.6 9h10.8"/>',
+  "flame": '<path d="M12 3c2 3 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-7.5z"/>',
+  "star": '<path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z"/>',
+  "calendar": '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  "trend": '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  "gem": '<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 18M15 3l-3 18"/>',
+  "lock": '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  "users": '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>',
+  "copy": '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  "refresh": '<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 21v-5h-5"/>',
+  "phone": '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
+  "check": '<path d="M4.5 12.5l5 5 10-11"/>',
+  "x": '<path d="M6 6l12 12M18 6L6 18"/>',
+  "play": '<path d="M7 4l12 8-12 8z"/>',
+  "mountain": '<path d="M3 20l6.5-11 4 6 2.5-3.5L21 20z"/><path d="M8 11.5l1.5 1 1.5-1"/>',
+  "stand": '<circle cx="12" cy="4.5" r="2"/><path d="M12 7.5v7M8 10.5l4-2 4 2M9.5 21l2.5-6.5 2.5 6.5"/>',
+  "smile": '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/>',
+  "spark": '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
+  "upload": '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
+  "share": '<path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 5 21h14a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 19 11h-1"/>',
+  "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  "wifi-off": '<path d="M3 3l18 18"/><path d="M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5-2.7M14 10.3A10 10 0 0 1 19 13M2 9.5a15 15 0 0 1 4.5-2.8M11 6a15 15 0 0 1 11 3.5"/><path d="M12 20h.01"/>'
+} -%}
+<svg class="icon" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ p.get(name, p["info"])|safe }}</svg>
+{%- endmacro %}
+
+{# The logo: three slanted bars, like strides. #}
+{% macro logo(size=40) -%}
+<svg width="{{ size }}" height="{{ (size * 0.85)|round|int }}" viewBox="0 0 40 34" aria-hidden="true"><rect x="5" y="9" width="7" height="23" rx="3.5" transform="skewX(-18)" fill="currentColor"/><rect x="17" y="2" width="7" height="30" rx="3.5" transform="skewX(-18)" fill="#A9B4F7"/><rect x="29" y="13" width="7" height="19" rx="3.5" transform="skewX(-18)" fill="currentColor"/></svg>
+{%- endmacro %}
+
+{# Big two-weight page title: light first word(s), bold last. #}
+{% macro page_head(light, bold, sub=None) -%}
+<header class="page-head">
+  <div>
+    <h1><span class="light">{{ light }}</span> {{ bold }}</h1>
+    {% if sub %}<p class="sub">{{ sub }}</p>{% endif %}
+  </div>
+  {% if caller %}<div class="head-actions">{{ caller() }}</div>{% endif %}
+</header>
+{%- endmacro %}
+
+{% macro empty(title, text, icon_name="info") -%}
+<div class="empty">
+  <span class="icon-circle">{{ icon(icon_name) }}</span>
+  <p class="empty-title">{{ title }}</p>
+  <p class="empty-text">{{ text }}</p>
+</div>
+{%- endmacro %}
+
+{# Medal for a tier, coloured with the tier's CSS class. #}
+{% macro medal(tier, size=56) -%}
+<svg class="medal tier-{{ tier|lower }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 56 56" aria-hidden="true"><path d="M17 3h9l4 15h-9z" fill="#A9B4F7"/><path d="M39 3h-9l-4 15h9z" fill="#F7CFDD"/><circle cx="28" cy="35" r="16" class="medal-fill"/><circle cx="28" cy="35" r="10" fill="none" stroke="rgba(23,24,28,.55)" stroke-width="2"/></svg>
+{%- endmacro %}
+
+{% macro badge_icon(key, earned=True) -%}
+{%- set b = BADGES.get(key, ("Badge", "star", "blue", "")) -%}
+<span class="badge-icon {{ 'tone-' ~ b[2] if earned else 'locked' }}">{{ icon(b[1] if earned else "lock", 26) }}</span>
+{%- endmacro %}
+
+{# A person's avatar: their chosen emoji on its colour, or else their first letter. #}
+{% macro avatar(name, key=None, color=None, size=40) -%}
+{%- set a = AVATARS.get(key) if key else none -%}
+<span class="av av-{{ color if color in AVATAR_COLORS else 'none' }}" style="--av: {{ size }}px" aria-hidden="true">
+  {%- if a %}<span class="av-emoji">{{ a[0] }}</span>{% else %}{{ (name or '?')[:1]|upper }}{% endif -%}
+</span>
+{%- endmacro %}

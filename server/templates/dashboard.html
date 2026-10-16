@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+{% call m.page_head("Hi,", user.display_name.split()[0], user.department ~ " · " ~ today_label) %}
+  <a class="btn btn-outline" href="{{ url_for('settings') }}">{{ m.icon('sliders', 18) }} Goal &amp; settings</a>
+  <a class="btn btn-soft" href="{{ url_for('log') }}">{{ m.icon('plus', 18) }} Log steps</a>
+{% endcall %}
+
+<div class="grid-3">
+
+  {# ---- Stage 1: the goal ---- #}
+  <section class="card card-peri" aria-labelledby="steps-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('foot') }}</span>
+      <h2 id="steps-h">Today's steps</h2>
+      <span class="chip chip-dark">{{ d.goal_percent }}% of goal</span>
+    </div>
+    <div class="steps-top">
+      <div class="big-num"><strong data-count="{{ d.today_steps }}">{{ d.today_steps|num }}</strong><span>/ {{ d.daily_goal|num }}</span></div>
+      {% set pct = [d.goal_percent, 100]|min %}
+      <div class="ring" role="img" aria-label="{{ d.goal_percent }}% of today's goal">
+        <svg width="92" height="92" viewBox="0 0 92 92">
+          <circle class="track" cx="46" cy="46" r="38" fill="none" stroke-width="10"/>
+          <circle class="fill" cx="46" cy="46" r="38" fill="none" stroke-width="10"
+                  stroke-dasharray="238.8" style="stroke-dashoffset: {{ (238.8 * (1 - pct / 100))|round(1) }}"/>
+        </svg>
+        <span class="ring-label">{% if d.goal_percent >= 100 %}{{ m.icon('check', 26) }}{% else %}{{ d.goal_percent }}%{% endif %}</span>
+      </div>
+    </div>
+    {% set on = [d.goal_percent // 10, 10]|min %}
+    <div class="blocks blocks-10" aria-hidden="true">
+      {% for i in range(10) %}<span class="block{% if i < on %} on{% endif %}" style="--i: {{ i }}"></span>{% endfor %}
+    </div>
+    {% if d.today_steps == 0 %}
+      <p class="small">No steps yet today. Your phone syncs them for you, or you can <a href="{{ url_for('log') }}">log them by hand</a>.</p>
+    {% elif d.goal_percent >= 100 %}
+      <p class="small"><strong>Goal reached!</strong> Anything extra still counts towards your weekly tier.</p>
+    {% else %}
+      <p class="small"><strong>{{ (d.daily_goal - d.today_steps)|num }} to go.</strong> Moving more is linked to better mood and sleep, and a walk between lessons all adds up.</p>
+    {% endif %}
+    {# iPhone only (shown by app.js): runs the "StrideBoard Sync" Shortcut, which reads
+       Apple Health and sends the steps. The name must match the Shortcut exactly. #}
+    <div class="ios-sync" data-ios-sync hidden>
+      <a class="btn btn-dark" href="shortcuts://run-shortcut?name=StrideBoard%20Sync">{{ m.icon('refresh', 18) }} Sync from Apple Health</a>
+      <p class="small muted">Runs your StrideBoard Sync Shortcut. When it finishes, tap the back arrow at the top left to come back. Not set up yet? See <a href="{{ url_for('settings') }}">Settings</a>.</p>
+    </div>
+  </section>
+
+  {# ---- Water ---- #}
+  <section class="card card-blue" aria-labelledby="water-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('glass') }}</span>
+      <h2 id="water-h">Water</h2>
+      <span class="chip chip-dark" data-water-chip>{% if d.water_today >= water_target %}Done for today{% else %}{{ water_target - d.water_today }} to go{% endif %}</span>
+    </div>
+    <div class="steps-top">
+      <div class="big-num"><strong data-water-count aria-live="polite">{{ d.water_today or 0 }}</strong><span>/ {{ water_target }} glasses</span></div>
+      <div class="stepper">
+        <form method="post" action="{{ url_for('log') }}" class="inline-form" data-quick="water">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="water"><input type="hidden" name="change" value="minus">
+          <input type="hidden" name="next" value="dashboard">
+          <button class="icon-btn" type="submit" aria-label="Remove a glass" data-water-minus {% if not d.water_today %}disabled{% endif %}>{{ m.icon('minus') }}</button>
+        </form>
+        <form method="post" action="{{ url_for('log') }}" class="inline-form" data-quick="water">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="water"><input type="hidden" name="change" value="plus">
+          <input type="hidden" name="next" value="dashboard">
+          <button class="icon-btn dark" type="submit" aria-label="Add a glass">{{ m.icon('plus') }}</button>
+        </form>
+      </div>
+    </div>
+    <div class="blocks blocks-8 blocks-blue" aria-hidden="true" data-water-blocks>
+      {% for i in range(water_target) %}<span class="block{% if i < (d.water_today or 0) %} on{% endif %}" style="--i: {{ i }}"></span>{% endfor %}
+    </div>
+    <p class="small">Tap + each time you finish a glass. A bottle on your desk makes it easy.</p>
+  </section>
+
+  {# ---- Stage 3: level up ---- #}
+  <section class="card card-dark tier-{{ d.tier|lower }}" aria-labelledby="tier-h">
+    <div class="steps-top" style="align-items:flex-start">
+      <div>
+        <p class="muted">Your tier this week</p>
+        <h2 id="tier-h" class="tier-name">{{ d.tier }}</h2>
+      </div>
+      {{ m.medal(d.tier, 60) }}
+    </div>
+    <p style="font-size:18px">{{ d.weekly_total|num }} steps this week.<br>
+      <span class="muted">{% if d.next_tier %}{{ d.steps_to_next_tier|num }} more to reach {{ d.next_tier }}.{% else %}Top tier! Keep it up to stay here.{% endif %}</span></p>
+    <div class="bar tier" role="img" aria-label="{{ tier_progress }}% of the way through {{ d.tier }}"><span style="--w: {{ tier_progress }}%"></span></div>
+    <div class="bar-labels muted">
+      {% for name, floor in TIERS %}{% if name == d.tier %}<span>{{ name }} {{ floor|num }}</span>{% endif %}{% endfor %}
+      {% if d.next_tier %}{% for name, floor in TIERS %}{% if name == d.next_tier %}<span>{{ name }} {{ floor|num }}</span>{% endif %}{% endfor %}{% endif %}
+    </div>
+    <a class="btn btn-light" href="{{ url_for('insights') }}" style="margin-top:auto">See your weekly wrap-up {{ m.icon('play', 15) }}</a>
+  </section>
+</div>
+
+<div class="row row-wide-left">
+
+  {# ---- Stage 2: move ---- #}
+  <section class="card card-soft" aria-labelledby="week-h">
+    <div class="card-title-row">
+      <h2 id="week-h" class="card-title">This week</h2>
+      <span class="chip"><span class="dot" style="background:var(--peri)"></span>Goal met</span>
+      <span class="chip"><span class="dot" style="background:var(--blue)"></span>Under goal</span>
+      <span class="chip right">{{ m.icon('flame', 17) }} {{ d.streak }}-day streak</span>
+    </div>
+    <div class="inner">
+      {% set any_steps = week|sum(attribute='steps') %}
+      <div class="week" role="img" aria-label="Steps per day this week: {% for day in week if not day.future %}{{ day.label }} {{ day.steps|num }}{{ ', ' if not loop.last }}{% endfor %}">
+        {% for day in week %}
+        <div class="week-col">
+          <div class="week-track">
+            {% if not day.future and day.steps %}
+            <div class="week-fill{% if day.met %} met{% endif %}" style="--h: {{ [day.percent, 6]|max }}%; --i: {{ loop.index0 }}">
+              {% if day.today %}<span class="tag">{{ day.real_percent }}%</span>{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          <span class="week-day{% if day.today %} today{% endif %}">{{ day.label }}</span>
+          <span class="week-steps">{% if day.future %}–{% else %}{{ day.steps|num }}{% endif %}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% if not any_steps %}
+      <p class="small muted">No steps yet this week. They'll appear here as your phone syncs.</p>
+    {% elif d.streak == 0 %}
+      <p class="small">Hit {{ d.daily_goal|num }} steps today to start a streak.</p>
+    {% else %}
+      <p class="small">You've hit your goal {{ d.streak }} day{{ 's' if d.streak != 1 }} in a row. Keep the streak going!</p>
+    {% endif %}
+  </section>
+
+  {# ---- Check in: mood + reminders ---- #}
+  <section class="card card-soft" aria-labelledby="check-h">
+    <h2 id="check-h" class="card-title">Check in</h2>
+    <form method="post" action="{{ url_for('log') }}" class="inner form" style="gap:12px" data-quick="mood">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="mood"><input type="hidden" name="next" value="dashboard">
+      <p id="mood-q" style="font-weight:500;font-size:17px">How are you feeling today?</p>
+      <div class="moods" role="group" aria-labelledby="mood-q">
+        {% for n, label in MOODS %}
+        <button class="mood-btn" type="submit" name="mood" value="{{ n }}" aria-pressed="{{ 'true' if d.mood_today == n else 'false' }}">
+          <strong>{{ n }}</strong><span>{{ label }}</span>
+        </button>
+        {% endfor %}
+      </div>
+      <p class="small muted" data-mood-note>{% if d.mood_today %}Saved. Your wrap-up compares mood with your steps.{% else %}One tap. It helps you see how moving links to how you feel.{% endif %}</p>
+    </form>
+
+    {% if water_due %}
+    <div class="nudge nudge-blue" data-water-nudge>
+      <span class="icon-circle">{{ m.icon('glass') }}</span>
+      <div class="nudge-text"><strong>Water break</strong><span>You're on glass <span data-water-next>{{ (d.water_today or 0) + 1 }}</span> of {{ water_target }}. Refill at the next break.</span></div>
+    </div>
+    {% endif %}
+    <div class="nudge nudge-pink">
+      <span class="icon-circle">{{ m.icon('stand') }}</span>
+      <div class="nudge-text"><strong>Movement breaks</strong><span>While StrideBoard is open we'll remind you to stand up every {{ STAND_MINUTES }} minutes.</span></div>
+    </div>
+  </section>
+</div>
+
+<div class="row row-even">
+
+  {# ---- Leaderboard preview ---- #}
+  <section class="card card-soft" aria-labelledby="lb-h">
+    <div class="card-title-row">
+      <h2 id="lb-h" class="card-title">{{ 'Teacher' if preview_view == 'teacher' else 'Student' }} leaderboard</h2>
+      <a class="right" href="{{ url_for('leaderboard', view=preview_view) }}">See all</a>
+    </div>
+    {% if preview %}
+    <ol class="rank-list">
+      {% for r in preview %}
+      <li class="rank-row rank-{{ r.rank }}{% if r.user_id == user.id %} me{% endif %}">
+        <span class="rank-num">{{ r.rank }}</span>
+        {{ m.avatar(r.name, r.avatar, r.avatar_color, 40) }}
+        <span class="rank-who"><strong>{{ r.name }}{% if r.user_id == user.id %} (you){% endif %}</strong><span>{{ r.department }}</span></span>
+        <span class="rank-val">{{ r.label or (r.value|num) }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+      {{ m.empty("No one on the board yet", "Steps from this week will show up here.", "trophy") }}
+    {% endif %}
+  </section>
+
+  {# ---- Badges ---- #}
+  <section class="card card-soft" aria-labelledby="badges-h">
+    <div class="card-title-row">
+      <h2 id="badges-h" class="card-title">Badges</h2>
+      <span class="right muted">{{ d.badges|length }} of {{ BADGES|length }} earned</span>
+    </div>
+    <div class="badge-grid">
+      {% for b in badge_cards %}
+      <div class="badge-card{% if b.earned %} earned{% endif %}">
+        {{ m.badge_icon(b.key, b.earned) }}
+        <strong>{{ b.name }}</strong>
+        <span>{% if b.earned %}Earned {{ b.earned_on|nice_date }}{% else %}{{ b.how }}{% endif %}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}
