@@ -421,14 +421,7 @@ The suite covers week boundaries (Sunday night vs Monday morning), tier edges (e
 
 ---
 
-## 👥 Team
 
-| Member | Role |
-|---|---|
-| [Name] | Database, data layer, API and server |
-| [Name] | Website: design, pages, PWA |
-| [Name] | Phones: iPhone Shortcut and Android app |
-| [Mentor name] | Mentor |
 
 Built with AI coding assistants, as the competition category intends. The team planned the design, split the work into three parts with fixed interfaces, reviewed and tested the code, and ran it with real users.
 
