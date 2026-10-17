@@ -430,11 +430,13 @@ def _ranked(items):
     return out
 
 
-def _department_rows(conn, start, end):
+def _department_rows(conn, start, end, roles=PLAYER_ROLES):
     """Average steps per member for each department between two dates.
 
     Members with no steps count as 0, so big departments cannot hide inactive people.
+    roles limits it to teacher departments or student classes.
     """
+    marks = ",".join("?" * len(roles))
     rows = conn.execute(
         "SELECT u.department AS department, COUNT(*) AS members, "
         "COALESCE(SUM(w.total), 0) AS total, MAX(w.last_update) AS last_update "
@@ -442,9 +444,9 @@ def _department_rows(conn, start, end):
         "  SELECT user_id, SUM(steps) AS total, MAX(updated_at) AS last_update "
         "  FROM steps WHERE date BETWEEN ? AND ? GROUP BY user_id"
         ") w ON w.user_id = u.id "
-        "WHERE u.role IN ('teacher', 'student') AND u.department IS NOT NULL "
+        f"WHERE u.role IN ({marks}) AND u.department IS NOT NULL "
         "AND u.department <> '' GROUP BY u.department",
-        (_day(start), _day(end)),
+        (_day(start), _day(end), *roles),
     ).fetchall()
     items = []
     for r in rows:
@@ -456,16 +458,19 @@ def _department_rows(conn, start, end):
     return _ranked(items)
 
 
-def leaderboard(conn, view, today):
+def leaderboard(conn, view, today, role=None):
     """This week's ranking. view: teacher | student | department | effort | improvement.
 
     Rows: {"rank", "name", "department", "value", "label", "user_id",
            "avatar", "avatar_color"} (avatar fields are None for departments).
     Only display name, department and the value are shown; admins never appear.
     People with no steps this week are left off the person boards.
+    role ("student" or "teacher") keeps the department, effort and improvement
+    boards to that group only; None (admins) includes both.
     """
     today = calc.to_date(today)
     monday, sunday = calc.week_bounds(today)
+    roles = (role,) if role in PLAYER_ROLES else PLAYER_ROLES
     items = []
 
     if view in ("teacher", "student"):
@@ -477,11 +482,11 @@ def leaderboard(conn, view, today):
                           "_last": p["last_update"], "_tiebreak": p["id"]})
 
     elif view == "department":
-        return _department_rows(conn, monday, sunday)
+        return _department_rows(conn, monday, sunday, roles)
 
     elif view == "effort":
         # % of their own weekly goal (daily goal x 7): fair for every age and fitness level
-        for p in _player_totals(conn, monday, sunday).values():
+        for p in _player_totals(conn, monday, sunday, roles).values():
             ratio = p["total"] / (p["daily_goal"] * 7) * 100
             items.append({"name": p["display_name"], "department": p["department"],
                           "value": round(ratio), "label": f"{round(ratio)}% of weekly goal",
@@ -491,8 +496,8 @@ def leaderboard(conn, view, today):
 
     elif view == "improvement":
         # Fair mid-week: compare Monday-to-today with the same days last week.
-        this_week = _player_totals(conn, monday, today)
-        last_week = _player_totals(conn, monday - timedelta(days=7), today - timedelta(days=7))
+        this_week = _player_totals(conn, monday, today, roles)
+        last_week = _player_totals(conn, monday - timedelta(days=7), today - timedelta(days=7), roles)
         for uid, p in this_week.items():
             before = last_week.get(uid, {}).get("total", 0)
             if before < config.IMPROVEMENT_MIN_LAST_WEEK:
@@ -578,9 +583,15 @@ def weekly_wrapup(conn, user_id, today):
 # Challenges
 # =====================================================================
 
-def active_challenges(conn, today):
-    """Open challenges (not closed, not finished), with progress so far."""
+def active_challenges(conn, today, role=None):
+    """Open challenges (not closed, not finished), with progress so far.
+
+    role ("student" or "teacher") keeps the department standings to that group
+    (student classes or teacher departments); None (admins) includes both.
+    The distance total stays school-wide, since the target is set for everyone.
+    """
     today = calc.to_date(today)
+    roles = (role,) if role in PLAYER_ROLES else PLAYER_ROLES
     rows = conn.execute(
         "SELECT * FROM challenges WHERE active = 1 AND end_date >= ? ORDER BY start_date, id",
         (today.isoformat(),),
@@ -600,7 +611,7 @@ def active_challenges(conn, today):
             ).fetchone()[0]
             standings = [{"rank": d["rank"], "department": d["department"],
                           "value": d["value"], "label": d["label"]}
-                         for d in _department_rows(conn, start, end)]
+                         for d in _department_rows(conn, start, end, roles)]
         target = c["target_steps"]
         out.append({
             "id": c["id"], "title": c["title"], "description": c["description"],
