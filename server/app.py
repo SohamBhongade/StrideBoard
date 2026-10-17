@@ -247,14 +247,24 @@ def add_routes(app):
     # ---------- Leaderboards
     @app.route("/leaderboard")
     def leaderboard():
-        views = dict(LEADERBOARD_VIEWS)
-        default = g.user["role"] if g.user["role"] in views else "student"
+        # Students only see student boards and teachers only see teacher boards;
+        # admins see everything.
+        role = g.user["role"] if g.user["role"] in ("student", "teacher") else None
+        if role:
+            other = "teacher" if role == "student" else "student"
+            group = "Classes" if role == "student" else "Departments"
+            allowed = [(k, group if k == "department" else label)
+                       for k, label in LEADERBOARD_VIEWS if k != other]
+        else:
+            allowed = LEADERBOARD_VIEWS
+        views = dict(allowed)
+        default = role or "student"
         view = request.args.get("view", default)
         if view not in views:
             view = default
-        rows = data.leaderboard(db.get_db(), view, today())
+        rows = data.leaderboard(db.get_db(), view, today(), role=role)
         return render_template("leaderboard.html", rows=rows, view=view,
-                               views=LEADERBOARD_VIEWS, view_name=views[view])
+                               views=allowed, view_name=views[view])
 
     # ---------- Stage 4: Weekly Wrap-Up
     @app.route("/insights")
@@ -271,7 +281,8 @@ def add_routes(app):
     # ---------- Challenges
     @app.route("/challenges")
     def challenges():
-        items = data.active_challenges(db.get_db(), today())
+        role = g.user["role"] if g.user["role"] in ("student", "teacher") else None
+        items = data.active_challenges(db.get_db(), today(), role=role)
         t = datetime.now(TZ).date()
         for c in items:  # add "days left" for display
             end = datetime.strptime(c["end_date"], "%Y-%m-%d").date()
