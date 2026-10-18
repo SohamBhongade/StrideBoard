@@ -1,0 +1,54 @@
+# Builds the StrideBoard Android app (APK) on GitHub's computers and puts it on the
+# repo's Releases page as "StrideBoard.apk", ready to download and share.
+# Runs whenever the android/ folder changes, or by hand from the Actions tab.
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, android-apk-build]
+    paths: ["android/**", ".github/workflows/android-apk.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to publish the APK on the Releases page
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Accept the Android SDK licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Build the APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace --no-daemon 2>&1 | tee build-log.txt
+
+      - name: Publish StrideBoard.apk on the Releases page
+        run: |
+          cp app/build/outputs/apk/release/*.apk StrideBoard.apk
+          gh release view android-latest > /dev/null 2>&1 || \
+            gh release create android-latest --prerelease --target "$GITHUB_SHA" \
+              --title "StrideBoard Android app (latest build)" \
+              --notes "Install StrideBoard.apk on an Android phone. Allow 'install unknown apps' if asked. Built automatically from the android folder."
+          gh release upload android-latest StrideBoard.apk --clobber
+
+      - name: If the build failed, publish the build log so it can be read
+        if: failure()
+        run: |
+          gh release view android-build-log > /dev/null 2>&1 || \
+            gh release create android-build-log --prerelease --target "$GITHUB_SHA" \
+              --title "Android build log (last failed build)" --notes "Log from the last failed APK build."
+          gh release upload android-build-log build-log.txt --clobber
