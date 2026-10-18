@@ -44,6 +44,7 @@ jobs:
               --title "StrideBoard Android app (latest build)" \
               --notes "Install StrideBoard.apk on an Android phone. Allow 'install unknown apps' if asked. Built automatically from the android folder."
           gh release upload android-latest StrideBoard.apk --clobber
+          gh release edit android-latest --prerelease=false --latest
 
       - name: If the build failed, publish the build log so it can be read
         if: failure()
