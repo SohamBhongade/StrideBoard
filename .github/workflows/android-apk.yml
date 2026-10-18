@@ -40,7 +40,7 @@ jobs:
         run: |
           cp app/build/outputs/apk/release/*.apk StrideBoard.apk
           gh release view android-latest > /dev/null 2>&1 || \
-            gh release create android-latest --prerelease --target "$GITHUB_SHA" \
+            gh release create android-latest --latest --target "$GITHUB_SHA" \
               --title "StrideBoard Android app (latest build)" \
               --notes "Install StrideBoard.apk on an Android phone. Allow 'install unknown apps' if asked. Built automatically from the android folder."
           gh release upload android-latest StrideBoard.apk --clobber
