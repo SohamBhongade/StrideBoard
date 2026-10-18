@@ -344,7 +344,7 @@ button { cursor: pointer; }
 /* Ranked lists (leaderboards) */
 .rank-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .rank-row {
-  display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-height: 64px; padding: 10px 16px;
   background: var(--white); border-radius: 20px;
 }
 .rank-row.me { background: var(--peri-bg); outline: 1.5px solid var(--peri); }
@@ -355,10 +355,13 @@ button { cursor: pointer; }
 .rank-1 .rank-num { background: var(--gold); }
 .rank-2 .rank-num { background: var(--silver); }
 .rank-3 .rank-num { background: var(--bronze); }
-.rank-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rank-who { flex: 1 1 7em; min-width: min(7em, 100%); display: flex; flex-direction: column; }
 .rank-who strong { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rank-who span { font-size: 14px; color: var(--muted); }
-.rank-val { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rank-who span { font-size: 14px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* When a phone is too narrow (or its text is set large), the value moves onto its own
+   line under the name instead of covering it. */
+.rank-val { margin-left: auto; max-width: 100%; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 420px) { .rank-row { column-gap: 10px; padding: 10px 12px; } }
 
 /* Podium (top 3 on the leaderboard page) */
 .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end; margin-bottom: 14px; }
