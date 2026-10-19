@@ -44,7 +44,7 @@ WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like t
 STAND_MINUTES = 45  # in-site "time to stand up" reminder interval
 # Bump this (and VERSION in static/sw.js) whenever style.css or app.js change,
 # so phones load the new files instead of an old cached copy.
-ASSET_VERSION = "6"
+ASSET_VERSION = "7"
 
 PUBLIC_ENDPOINTS = {"login", "logout", "static", "offline", "service_worker"}
 
