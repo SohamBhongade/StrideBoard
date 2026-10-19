@@ -2,36 +2,9 @@
 {% block title %}Log{% endblock %}
 {% block content %}
 
-{{ m.page_head("Log your", "day", "Your phone sends steps automatically. Use this if it missed some.") }}
+{{ m.page_head("Log your", "day", "Your phone sends your steps automatically. Log your mood, water and activities here.") }}
 
-<div class="row row-even" style="margin-top:0">
-
-  <section class="card card-peri" aria-labelledby="steps-h">
-    <div class="card-head">
-      <span class="icon-circle">{{ m.icon('foot') }}</span>
-      <h2 id="steps-h">Steps</h2>
-    </div>
-    <form method="post" class="form">
-      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <input type="hidden" name="action" value="steps">
-      <div class="form-row">
-        <div class="field">
-          <label for="steps-date">Day</label>
-          <select class="input" id="steps-date" name="date">
-            {% for day in dates %}<option value="{{ day }}">{{ day|nice_date }}</option>{% endfor %}
-          </select>
-        </div>
-        <div class="field">
-          <label for="steps">Steps that day</label>
-          <input class="input input-big" id="steps" name="steps" inputmode="numeric" pattern="[0-9,]*"
-                 placeholder="{{ d.daily_goal|num }}" autocomplete="off" required>
-        </div>
-      </div>
-      <p class="hint">Enter the day's total, not just the extra. It replaces what's saved for that day. Up to 100,000.</p>
-      <button class="btn btn-dark" type="submit">{{ m.icon('check', 18) }} Save steps</button>
-    </form>
-  </section>
-
+<div class="row" style="margin-top:0">
   <section class="card card-soft" aria-labelledby="recent-h">
     <h2 id="recent-h" class="card-title">Last 7 days</h2>
     {% if recent %}
@@ -46,7 +19,7 @@
       {% endfor %}
     </ul>
     {% else %}
-      {{ m.empty("No steps yet this week", "Once your phone syncs, or you save steps here, they'll show up in this list.", "foot") }}
+      {{ m.empty("No steps yet this week", "Once your phone syncs, your steps show up in this list.", "foot") }}
     {% endif %}
   </section>
 </div>

@@ -44,7 +44,7 @@ WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like t
 STAND_MINUTES = 45  # in-site "time to stand up" reminder interval
 # Bump this (and VERSION in static/sw.js) whenever style.css or app.js change,
 # so phones load the new files instead of an old cached copy.
-ASSET_VERSION = "4"
+ASSET_VERSION = "6"
 
 PUBLIC_ENDPOINTS = {"login", "logout", "static", "offline", "service_worker"}
 
@@ -373,20 +373,13 @@ def add_routes(app):
 # ------------------------------------------------------------------ helpers
 
 def save_log_form(conn, uid, dates):
-    """Handle one of the small forms on /log or the dashboard."""
+    """Handle one of the small forms on /log or the dashboard (mood, water, activity)."""
     action = request.form.get("action")
     day = request.form.get("date") or today()
     if day not in dates:
         raise ValueError("you can only log today or the last 7 days")
-    if action == "steps":
-        steps = to_int(request.form.get("steps"), "steps")
-        if not 0 <= steps <= 100000:
-            raise ValueError("steps must be between 0 and 100,000")
-        r = data.save_steps(conn, uid, day, steps, "manual")
-        flash(f"Saved {steps:,} steps. This week: {r['weekly_total']:,} ({r['tier']}).", "ok")
-        for key in r.get("new_badges", []):
-            flash(f"New badge: {BADGES.get(key, (key,))[0]}!", "badge")
-    elif action == "mood":
+    # Steps are not typed in here: they come only from phones, through /api/steps.
+    if action == "mood":
         mood = to_int(request.form.get("mood"), "mood")
         if mood not in dict(MOODS):
             raise ValueError("mood must be 1 to 5")

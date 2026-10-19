@@ -239,7 +239,7 @@ Agent 3 can paste this onto `/settings` under the user's token. Replace the two 
 > 4. Tap **Sync now**, then **Open StrideBoard**.
 > 5. Samsung phones: in **Samsung Health → Settings → Health Connect**, allow Steps to be shared.
 >
-> **No automatic sync?** You can type your steps on the **Log** page each evening.
+> Steps can only come from a phone; there is no way to type them in on the website.
 
 **Optional for Agent 3:** the app adds `StrideBoardAndroid/1.0` to its browser user agent. The
 website can check for it, for example to hide the "Add to Home Screen" hint inside the app.
