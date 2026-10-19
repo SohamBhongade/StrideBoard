@@ -44,7 +44,7 @@ Health Connect ──(yesterday + today totals, Dubai days)──▶ app ──P
 - **When it syncs:**
   - in the background about **every 3 hours**, plus once **around 23:30** (only on phones that
     allow background reads; needs internet);
-  - every time the app is **opened** (at most once every 15 minutes), which covers phones
+  - every time the app is **opened** (at most once a minute), then refreshes the page, which covers phones
     without background reads;
   - when you tap **Sync now**.
 - Network problems are retried automatically (up to 3 times per run). A wrong token (401) or a

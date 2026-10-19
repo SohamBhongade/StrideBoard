@@ -134,17 +134,23 @@ class MainActivity : ComponentActivity() {
         offlineView.visibility = View.VISIBLE
     }
 
-    /** For phones without background reads: sync when the app opens, at most every 15 minutes. */
+    /**
+     * Sync whenever the app is opened (at most once a minute), then reload the page so the
+     * dashboard shows the steps that were just sent instead of the count from before.
+     */
     private suspend fun syncOnOpen() {
         val status = StepReader.status(this)
         stepsGranted = status.available && status.stepsGranted
         SyncScheduler.update(this, status.backgroundGranted)
-        val dueAt = Prefs.lastAttemptAt(this) + 15 * 60 * 1000L
+        val dueAt = Prefs.lastAttemptAt(this) + 60 * 1000L
         if (stepsGranted == true && !syncing && System.currentTimeMillis() >= dueAt) {
             syncing = true
             refreshBanner()
-            SyncRunner.run(this, inBackground = false)
+            val outcome = SyncRunner.run(this, inBackground = false)
             syncing = false
+            if (outcome == SyncOutcome.SUCCESS && offlineView.visibility != View.VISIBLE) {
+                webView.reload()
+            }
         }
         refreshBanner()
     }

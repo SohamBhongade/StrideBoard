@@ -166,7 +166,7 @@ class SetupActivity : ComponentActivity() {
                     "reading data in the background. Until then, steps sync each time you open the app."
             else ->
                 "Step access: allowed ✓\nThis phone doesn't support background reading, so steps sync " +
-                    "each time you open the app (at most every 15 minutes)."
+                    "each time you open the app."
         }
         allowButton.text = if (st.stepsGranted && (st.backgroundGranted || !st.backgroundSupported))
             "Step access allowed ✓" else "Allow step access"
