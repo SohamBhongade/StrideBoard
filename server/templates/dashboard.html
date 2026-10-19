@@ -4,7 +4,7 @@
 
 {% call m.page_head("Hi,", user.display_name.split()[0], user.department ~ " · " ~ today_label) %}
   <a class="btn btn-outline" href="{{ url_for('settings') }}">{{ m.icon('sliders', 18) }} Goal &amp; settings</a>
-  <a class="btn btn-soft" href="{{ url_for('log') }}">{{ m.icon('plus', 18) }} Log steps</a>
+  <a class="btn btn-soft" href="{{ url_for('log') }}">{{ m.icon('plus', 18) }} Log your day</a>
 {% endcall %}
 
 <div class="grid-3">
@@ -33,7 +33,7 @@
       {% for i in range(10) %}<span class="block{% if i < on %} on{% endif %}" style="--i: {{ i }}"></span>{% endfor %}
     </div>
     {% if d.today_steps == 0 %}
-      <p class="small">No steps yet today. Your phone syncs them for you, or you can <a href="{{ url_for('log') }}">log them by hand</a>.</p>
+      <p class="small">No steps yet today. Your phone syncs them for you (set it up in <a href="{{ url_for('settings') }}">Settings</a>).</p>
     {% elif d.goal_percent >= 100 %}
       <p class="small"><strong>Goal reached!</strong> Anything extra still counts towards your weekly tier.</p>
     {% else %}

@@ -256,7 +256,7 @@ button { cursor: pointer; }
 
 /* Progress ring */
 .ring { position: relative; width: 92px; height: 92px; flex: none; }
-.ring svg { transform: rotate(-90deg); }
+.ring > svg { transform: rotate(-90deg); }  /* not the tick icon inside */
 .ring .track { stroke: rgba(255, 255, 255, .9); }
 .ring .fill { stroke: var(--ink); stroke-linecap: round; animation: ring-in 1.2s cubic-bezier(.3, .8, .2, 1) both; }
 @keyframes ring-in { from { stroke-dashoffset: 238.8; } }
