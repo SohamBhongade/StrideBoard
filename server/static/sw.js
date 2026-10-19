@@ -2,7 +2,7 @@
 // Served at /sw.js (see app.py) so it covers the whole site.
 // Change VERSION (and ASSET_VERSION in app.py) whenever style.css or app.js change,
 // so phones get the new files.
-const VERSION = "strideboard-v6";
+const VERSION = "strideboard-v7";
 const SHELL = [
   "/offline",
   "/static/css/style.css?v=4",
