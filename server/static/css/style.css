@@ -378,17 +378,18 @@ button { cursor: pointer; }
 .podium-3 .podium-block { height: 96px; background: var(--bronze); animation-delay: .2s; }
 @keyframes grow-block { from { transform: scaleY(.2); transform-origin: bottom; opacity: 0; } }
 
-/* Badges (2x2 like the sample's "Recommended" grid) */
+/* Badges: all of them, earned first, then the ones still to earn */
 .badge-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .badge-card {
-  background: var(--white); border-radius: 24px; padding: 20px 12px;
-  display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+  background: var(--white); border-radius: 22px; padding: 16px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
 }
-.badge-card strong { font-size: 17px; font-weight: 600; }
+.badge-card strong { font-size: 16px; font-weight: 600; }
+.badge-card:not(.earned) strong { color: var(--muted); }
 .badge-card span { font-size: 13px; color: var(--muted); }
 .badge-icon {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 64px; height: 64px; border-radius: 50%;
+  width: 56px; height: 56px; border-radius: 50%;
 }
 .badge-card.earned .badge-icon { animation: pop .5s ease both; }
 .tone-pink { background: var(--pink); }
