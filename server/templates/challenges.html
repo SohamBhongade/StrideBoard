@@ -6,7 +6,78 @@
   <a class="btn btn-soft" href="{{ url_for('badges') }}">{{ m.icon('star', 18) }} All badges · {{ summary.earned }}/{{ summary.total }}</a>
 {% endcall %}
 
-<p class="note small">{{ m.icon('info', 16) }}<span>Steps come from your phone. Exercises are typed in by you on the <a href="{{ url_for('log') }}#exercise-h">Log</a> page, so they only earn personal badges and never count on the leaderboards.</span></p>
+<section class="card card-soft mini" id="mini" aria-labelledby="mini-h">
+  <div class="card-head">
+    <span class="icon-circle">{{ m.icon('star') }}</span>
+    <h2 id="mini-h">Mini challenges</h2>
+    <span class="chip chip-dark">+{{ mini.exp_today }} EXP today</span>
+  </div>
+
+  {% set a = mini.active %}
+  {% if a %}
+  {% set ic, tone = TRACK_LOOK[a.track] %}
+  <div class="mini-live" data-mini-live data-elapsed="{{ a.elapsed }}" data-wait="{{ a.wait }}"
+       {% if a.track == 'planks' %}data-plank="{{ a.amount }}"{% endif %}
+       {% if a.track == 'steps' %}data-walk-base="{{ a.base_steps }}" data-walk-amount="{{ a.amount }}"{% endif %}>
+    <div class="mini-live-head">
+      {{ m.badge_circle(ic, tone, True, 26) }}
+      <div>
+        <span class="small muted">Doing now · +{{ a.exp }} EXP</span>
+        <strong class="mini-live-title">{{ a.label }}</strong>
+      </div>
+    </div>
+
+    {% if a.track == 'steps' %}
+      <div class="bar" role="img" aria-label="{{ a.percent }}% walked"><span data-walk-bar style="--w: {{ a.percent }}%; background: var(--ink)"></span></div>
+      <div class="bar-labels muted small"><span><span data-walk-done>{{ a.walked|num }}</span> of {{ a.amount|num }} steps</span><span data-mini-clock>0:00</span></div>
+      <p class="small muted">Steps come from your phone, so this finishes by itself once they sync. No need to tap anything.</p>
+      <div class="mini-actions">
+        <a class="btn btn-dark" href="{{ url_for('challenges') }}#mini">{{ m.icon('refresh', 18) }} Check progress</a>
+    {% else %}
+      <div class="mini-clock" data-mini-clock aria-live="off">0:00</div>
+      <p class="small muted mini-hint">
+        {% if a.track == 'planks' %}Hold your plank until the timer reaches {{ a.amount }} seconds, then tap Done.
+        {% else %}Take your time and keep good form. Tap Done when you've finished.{% endif %}
+      </p>
+      <div class="mini-actions">
+        <form method="post" class="inline-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="btn btn-dark" type="submit" name="action" value="mini_done" data-mini-done
+                  {% if a.wait %}disabled{% endif %}>{{ m.icon('check', 18) }} <span data-done-label>Done{% if a.wait %} in {{ a.wait }}s{% endif %}</span></button>
+        </form>
+    {% endif %}
+        <form method="post" class="inline-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="btn btn-outline" type="submit" name="action" value="mini_quit">Back out</button>
+        </form>
+      </div>
+  </div>
+  {% else %}
+  <p class="small muted">Pick one, do it, tap Done. You earn EXP for the avatar studio, and it counts towards your badges below. Each one can be done {{ mini.daily_limit }} times a day.</p>
+  <div class="mini-grid">
+    {% for c in mini.challenges %}
+    {% set ic, tone = TRACK_LOOK[c.track] %}
+    <div class="mini-tile">
+      {{ m.badge_circle(ic, tone, True, 22) }}
+      <strong>{{ c.label }}</strong>
+      <span class="mini-exp">+{{ c.exp }} EXP</span>
+      <span class="small muted">{{ c.done_today }}/{{ mini.daily_limit }} today</span>
+      {% if c.left_today %}
+      <form method="post" class="inline-form">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="key" value="{{ c.key }}">
+        <button class="btn btn-dark btn-sm" type="submit" name="action" value="mini_start">Start</button>
+      </form>
+      {% else %}
+      <span class="chip">{{ m.icon('check', 14) }} All done</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<p class="note small">{{ m.icon('info', 16) }}<span>Steps come from your phone. Push-ups, squats, planks and jumping jacks are added by finishing mini challenges, so they only earn personal badges and never count on the leaderboards.</span></p>
 
 <div class="track-grid">
   {% for t in tracks %}
@@ -52,9 +123,7 @@
       </div>
     </div>
 
-    {% if t.key != 'steps' %}
-    <a class="btn btn-outline btn-sm" href="{{ url_for('log') }}#exercise-h">{{ m.icon('plus', 16) }} Log {{ t.name|lower }}</a>
-    {% endif %}
+    <a class="btn btn-outline btn-sm" href="#mini">{{ m.icon('star', 16) }} Mini challenge</a>
   </section>
   {% endfor %}
 </div>

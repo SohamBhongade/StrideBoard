@@ -2,38 +2,23 @@
 {% block title %}Log{% endblock %}
 {% block content %}
 
-{{ m.page_head("Log your", "day", "Your phone sends your steps automatically. Log exercises, mood, water and activities here.") }}
+{{ m.page_head("Log your", "day", "Your phone sends your steps automatically. Log your mood and water here, and earn EXP with mini challenges.") }}
 
 <div class="row row-even" style="margin-top:0">
-  <section class="card card-peach" aria-labelledby="exercise-h">
+  <section class="card card-peach" aria-labelledby="mini-h">
     <div class="card-head">
       <span class="icon-circle">{{ m.icon('pushup') }}</span>
-      <h2 id="exercise-h">Exercise</h2>
+      <h2 id="mini-h">Mini challenges</h2>
     </div>
-    <form method="post" class="form">
-      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <input type="hidden" name="action" value="exercise">
-      <div class="field">
-        <label for="ex-type">Exercise</label>
-        <select class="input" id="ex-type" name="type">
-          {% for value, label in exercise_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="form-row">
-        <div class="field">
-          <label for="ex-amount">How many in this set?</label>
-          <input class="input" id="ex-amount" name="amount" inputmode="numeric" pattern="[0-9]*" placeholder="20" required>
-        </div>
-        <div class="field">
-          <label for="ex-date">Day</label>
-          <select class="input" id="ex-date" name="date">
-            {% for day in dates %}<option value="{{ day }}">{{ day|nice_date }}</option>{% endfor %}
-          </select>
-        </div>
-      </div>
-      <p class="hint">Reps for push-ups, squats and jumping jacks; seconds for a plank. These earn personal badges on the Challenges page and never count on the leaderboards.</p>
-      <button class="btn btn-dark" type="submit">{{ m.icon('plus', 18) }} Add set</button>
-    </form>
+    {% if mini.active %}
+    <p><strong>Doing now: {{ mini.active.label }}</strong></p>
+    <p class="small muted">Finish it or back out on the Challenges page.</p>
+    <a class="btn btn-dark" href="{{ url_for('challenges') }}#mini">Continue</a>
+    {% else %}
+    <p class="small">No typing numbers in: pick a quick challenge like 10 push-ups or a 1,000-step walk, do it, and tap Done. Each one earns EXP and counts towards your badges.</p>
+    <p class="small muted">+{{ mini.exp_today }} EXP today · {{ mini.balance|num }} EXP to spend</p>
+    <a class="btn btn-dark" href="{{ url_for('challenges') }}#mini">{{ m.icon('star', 18) }} Pick a challenge</a>
+    {% endif %}
   </section>
 
   <section class="card card-soft" aria-labelledby="recent-h">
@@ -55,7 +40,7 @@
   </section>
 </div>
 
-<div class="grid-3" style="margin-top:16px">
+<div class="row row-even" style="margin-top:16px">
 
   <section class="card card-soft" aria-labelledby="mood-h">
     <div class="card-head">
@@ -102,34 +87,5 @@
     </div>
   </section>
 
-  <section class="card card-pink" aria-labelledby="act-h">
-    <div class="card-head">
-      <span class="icon-circle">{{ m.icon('stand') }}</span>
-      <h2 id="act-h">Activity</h2>
-    </div>
-    <form method="post" class="form">
-      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <input type="hidden" name="action" value="activity">
-      <div class="field">
-        <label for="act-type">What did you do?</label>
-        <select class="input" id="act-type" name="type">
-          {% for value, label in activity_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="form-row">
-        <div class="field">
-          <label for="act-min">Minutes</label>
-          <input class="input" id="act-min" name="minutes" inputmode="numeric" pattern="[0-9]*" placeholder="30" required>
-        </div>
-        <div class="field">
-          <label for="act-date">Day</label>
-          <select class="input" id="act-date" name="date">
-            {% for day in dates %}<option value="{{ day }}">{{ day|nice_date }}</option>{% endfor %}
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-dark" type="submit">{{ m.icon('plus', 18) }} Add activity</button>
-    </form>
-  </section>
 </div>
 {% endblock %}
