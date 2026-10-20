@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Check your email{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="login-brand"><span class="mark">{{ m.logo(34) }}</span> StrideBoard</div>
+
+  <div>
+    <h1 class="hero"><span class="light">Check your</span> email.</h1>
+    <p class="muted hero-sub">We sent a 6-digit code to <strong>{{ email }}</strong>. It can take a minute, so check spam too.</p>
+  </div>
+
+  <form method="post" class="card card-soft form" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="verify_code">Code</label>
+      <input class="input code-input" id="verify_code" name="verify_code" inputmode="numeric" pattern="[0-9 ]*"
+             autocomplete="one-time-code" maxlength="7" placeholder="123456" required autofocus>
+    </div>
+    <button class="btn btn-dark btn-block" type="submit">Create my account {{ m.icon('play', 16) }}</button>
+  </form>
+
+  <form method="post" class="login-switch">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    No email? <button class="link-btn" type="submit" name="action" value="resend">Send a new code</button>
+    · <a href="{{ url_for('signup') }}">Start again</a>
+  </form>
+</div>
+{% endblock %}

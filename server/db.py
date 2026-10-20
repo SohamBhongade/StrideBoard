@@ -47,7 +47,7 @@ def connect(path=None):
 
 # Columns added after the first release. CREATE TABLE IF NOT EXISTS does not
 # change a table that already exists, so older databases get them here.
-ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT"]}
+ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT", "email_hash TEXT"]}
 
 
 def create_tables(conn):
@@ -58,6 +58,8 @@ def create_tables(conn):
         for column in columns:
             if column.split()[0] not in have:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column}")  # fixed names, no user input
+    # One account per email address (people made by an admin have none, which is fine).
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email_hash)")
     conn.commit()
 
 

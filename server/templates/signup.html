@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Create an account{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="login-brand"><span class="mark">{{ m.logo(34) }}</span> StrideBoard</div>
+
+  <div>
+    <h1 class="hero"><span class="light">Join</span> StrideBoard.</h1>
+    <p class="muted hero-sub">Takes a minute. Then link your phone and your steps count automatically.</p>
+  </div>
+
+  {% if not open_now %}
+  <section class="card card-soft">
+    <h2 class="card-title">Sign-up isn't open yet</h2>
+    <p class="small muted" style="margin-top:8px">Ask your teacher or the StrideBoard admin to make your account for you.</p>
+  </section>
+  {% else %}
+  <form method="post" class="card card-soft form" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+    <fieldset class="role-pick">
+      <legend class="label-text">I am a…</legend>
+      <div class="role-options">
+        {% for value, label, ic, note in [('student', 'Student', 'users', 'On the Students board'), ('teacher', 'Teacher', 'star', 'On the Teachers board')] %}
+        <label class="role-option">
+          <input type="radio" name="role" value="{{ value }}" required {% if form.get('role', 'student') == value %}checked{% endif %}>
+          <span class="role-card">{{ m.icon(ic, 22) }}<strong>{{ label }}</strong><span class="small muted">{{ note }}</span></span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <label for="display_name">Your name</label>
+      <input class="input" id="display_name" name="display_name" value="{{ form.get('display_name', '') }}" maxlength="50" autocomplete="name" required>
+      <span class="hint">Shown on the leaderboards. First name and last initial is fine.</span>
+    </div>
+    <div class="field">
+      <label for="department" data-dept-label>{{ 'Department' if form.get('role') == 'teacher' else 'Class' }}</label>
+      <input class="input" id="department" name="department" value="{{ form.get('department', '') }}" maxlength="50"
+             placeholder="{{ 'e.g. Science' if form.get('role') == 'teacher' else 'e.g. Grade 10A' }}" required>
+    </div>
+    <div class="field">
+      <label for="age_band">Age</label>
+      <select class="input" id="age_band" name="age_band">
+        {% for value, label in age_bands %}
+        <option value="{{ value }}" {% if form.get('age_band', 'teen_13_17') == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <span class="hint">Sets a fair daily step goal. You can change it later.</span>
+    </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input class="input" id="email" name="email" type="email" value="{{ form.get('email', '') }}" autocomplete="email"
+             autocapitalize="none" autocorrect="off" spellcheck="false" required>
+      <span class="hint">We email you a code to check it's really you.{% if domains %} Use an address ending in @{{ domains|join(' or @') }}.{% endif %} We don't keep your email address.</span>
+    </div>
+    <div class="field">
+      <label for="username">Username</label>
+      <input class="input" id="username" name="username" value="{{ form.get('username', '') }}" autocomplete="username"
+             autocapitalize="none" autocorrect="off" spellcheck="false" required>
+      <span class="hint">3 to 30 letters or numbers (. _ - allowed). You log in with this.</span>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="pin">PIN</label>
+        <input class="input" id="pin" name="pin" type="password" inputmode="numeric" autocomplete="new-password" required>
+      </div>
+      <div class="field">
+        <label for="pin_again">PIN again</label>
+        <input class="input" id="pin_again" name="pin_again" type="password" inputmode="numeric" autocomplete="new-password" required>
+      </div>
+    </div>
+    <span class="hint" style="margin-top:-8px">4 to 6 digits. Don't use your birthday.</span>
+    {% if need_code %}
+    <div class="field">
+      <label for="code">School code</label>
+      <input class="input" id="code" name="code" value="{{ form.get('code', '') }}" autocapitalize="none" required>
+      <span class="hint">Your teacher has this.</span>
+    </div>
+    {% endif %}
+    <button class="btn btn-dark btn-block" type="submit">Send me a code {{ m.icon('play', 16) }}</button>
+  </form>
+  {% endif %}
+  <p class="login-switch">Already have an account? <a href="{{ url_for('login') }}">Log in</a></p>
+</div>
+{% endblock %}
