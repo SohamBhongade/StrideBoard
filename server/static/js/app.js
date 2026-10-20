@@ -308,3 +308,21 @@
     if (walked >= goal && !reloading) { reloading = true; setTimeout(function () { location.reload(); }, 1200); }
   };
 })();
+
+// ---- Sign-up: "Class" for students, "Department" for teachers, and a sensible age default
+(function () {
+  var label = document.querySelector("[data-dept-label]");
+  if (!label) return;
+  var input = document.getElementById("department");
+  var age = document.getElementById("age_band");
+  var ageTouched = false;
+  if (age) age.addEventListener("change", function () { ageTouched = true; });
+  document.querySelectorAll("input[name=role]").forEach(function (r) {
+    r.addEventListener("change", function () {
+      var teacher = r.value === "teacher";
+      label.textContent = teacher ? "Department" : "Class";
+      input.placeholder = teacher ? "e.g. Science" : "e.g. Grade 10A";
+      if (age && !ageTouched) age.value = teacher ? "adult_18_39" : "teen_13_17";
+    });
+  });
+})();

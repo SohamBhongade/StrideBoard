@@ -16,6 +16,7 @@ import avatar_art
 import config
 import data
 import db
+import mailer
 
 TZ = ZoneInfo("Asia/Dubai")
 
@@ -50,9 +51,9 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "15"
+ASSET_VERSION = "16"
 
-PUBLIC_ENDPOINTS = {"login", "logout", "static", "offline", "service_worker"}
+PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "logout", "static", "offline", "service_worker"}
 
 
 def today():
@@ -82,7 +83,8 @@ def to_int(value, field):
 def create_app():
     app = Flask(__name__)
     # No SECRET_KEY here: db.init_app() sets it from the server's environment.
-    app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+    app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
+                      SEND_CODE=mailer.send_code)   # tests swap this out
 
     db.init_app(app)
     app.register_blueprint(api.bp)
@@ -235,6 +237,16 @@ def add_security(app):
                                message="We couldn't find that page."), 404
 
 
+SIGNUP_LOG = {}   # network address -> times of recent sign-ups (kept in memory)
+
+
+def too_many_signups(addr):
+    now = datetime.now().timestamp()
+    recent = [t for t in SIGNUP_LOG.get(addr, []) if now - t < 3600]
+    SIGNUP_LOG[addr] = recent
+    return len(recent) >= config.SIGNUPS_PER_HOUR
+
+
 def admin_only():
     if g.user["role"] != "admin":
         abort(403)
@@ -265,6 +277,62 @@ def add_routes(app):
                 return redirect(url_for("dashboard"))
             flash("That username and PIN don't match. Check them and try again.", "error")
         return render_template("login.html", username=username)
+
+    @app.route("/signup", methods=["GET", "POST"])
+    def signup():
+        """New people make their own account as a student or teacher, checked by an email code."""
+        if g.user:
+            return redirect(url_for("dashboard"))
+        form = request.form if request.method == "POST" else {}
+        open_now = mailer.ready()
+        if request.method == "POST" and open_now:
+            try:
+                if config.JOIN_CODE and form.get("code", "").strip().lower() != config.JOIN_CODE.lower():
+                    raise ValueError("that school code isn't right. Ask your teacher for it")
+                if too_many_signups(request.remote_addr):
+                    raise ValueError("too many sign-ups from here. Try again in an hour")
+                pending, email, code = data.start_signup(
+                    db.get_db(), app.config["SECRET_KEY"], form.get("email"), form.get("username"),
+                    form.get("display_name"), form.get("role"), form.get("department"),
+                    form.get("age_band"), form.get("pin"), form.get("pin_again"))
+                app.config["SEND_CODE"](email, code)
+            except ValueError as e:
+                flash(first_upper(str(e)), "error")
+            else:
+                SIGNUP_LOG.setdefault(request.remote_addr, []).append(datetime.now().timestamp())
+                session["signup_id"] = pending
+                return redirect(url_for("signup_verify"))
+        return render_template("signup.html", form=form, age_bands=AGE_BANDS, open_now=open_now,
+                               need_code=bool(config.JOIN_CODE), domains=config.EMAIL_DOMAINS)
+
+    @app.route("/signup/verify", methods=["GET", "POST"])
+    def signup_verify():
+        """Type the 6-digit code from the email; then the account is made and you're logged in."""
+        if g.user:
+            return redirect(url_for("dashboard"))
+        conn, pending = db.get_db(), session.get("signup_id")
+        email = data.pending_email(conn, pending) if pending else None
+        if not email:
+            session.pop("signup_id", None)
+            flash("That sign-up has expired. Please start again.", "error")
+            return redirect(url_for("signup"))
+        if request.method == "POST":
+            try:
+                if request.form.get("action") == "resend":
+                    to, code = data.resend_signup_code(conn, pending)
+                    app.config["SEND_CODE"](to, code)
+                    flash(f"New code sent to {to}.", "ok")
+                else:
+                    uid = data.finish_signup(conn, pending, request.form.get("verify_code"))
+                    session.clear()
+                    session.permanent = True
+                    session["user_id"] = uid
+                    flash("Welcome to StrideBoard! Next, set up step syncing in Settings.", "ok")
+                    return redirect(url_for("dashboard"))
+            except ValueError as e:
+                flash(first_upper(str(e)), "error")
+            return redirect(url_for("signup_verify"))
+        return render_template("signup_verify.html", email=email)
 
     @app.route("/logout", methods=["GET", "POST"])
     def logout():

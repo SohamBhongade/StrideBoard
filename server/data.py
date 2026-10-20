@@ -125,8 +125,8 @@ def authenticate(conn, username, pin):
     return get_user(conn, row["id"])
 
 
-def create_user(conn, username, display_name, role, department, age_band, pin):
-    """Add a user and return the new id. The starting goal comes from the age band."""
+def _check_new_user(conn, username, display_name, role, department, age_band):
+    """Clean and check a new person's details. Returns them, or raises ValueError."""
     username = _clean_username(username)
     display_name = (display_name or "").strip()
     if not 1 <= len(display_name) <= 50:
@@ -138,19 +138,150 @@ def create_user(conn, username, display_name, role, department, age_band, pin):
     if department and len(department) > 50:
         raise ValueError("department must be at most 50 characters")
     age_band = _check_age_band(age_band)
-    pin = clean_pin(pin)
+    if conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
+        raise ValueError(f"username {username!r} is already taken")
+    return username, display_name, role, department, age_band
 
+
+def _insert_user(conn, username, display_name, role, department, age_band, pin_hash, email_hash=None):
     try:
         cur = conn.execute(
             "INSERT INTO users (username, display_name, pin_hash, role, department, age_band, "
-            "api_token, daily_goal, goal_is_custom, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)",
-            (username, display_name, generate_password_hash(pin), role, department, age_band,
-             secrets.token_urlsafe(24), config.AGE_BAND_GOALS[age_band], local_now_iso()),
+            "api_token, daily_goal, goal_is_custom, created_at, email_hash) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+            (username, display_name, pin_hash, role, department, age_band,
+             secrets.token_urlsafe(24), config.AGE_BAND_GOALS[age_band], local_now_iso(), email_hash),
         )
     except sqlite3.IntegrityError:
         raise ValueError(f"username {username!r} is already taken") from None
     conn.commit()
     return cur.lastrowid
+
+
+def create_user(conn, username, display_name, role, department, age_band, pin):
+    """Add a user and return the new id. The starting goal comes from the age band."""
+    details = _check_new_user(conn, username, display_name, role, department, age_band)
+    return _insert_user(conn, *details, generate_password_hash(clean_pin(pin)))
+
+
+# ---- Sign-up with an email code -------------------------------------------
+
+EMAIL_RE = re.compile(r"[^@\s]{1,64}@[A-Za-z0-9.-]{1,200}\.[A-Za-z]{2,}")
+
+
+def normalize_email(email):
+    """Lower case, and for Gmail drop dots and +tags, so one inbox = one account."""
+    email = (email or "").strip().lower()
+    if len(email) > 254 or not EMAIL_RE.fullmatch(email):
+        raise ValueError("please enter a real email address")
+    local, domain = email.rsplit("@", 1)
+    if domain in ("gmail.com", "googlemail.com"):
+        local = local.split("+", 1)[0].replace(".", "")
+        domain = "gmail.com"
+    if config.EMAIL_DOMAINS and domain not in config.EMAIL_DOMAINS:
+        raise ValueError("please use an email ending in " + " or ".join("@" + d for d in config.EMAIL_DOMAINS))
+    return f"{local}@{domain}"
+
+
+def email_fingerprint(email, secret):
+    """A one-way fingerprint of the email, so we can stop duplicates without keeping addresses."""
+    import hashlib
+    return hashlib.sha256((secret + "|" + normalize_email(email)).encode()).hexdigest()
+
+
+def _new_code():
+    return f"{secrets.randbelow(10 ** 6):06d}"
+
+
+def start_signup(conn, secret, email, username, display_name, role, department, age_band, pin, pin_again,
+                 now=None):
+    """Check a sign-up form and hold it until the email code is entered.
+
+    Only student or teacher. Returns (pending_id, email_to_send_to, code).
+    """
+    now = _now(now)
+    role = (role or "").strip().lower()
+    if role not in config.SIGNUP_ROLES:
+        raise ValueError("please choose Student or Teacher")
+    if not (department or "").strip():
+        raise ValueError("please enter your " + ("class" if role == "student" else "department"))
+    details = _check_new_user(conn, username, display_name, role, department, age_band)
+    pin = clean_pin(pin)
+    if pin != str(pin_again or "").strip():
+        raise ValueError("the two PINs don't match")
+    fingerprint = email_fingerprint(email, secret)
+    if conn.execute("SELECT 1 FROM users WHERE email_hash = ?", (fingerprint,)).fetchone():
+        raise ValueError("there's already an account with that email. Log in instead")
+    # tidy up: old waiting sign-ups, and any earlier try with this email
+    cutoff = (now - timedelta(days=1)).isoformat(timespec="seconds")
+    conn.execute("DELETE FROM pending_signups WHERE created_at < ? OR email_hash = ?", (cutoff, fingerprint))
+    code = _new_code()
+    import json
+    stamp = now.isoformat(timespec="seconds")
+    cur = conn.execute(
+        "INSERT INTO pending_signups (email, email_hash, code_hash, details, sent_at, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        ((email or "").strip(), fingerprint, generate_password_hash(code),
+         json.dumps(list(details) + [generate_password_hash(pin)]), stamp, stamp))
+    conn.commit()
+    return cur.lastrowid, (email or "").strip(), code
+
+
+def _pending(conn, pending_id):
+    row = conn.execute("SELECT * FROM pending_signups WHERE id = ?", (pending_id,)).fetchone()
+    if row is None:
+        raise ValueError("that sign-up has expired. Please start again")
+    return row
+
+
+def pending_email(conn, pending_id):
+    """The address a code went to (for the 'we sent a code to …' line), or None."""
+    row = conn.execute("SELECT email FROM pending_signups WHERE id = ?", (pending_id,)).fetchone()
+    return row["email"] if row else None
+
+
+def resend_signup_code(conn, pending_id, now=None):
+    """A fresh code (the old one stops working). Returns (email, code)."""
+    now = _now(now)
+    row = _pending(conn, pending_id)
+    waited = (now - datetime.fromisoformat(row["sent_at"])).total_seconds()
+    if waited < config.CODE_RESEND_SECONDS:
+        raise ValueError(f"please wait {int(config.CODE_RESEND_SECONDS - waited) + 1} seconds before asking again")
+    if row["sends"] >= config.CODE_MAX_SENDS:
+        raise ValueError("too many codes sent. Please start again later")
+    code = _new_code()
+    conn.execute("UPDATE pending_signups SET code_hash = ?, sends = sends + 1, attempts = 0, sent_at = ? "
+                 "WHERE id = ?", (generate_password_hash(code), now.isoformat(timespec="seconds"), pending_id))
+    conn.commit()
+    return row["email"], code
+
+
+def finish_signup(conn, pending_id, code, now=None):
+    """Check the emailed code and make the account. Returns the new user id."""
+    import json
+    now = _now(now)
+    row = _pending(conn, pending_id)
+    age = (now - datetime.fromisoformat(row["sent_at"])).total_seconds()
+    if age > config.CODE_MINUTES * 60:
+        raise ValueError("that code has expired. Tap 'Send a new code'")
+    if row["attempts"] >= config.CODE_TRIES:
+        raise ValueError("too many wrong codes. Tap 'Send a new code'")
+    code = str(code or "").strip().translate(calc._DIGITS).replace(" ", "")
+    if not check_password_hash(row["code_hash"], code):
+        conn.execute("UPDATE pending_signups SET attempts = attempts + 1 WHERE id = ?", (pending_id,))
+        conn.commit()
+        left = config.CODE_TRIES - row["attempts"] - 1
+        raise ValueError(f"that code isn't right. {left} tr{'y' if left == 1 else 'ies'} left"
+                         if left else "that code isn't right. Tap 'Send a new code'")
+    if conn.execute("SELECT 1 FROM users WHERE email_hash = ?", (row["email_hash"],)).fetchone():
+        raise ValueError("there's already an account with that email. Log in instead")
+    username, display_name, role, department, age_band, pin_hash = json.loads(row["details"])
+    if conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
+        raise ValueError(f"someone just took the username {username!r}. Please start again")
+    uid = _insert_user(conn, username, display_name, role, department, age_band, pin_hash, row["email_hash"])
+    conn.execute("DELETE FROM pending_signups WHERE id = ?", (pending_id,))
+    conn.commit()
+    return uid
 
 
 def bulk_create_users(conn, csv_text):

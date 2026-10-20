@@ -24,9 +24,10 @@
     <div class="field">
       <label for="pin">PIN</label>
       <input class="input" id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
-      <span class="hint">Your teacher or the StrideBoard admin gives you your username and PIN.</span>
+      
     </div>
     <button class="btn btn-dark btn-block" type="submit">Log in {{ m.icon('play', 16) }}</button>
   </form>
+  <p class="login-switch">New here? <a href="{{ url_for('signup') }}">Create an account</a></p>
 </div>
 {% endblock %}

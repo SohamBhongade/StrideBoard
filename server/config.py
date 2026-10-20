@@ -17,6 +17,24 @@ DATABASE = os.environ.get(
     "STRIDEBOARD_DATABASE", str(BASE_DIR / "instance" / "strideboard.sqlite3")
 )
 
+# STRIDEBOARD_JOIN_CODE: optional. If set, people need this code to make their own
+# account on the sign-up page (stops strangers joining). Leave unset for no code.
+JOIN_CODE = os.environ.get("STRIDEBOARD_JOIN_CODE", "").strip()
+SIGNUP_ROLES = ("student", "teacher")   # admin is never offered on the sign-up page
+SIGNUPS_PER_HOUR = 10                   # per network address, to stop spam accounts
+# Email check for sign-ups: a 6-digit code is sent from a Gmail account.
+# STRIDEBOARD_GMAIL_USER / STRIDEBOARD_GMAIL_APP_PASSWORD: that account and its app password.
+# Without them, sign-up is closed (admins can still add people).
+GMAIL_USER = os.environ.get("STRIDEBOARD_GMAIL_USER", "").strip()
+GMAIL_APP_PASSWORD = os.environ.get("STRIDEBOARD_GMAIL_APP_PASSWORD", "").replace(" ", "")
+# STRIDEBOARD_EMAIL_DOMAINS: optional, e.g. "gmail.com,school.ae" to only allow those.
+EMAIL_DOMAINS = tuple(d.strip().lower().lstrip("@") for d in
+                      os.environ.get("STRIDEBOARD_EMAIL_DOMAINS", "").split(",") if d.strip())
+CODE_MINUTES = 15          # a code works for this long
+CODE_TRIES = 5             # wrong guesses before the code stops working
+CODE_RESEND_SECONDS = 60   # wait this long before sending another code
+CODE_MAX_SENDS = 5         # codes per sign-up attempt
+
 TIMEZONE = "Asia/Dubai"          # all dates and weeks use Dubai time (UTC+4)
 MAX_UPLOAD_BYTES = 16 * 1024     # /api/steps rejects bodies larger than 16 KB
 

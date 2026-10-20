@@ -144,3 +144,18 @@ CREATE TABLE IF NOT EXISTS mini_runs (
   finished_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_mini_user ON mini_runs(user_id, date, status);
+
+-- Sign-ups waiting for their email code. The email address is only kept here until the
+-- account is made (then only a fingerprint of it stays on the user, never the address).
+CREATE TABLE IF NOT EXISTS pending_signups (
+  id INTEGER PRIMARY KEY,
+  email TEXT NOT NULL,
+  email_hash TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  details TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  sends INTEGER NOT NULL DEFAULT 1,
+  sent_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pending_email ON pending_signups(email_hash);
