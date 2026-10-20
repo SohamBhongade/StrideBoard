@@ -18,9 +18,17 @@ def debug_mode():
     return os.environ.get("STRIDEBOARD_MAIL_DEBUG") == "1"
 
 
+def gmail_login():
+    """(address, app password), read when needed, so the WSGI file can set them in any order."""
+    user = os.environ.get("STRIDEBOARD_GMAIL_USER", "").strip() or config.GMAIL_USER
+    password = os.environ.get("STRIDEBOARD_GMAIL_APP_PASSWORD", "").replace(" ", "") or config.GMAIL_APP_PASSWORD
+    return user, password
+
+
 def ready():
-    """Can the site send sign-up codes?"""
-    return debug_mode() or bool(config.GMAIL_USER and config.GMAIL_APP_PASSWORD)
+    """Can the site send email codes?"""
+    user, password = gmail_login()
+    return debug_mode() or bool(user and password)
 
 
 WORDING = {
@@ -44,16 +52,17 @@ def send_code(to, code, purpose="signup"):
         log.warning("MAIL DEBUG: %s code for %s is %s", purpose, to, code)
         print(f"MAIL DEBUG: {purpose} code for {to} is {code}", flush=True)
         return
+    user, password = gmail_login()
     subject, body = WORDING[purpose]
     msg = EmailMessage()
     msg["Subject"] = subject.format(code=code)
-    msg["From"] = f"StrideBoard <{config.GMAIL_USER}>"
+    msg["From"] = f"StrideBoard <{user}>"
     msg["To"] = to
     msg.set_content(body.format(code=code, mins=config.CODE_MINUTES))
     try:
         with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as smtp:
             smtp.starttls()
-            smtp.login(config.GMAIL_USER, config.GMAIL_APP_PASSWORD)
+            smtp.login(user, password)
             smtp.send_message(msg)
     except (smtplib.SMTPException, OSError):
         log.exception("could not send sign-up email")
