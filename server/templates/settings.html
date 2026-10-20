@@ -69,6 +69,32 @@
   </section>
 </div>
 
+{# ---- Appearance: light, dark, or follow the phone ---- #}
+<section class="card card-soft" id="appearance" aria-labelledby="appearance-h" style="margin-top:16px">
+  <div class="card-head">
+    <span class="icon-circle">{{ m.icon('moon') }}</span>
+    <h2 id="appearance-h">Appearance</h2>
+  </div>
+  <form method="post" class="form" style="margin-top:12px" data-autosubmit>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="theme">
+    <fieldset class="role-pick">
+      <legend class="visually-hidden">Choose how StrideBoard looks</legend>
+      <div class="role-options theme-options">
+        {% for value, label, ic in THEMES %}
+        <label class="role-option">
+          <input type="radio" name="theme" value="{{ value }}" {% if theme == value %}checked{% endif %}>
+          <span class="role-card">{{ m.icon(ic, 22) }}<strong>{{ label }}</strong>
+            {% if value == 'auto' %}<span class="small muted">Follows your phone</span>{% endif %}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <noscript><button class="btn btn-dark" type="submit">Save</button></noscript>
+  </form>
+  <p class="small muted" style="margin-top:10px">Saved on this phone or computer.</p>
+</section>
+
 {# ---- Recovery email: lets you reset a forgotten PIN ---- #}
 <section class="card card-soft" id="recovery" aria-labelledby="recovery-h" style="margin-top:16px">
   <div class="card-head">

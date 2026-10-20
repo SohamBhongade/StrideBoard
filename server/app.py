@@ -51,7 +51,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "18"
+ASSET_VERSION = "19"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -167,8 +167,19 @@ def add_template_helpers(app):
                 "INACTIVE_MINUTES": config.INACTIVE_MINUTES, "INACTIVE_MAX_STEPS": config.INACTIVE_MAX_STEPS,
                 "ASSET_VERSION": ASSET_VERSION, "TRACK_LOOK": TRACK_LOOK,
                 "creature": creature, "avatar_sheet": avatar_sheet, "my_build": my_build(),
+                "theme": current_theme(), "THEMES": THEMES,
                 "try_on": lambda build, slot, key: {**build, slot: key},
                 "AVATARS": config.AVATARS, "AVATAR_COLORS": config.AVATAR_COLORS}
+
+
+# Appearance: remembered per phone/computer in a cookie, so the login page follows it too.
+THEMES = [("light", "Light", "sun"), ("dark", "Dark", "moon"), ("auto", "Automatic", "phone")]
+THEME_COOKIE = "theme"
+
+
+def current_theme():
+    choice = request.cookies.get(THEME_COOKIE)
+    return choice if choice in dict((k, k) for k, _, _ in THEMES) else "light"
 
 
 def creature(build, size=40, title=None):
@@ -604,6 +615,15 @@ def add_routes(app):
                 elif action == "email_remove":
                     data.remove_email(conn, uid)
                     flash("Recovery email removed.", "ok")
+                elif action == "theme":
+                    choice = request.form.get("theme")
+                    if choice not in [k for k, _, _ in THEMES]:
+                        raise ValueError("please choose Light, Dark or Automatic")
+                    resp = redirect(url_for("settings", _anchor="appearance"))
+                    resp.set_cookie(THEME_COOKIE, choice, max_age=60 * 60 * 24 * 365 * 2,
+                                    samesite="Lax", httponly=True,
+                                    secure=request.is_secure)
+                    return resp
                 elif action in ("avatar_buy", "avatar_wear"):
                     key = request.form.get("item", "")
                     name = config.AVATAR_ITEMS.get(key, (None, "That item"))[1]

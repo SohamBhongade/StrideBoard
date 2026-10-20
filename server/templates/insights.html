@@ -78,6 +78,6 @@
   // Chart data comes from data.weekly_wrapup(), passed safely with tojson.
   window.STRIDE_CHART = {{ chart|tojson }};
 </script>
-<script src="{{ url_for('static', filename='js/wrapup.js') }}"></script>
+<script src="{{ url_for('static', filename='js/wrapup.js') }}?v={{ ASSET_VERSION }}"></script>
 {% endif %}
 {% endblock %}

@@ -4,8 +4,11 @@
   var canvas = document.getElementById("moodChart");
   if (!data || !canvas || !window.Chart) return;
 
+  // Colours come from the page, so the chart matches light and dark mode.
+  var css = getComputedStyle(document.documentElement);
+  var v = function (name, fallback) { return (css.getPropertyValue(name) || "").trim() || fallback; };
   Chart.defaults.font.family = '"Outfit", system-ui, sans-serif';
-  Chart.defaults.color = "#565B66";
+  Chart.defaults.color = v("--muted", "#565B66");
 
   // The best day gets the brighter periwinkle colour.
   var best = Math.max.apply(null, data.steps);
@@ -23,7 +26,7 @@
         {
           type: "line", label: "Mood", data: data.moods, yAxisID: "y1",
           borderColor: "#E58AAB", backgroundColor: "#E58AAB", borderWidth: 3,
-          pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: "#fff",
+          pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: v("--white", "#fff"),
           pointBorderWidth: 3, tension: 0.35, spanGaps: true, order: 1,
           clip: false // so a mood of 5 isn't cut off at the top edge
         }
@@ -49,7 +52,7 @@
         x: { grid: { display: false }, border: { display: false } },
         y: {
           beginAtZero: true, border: { display: false },
-          grid: { color: "#EEF0F2" },
+          grid: { color: v("--chart-grid", "#EEF0F2") },
           ticks: { callback: function (v) { return v >= 1000 ? v / 1000 + "k" : v; } }
         },
         y1: {
