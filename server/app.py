@@ -44,7 +44,7 @@ WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like t
 STAND_MINUTES = 45  # in-site "time to stand up" reminder interval
 # Bump this (and VERSION in static/sw.js) whenever style.css or app.js change,
 # so phones load the new files instead of an old cached copy.
-ASSET_VERSION = "7"
+ASSET_VERSION = "8"
 
 PUBLIC_ENDPOINTS = {"login", "logout", "static", "offline", "service_worker"}
 
@@ -434,14 +434,14 @@ def tier_progress(weekly_total):
 
 
 def badge_cards(earned_list):
-    """Up to 4 badges for the dashboard: newest earned first, then ones to aim for."""
+    """Every badge for the dashboard: newest earned first, then the ones still to earn."""
     earned = sorted(earned_list, key=lambda b: b["earned_on"], reverse=True)
     keys = {b["key"] for b in earned}
     cards = [{"key": b["key"], "name": b["name"], "earned_on": b["earned_on"], "earned": True}
              for b in earned]
     cards += [{"key": k, "name": v[0], "how": v[3], "earned": False}
               for k, v in BADGES.items() if k not in keys]
-    return cards[:4]
+    return cards
 
 
 def water_due(glasses):
