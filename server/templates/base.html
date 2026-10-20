@@ -66,7 +66,7 @@
     {% if user.role == 'admin' %}{{ nav_link('admin', 'Admin', 'users') }}{% endif %}
     {{ nav_link('settings', 'Settings', 'gear') }}
     <a href="{{ url_for('logout') }}" class="side-link" aria-label="Log out" title="Log out">{{ m.icon('logout') }}</a>
-    <a href="{{ url_for('settings') }}" class="avatar" aria-label="Your settings ({{ user.display_name }})">{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 52) }}</a>
+    <a href="{{ url_for('settings') }}" class="avatar" aria-label="Your settings ({{ user.display_name }})">{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 52, my_build) }}</a>
   </nav>
   {% endif %}
 
@@ -77,7 +77,7 @@
       <a href="{{ url_for('dashboard') }}" class="topbar-logo" aria-label="StrideBoard home">{{ m.logo(30) }}<span>StrideBoard</span></a>
       <div class="topbar-actions">
         {% if user.role == 'admin' %}<a href="{{ url_for('admin') }}" class="round-btn" aria-label="Admin">{{ m.icon('users', 20) }}</a>{% endif %}
-        <a href="{{ url_for('settings') }}" class="avatar-btn" aria-label="Settings">{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 44) }}</a>
+        <a href="{{ url_for('settings') }}" class="avatar-btn" aria-label="Settings">{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 44, my_build) }}</a>
       </div>
     </div>
     {% endif %}

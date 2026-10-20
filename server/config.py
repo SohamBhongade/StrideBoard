@@ -127,6 +127,51 @@ AVATARS = {
 # Background colours (the CSS class is av-<key>, defined in static/css/style.css)
 AVATAR_COLORS = ("peri", "blue", "pink", "mint", "peach", "violet", "gold", "sage")
 
+# --- Avatar studio (Settings): build a character from parts, bought with EXP ---
+# EXP is the in-app currency. How it is earned comes later; for now admins can give it.
+# Price tiers: 0 = free starter, 50 common, 150 rare, 400 epic, 1000 legendary.
+AVATAR_SLOTS = [   # (slot key, name shown) in display order
+    ("color", "Colour"), ("eyes", "Eyes"), ("mouth", "Mouth"), ("hat", "Headwear"),
+    ("extra", "Extras"), ("shoes", "Shoes"), ("bg", "Background"),
+]
+# item key -> (slot, name, price in EXP). Order = display order within a slot.
+AVATAR_ITEMS = {
+    "color_mint": ("color", "Mint", 0), "color_sky": ("color", "Sky", 0),
+    "color_peach": ("color", "Peach", 0), "color_lilac": ("color", "Lilac", 0),
+    "color_sunny": ("color", "Sunny", 50), "color_coral": ("color", "Coral", 50),
+    "color_berry": ("color", "Berry", 150), "color_ocean": ("color", "Ocean", 150),
+    "color_midnight": ("color", "Midnight", 400), "color_gold": ("color", "Gold", 1000),
+
+    "eyes_dots": ("eyes", "Dots", 0), "eyes_happy": ("eyes", "Happy", 0),
+    "eyes_big": ("eyes", "Big", 50), "eyes_sleepy": ("eyes", "Sleepy", 50),
+    "eyes_wink": ("eyes", "Wink", 150), "eyes_stars": ("eyes", "Starry", 400),
+
+    "mouth_smile": ("mouth", "Smile", 0), "mouth_o": ("mouth", "Ooh", 0),
+    "mouth_grin": ("mouth", "Grin", 50), "mouth_smirk": ("mouth", "Smirk", 50),
+    "mouth_tongue": ("mouth", "Cheeky", 150),
+
+    "hat_none": ("hat", "None", 0), "hat_headband": ("hat", "Sweatband", 50),
+    "hat_cap": ("hat", "Cap", 150), "hat_beanie": ("hat", "Beanie", 150),
+    "hat_flower": ("hat", "Flower", 150), "hat_party": ("hat", "Party hat", 400),
+    "hat_headphones": ("hat", "Headphones", 400), "hat_crown": ("hat", "Crown", 1000),
+
+    "extra_none": ("extra", "None", 0), "extra_glasses": ("extra", "Glasses", 50),
+    "extra_scarf": ("extra", "Scarf", 150), "extra_shades": ("extra", "Shades", 150),
+    "extra_whistle": ("extra", "Coach whistle", 150), "extra_medal": ("extra", "Medal", 400),
+
+    "shoes_plain": ("shoes", "Bare feet", 0), "shoes_sneakers": ("shoes", "Sneakers", 150),
+    "shoes_gold": ("shoes", "Gold sneakers", 1000),
+
+    "bg_plain": ("bg", "Plain", 0), "bg_sage": ("bg", "Sage", 0), "bg_sky": ("bg", "Sky", 50),
+    "bg_track": ("bg", "Running track", 150), "bg_sunrise": ("bg", "Sunrise", 400),
+    "bg_stars": ("bg", "Night sky", 400),
+}
+# What everyone starts with. The colour varies by person so the leaderboards aren't all one colour.
+AVATAR_DEFAULTS = {"eyes": "eyes_dots", "mouth": "mouth_smile", "hat": "hat_none",
+                   "extra": "extra_none", "shoes": "shoes_plain", "bg": "bg_plain"}
+AVATAR_START_COLORS = ("color_mint", "color_sky", "color_peach", "color_lilac")
+EXP_MAX_GRANT = 100_000          # most EXP an admin can give in one go
+
 TEN_K_STEPS = 10_000
 CONSISTENT_DAYS = 5              # steps on 5 different days in one week
 COMEBACK_FACTOR = 1.25           # week at least 25% above last week...

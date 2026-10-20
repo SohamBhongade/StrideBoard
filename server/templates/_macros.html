@@ -83,9 +83,13 @@
 {%- endmacro %}
 
 {# A person's avatar: their chosen emoji on its colour, or else their first letter. #}
-{% macro avatar(name, key=None, color=None, size=40) -%}
+{% macro avatar(name, key=None, color=None, size=40, build=None) -%}
+{%- if build -%}
+<span class="av av-creature" style="--av: {{ size }}px" aria-hidden="true">{{ creature(build, size) }}</span>
+{%- else -%}
 {%- set a = AVATARS.get(key) if key else none -%}
 <span class="av av-{{ color if color in AVATAR_COLORS else 'none' }}" style="--av: {{ size }}px" aria-hidden="true">
   {%- if a %}<span class="av-emoji">{{ a[0] }}</span>{% else %}{{ (name or '?')[:1]|upper }}{% endif -%}
 </span>
+{%- endif -%}
 {%- endmacro %}

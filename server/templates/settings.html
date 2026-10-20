@@ -69,43 +69,50 @@
   </section>
 </div>
 
-{# ---- Avatar: emoji + colour, no photos (many users are minors) ---- #}
-<section class="card card-soft" aria-labelledby="avatar-h" style="margin-top:16px">
-  <div class="card-head">
-    <span data-av-preview>{{ m.avatar(me.display_name, me.avatar, me.avatar_color, 56) }}</span>
-    <h2 id="avatar-h">Your avatar</h2>
+{# ---- Avatar studio: build your character, buy parts with EXP ---- #}
+<section class="card card-soft studio" id="studio" aria-labelledby="studio-h" style="margin-top:16px">
+  <div class="studio-head">
+    <span class="av av-creature studio-preview" style="--av: 132px">{{ creature(shop.build, 132, "Your avatar") }}</span>
+    <div class="studio-title">
+      <h2 id="studio-h">Avatar studio</h2>
+      <p class="small muted">Your avatar shows next to your name on the leaderboards. Mix and match parts; buy new ones with EXP.</p>
+      <span class="exp-pill">{{ m.icon('star', 16) }} {{ shop.balance|num }} EXP</span>
+    </div>
   </div>
-  <p class="small muted">Shown next to your name on the leaderboards. Earn badges to unlock the special ones.</p>
-  <form method="post" class="form avatar-form">
-    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <input type="hidden" name="action" value="avatar">
-    <fieldset class="plain">
-      <legend class="label-text">Pick one</legend>
-      <div class="av-grid">
-        {% for o in avatar_options %}
-        <label class="av-choice{% if not o.unlocked %} locked{% endif %}"
-               title="{{ 'Unlock with the ' ~ o.badge_name ~ ' badge' if not o.unlocked else o.key|title }}">
-          <input type="radio" name="avatar" value="{{ o.key }}" required data-emoji="{{ o.emoji }}"
-                 {% if me.avatar == o.key %}checked{% endif %} {% if not o.unlocked %}disabled{% endif %}>
-          <span class="av-choice-emoji" aria-hidden="true">{{ o.emoji }}</span>
-          <span class="{{ 'av-lock' if not o.unlocked else 'visually-hidden' }}">{{ o.badge_name if not o.unlocked else o.key|title }}</span>
-        </label>
-        {% endfor %}
-      </div>
-    </fieldset>
-    <fieldset class="plain">
-      <legend class="label-text">Background</legend>
-      <div class="swatches">
-        {% for c in AVATAR_COLORS %}
-        <label class="swatch av-{{ c }}">
-          <input type="radio" name="avatar_color" value="{{ c }}" {% if (me.avatar_color or 'peri') == c %}checked{% endif %}>
-          <span class="visually-hidden">{{ c|title }}</span>
-        </label>
-        {% endfor %}
-      </div>
-    </fieldset>
-    <button class="btn btn-dark" type="submit">Save avatar</button>
-  </form>
+
+  <nav class="pills studio-tabs" aria-label="Avatar parts">
+    {% for key, label in slots %}
+    <a class="pill{% if key == slot %} active{% endif %}" href="{{ url_for('settings', slot=key) }}#studio"
+       {% if key == slot %}aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="item-grid">
+    {% for it in shop['items'] if it.slot == slot %}
+    <div class="item-tile{% if it.worn %} worn{% endif %}{% if not it.owned %} locked{% endif %}">
+      <span class="av av-creature" style="--av: 76px">{{ creature(try_on(shop.build, slot, it.key), 76) }}</span>
+      <strong>{{ it.name }}</strong>
+      <span class="item-price">{% if it.price == 0 %}Free{% elif it.owned %}Owned{% else %}{{ it.price|num }} EXP{% endif %}</span>
+      {% if it.worn %}
+        <span class="chip chip-dark">{{ m.icon('check', 14) }} Wearing</span>
+      {% else %}
+      <form method="post" class="inline-form">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="item" value="{{ it.key }}">
+        <input type="hidden" name="slot" value="{{ slot }}">
+        {% if it.owned %}
+          <button class="btn btn-outline btn-sm" type="submit" name="action" value="avatar_wear">Wear</button>
+        {% elif shop.balance >= it.price %}
+          <button class="btn btn-dark btn-sm" type="submit" name="action" value="avatar_buy">Buy</button>
+        {% else %}
+          <button class="btn btn-outline btn-sm" type="button" disabled>Need {{ (it.price - shop.balance)|num }} more</button>
+        {% endif %}
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="small muted" style="margin-top:14px">{{ m.icon('info', 14) }} Ways to earn EXP are coming soon.</p>
 </section>
 
 {# ---- Phone setup (Agent 2): matches ios/README.md and android/README.md ---- #}
