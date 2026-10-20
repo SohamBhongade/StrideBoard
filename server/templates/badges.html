@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Badges{% endblock %}
+{% block content %}
+
+{% call m.page_head("Your", "badges", summary.earned ~ " of " ~ summary.total ~ " earned. The ones still to earn are at the top.") %}
+  <a class="btn btn-outline" href="{{ url_for('challenges') }}">{{ m.icon('flag', 18) }} Challenges</a>
+{% endcall %}
+
+{% for title, groups, earned, empty_title, empty_text in [
+     ("Still to earn", to_earn, False, "You've earned every badge", "That's all of them. Incredible work!"),
+     ("Earned", earned, True, "No badges yet", "Your first one comes with your first 1,000 steps.")] %}
+<section class="card card-soft"{% if not loop.first %} style="margin-top:16px"{% endif %} aria-labelledby="bg-{{ loop.index }}">
+  <h2 id="bg-{{ loop.index }}" class="card-title">{{ title }}</h2>
+  {% for group, items in groups %}
+  <h3 class="badge-group">{{ group }} <span class="muted">{{ items|length }}</span></h3>
+  <div class="badge-tiles">
+    {% for b in items %}
+    <div class="badge-tile{% if earned %} earned{% endif %}">
+      {{ m.badge_circle(b.icon, b.tone, earned, 20) }}
+      <strong>{{ b.name }}</strong>
+      <span>{% if earned %}Earned {{ b.earned_on|nice_date }}{% else %}{{ b.hint }}{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    {{ m.empty(empty_title, empty_text, "star") }}
+  {% endfor %}
+</section>
+{% endfor %}
+{% endblock %}

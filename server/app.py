@@ -40,11 +40,20 @@ _BADGE_LOOK = {
 }
 BADGES = {k: (config.BADGES.get(k, v[0]),) + v[1:] for k, v in _BADGE_LOOK.items()}
 
+# How each progression track looks: icon and colour (the levels live in config.TRACKS).
+TRACK_LOOK = {"steps": ("foot", "blue"), "pushups": ("pushup", "pink"), "squats": ("squat", "peach"),
+              "planks": ("plank", "mint"), "jumping_jacks": ("jump", "violet")}
+EXERCISE_CHOICES = [("pushups", "Push-ups"), ("squats", "Squats"), ("planks", "Plank (seconds)"),
+                    ("jumping_jacks", "Jumping jacks")]
+RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups in one go",
+               "squats": "Do {n} squats in one go", "planks": "Hold a plank for {n}",
+               "jumping_jacks": "Do {n} jumping jacks in one go"}
+
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 STAND_MINUTES = 45  # in-site "time to stand up" reminder interval
 # Bump this (and VERSION in static/sw.js) whenever style.css or app.js change,
 # so phones load the new files instead of an old cached copy.
-ASSET_VERSION = "8"
+ASSET_VERSION = "9"
 
 PUBLIC_ENDPOINTS = {"login", "logout", "static", "offline", "service_worker"}
 
@@ -97,6 +106,10 @@ def add_template_helpers(app):
         except (TypeError, ValueError):
             return "0"
 
+    @app.template_filter("amount")
+    def amount_filter(n, track, short=False):
+        return fmt_amount(n, track, short)
+
     @app.template_filter("nice_date")
     def nice_date(s, style="short"):
         """"2026-10-14" -> "Wed 14 Oct" (or "Wednesday" with style="day")."""
@@ -118,7 +131,7 @@ def add_template_helpers(app):
         return {"csrf_token": csrf_token, "user": g.get("user"), "TIERS": TIERS,
                 "today_label": f"{now:%A} {now.day} {now:%B}",
                 "BADGES": BADGES, "MOODS": MOODS, "STAND_MINUTES": STAND_MINUTES,
-                "ASSET_VERSION": ASSET_VERSION,
+                "ASSET_VERSION": ASSET_VERSION, "TRACK_LOOK": TRACK_LOOK,
                 "AVATARS": config.AVATARS, "AVATAR_COLORS": config.AVATAR_COLORS}
 
 
@@ -214,7 +227,7 @@ def add_routes(app):
         return render_template("dashboard.html", d=d, week=week, preview=preview,
                                preview_view=view, my_rank=mine,
                                tier_progress=tier_progress(d["weekly_total"]),
-                               badge_cards=badge_cards(d["badges"]),
+                               badge_summary=badge_summary(all_badges(conn, uid, d["badges"])),
                                water_target=WATER_TARGET,
                                water_due=water_due(d["water_today"]))
 
@@ -241,7 +254,7 @@ def add_routes(app):
             return redirect(url_for(safe_next("log")))
         d = data.dashboard(conn, uid, today())
         return render_template("log.html", dates=dates, d=d, water_target=WATER_TARGET,
-                               activity_types=ACTIVITY_TYPES,
+                               activity_types=ACTIVITY_TYPES, exercise_choices=EXERCISE_CHOICES,
                                recent=data.history(conn, uid, 8, today()))
 
     # ---------- Leaderboards
@@ -281,13 +294,27 @@ def add_routes(app):
     # ---------- Challenges
     @app.route("/challenges")
     def challenges():
-        role = g.user["role"] if g.user["role"] in ("student", "teacher") else None
-        items = data.active_challenges(db.get_db(), today(), role=role)
-        t = datetime.now(TZ).date()
-        for c in items:  # add "days left" for display
-            end = datetime.strptime(c["end_date"], "%Y-%m-%d").date()
-            c["days_left"] = (end - t).days
-        return render_template("challenges.html", challenges=items)
+        """Progression tracks: lifetime totals unlock levels, best-in-one-go unlocks records."""
+        conn, uid = db.get_db(), g.user["id"]
+        badges = all_badges(conn, uid, data.dashboard(conn, uid, today())["badges"])
+        return render_template("challenges.html", tracks=data.progression(conn, uid),
+                               summary=badge_summary(badges))
+
+    # ---------- Badges: everything still to earn on top, earned at the bottom
+    @app.route("/badges")
+    def badges():
+        conn, uid = db.get_db(), g.user["id"]
+        items = all_badges(conn, uid, data.dashboard(conn, uid, today())["badges"])
+        groups = []   # [(group name, [badges])] in display order
+        for b in items:
+            if not groups or groups[-1][0] != b["group"]:
+                groups.append((b["group"], []))
+            groups[-1][1].append(b)
+        to_earn = [(name, [b for b in bs if not b["earned"]]) for name, bs in groups]
+        earned = [(name, sorted([b for b in bs if b["earned"]], key=lambda b: b["earned_on"], reverse=True))
+                  for name, bs in groups]
+        return render_template("badges.html", to_earn=[g for g in to_earn if g[1]],
+                               earned=[g for g in earned if g[1]], summary=badge_summary(items))
 
     # ---------- Settings: token, phone setup, age band, goal
     @app.route("/settings", methods=["GET", "POST"])
@@ -389,6 +416,20 @@ def save_log_form(conn, uid, dates):
         current = data.dashboard(conn, uid, today())["water_today"] or 0
         change = 1 if request.form.get("change") == "plus" else -1
         data.save_water(conn, uid, today(), max(0, current + change))
+    elif action == "exercise":
+        kind = request.form.get("type")
+        if kind not in dict(EXERCISE_CHOICES):
+            raise ValueError("please choose an exercise")
+        before = {t["key"]: t for t in data.progression(conn, uid)}[kind]
+        data.save_exercise(conn, uid, day, kind, request.form.get("amount"))
+        after = {t["key"]: t for t in data.progression(conn, uid)}[kind]
+        amount = to_int(request.form.get("amount"), "amount")
+        flash(f"Saved {fmt_amount(amount, kind)}. Total: {fmt_amount(after['total'], kind)}.", "ok")
+        new = [lv for lv, old in zip(after["levels"], before["levels"]) if lv["earned"] and not old["earned"]]
+        new += [lv for lv, old in zip(after["record"]["levels"], before["record"]["levels"])
+                if lv["earned"] and not old["earned"]]
+        if new:
+            flash(f"New badge{'s' if len(new) > 1 else ''} unlocked! See them on the Challenges page.", "badge")
     elif action == "activity":
         kind = request.form.get("type")
         if kind not in dict(ACTIVITY_TYPES):
@@ -433,15 +474,52 @@ def tier_progress(weekly_total):
     return round((weekly_total - floors[i]) * 100 / (floors[i + 1] - floors[i]))
 
 
-def badge_cards(earned_list):
-    """Every badge for the dashboard: newest earned first, then the ones still to earn."""
-    earned = sorted(earned_list, key=lambda b: b["earned_on"], reverse=True)
-    keys = {b["key"] for b in earned}
-    cards = [{"key": b["key"], "name": b["name"], "earned_on": b["earned_on"], "earned": True}
-             for b in earned]
-    cards += [{"key": k, "name": v[0], "how": v[3], "earned": False}
-              for k, v in BADGES.items() if k not in keys]
-    return cards
+def fmt_amount(n, track, short=False):
+    """12000 steps -> "12,000 steps" (short: "12K"); planks are seconds -> "1 h 30 min"."""
+    n = int(n or 0)
+    if track == "planks":
+        h, rest = divmod(n, 3600)
+        m, s = divmod(rest, 60)
+        parts = ([f"{h} h"] if h else []) + ([f"{m} min"] if m else []) + ([f"{s} s"] if s or not n else [])
+        return " ".join(parts)
+    if short:
+        for size, letter in ((1_000_000, "M"), (1_000, "K")):
+            if n >= size:
+                return f"{n / size:g}{letter}"
+        return str(n)
+    unit = config.TRACKS[track]["unit"]
+    return f"{n:,} {unit}"
+
+
+def all_badges(conn, uid, earned_general):
+    """Every badge a person can earn, in display order.
+
+    Each: {"group", "name", "icon", "tone", "earned", "earned_on", "hint"}.
+    The 7 general badges come from steps; the rest come from the progression tracks.
+    """
+    got = {b["key"]: b["earned_on"] for b in earned_general}
+    items = [{"group": "General", "name": v[0], "icon": v[1], "tone": v[2],
+              "earned": k in got, "earned_on": got.get(k), "hint": v[3]} for k, v in BADGES.items()]
+    for t in data.progression(conn, uid):
+        ic, tone = TRACK_LOOK[t["key"]]
+        for lv in t["levels"]:
+            items.append({"group": t["name"], "icon": ic, "tone": tone,
+                          "name": f"{fmt_amount(lv['target'], t['key'], short=True)} {'total' if t['key'] == 'planks' else t['unit']}",
+                          "earned": lv["earned"], "earned_on": lv["earned_on"],
+                          "hint": f"{fmt_amount(lv['target'] - t['total'], t['key'])} to go"})
+        for lv in t["record"]["levels"]:
+            items.append({"group": t["name"], "icon": "trophy", "tone": tone,
+                          "name": f"{t['record']['name']}: {fmt_amount(lv['target'], t['key'], short=True)}",
+                          "earned": lv["earned"], "earned_on": lv["earned_on"],
+                          "hint": RECORD_VERB[t["key"]].format(n=fmt_amount(lv["target"], t["key"], short=True)
+                                                               if t["key"] == "planks" else f"{lv['target']:,}")})
+    return items
+
+
+def badge_summary(items):
+    """Count and the newest few earned badges, for the small cards that link to /badges."""
+    earned = sorted([b for b in items if b["earned"]], key=lambda b: b["earned_on"], reverse=True)
+    return {"earned": len(earned), "total": len(items), "recent": earned[:4]}
 
 
 def water_due(glasses):

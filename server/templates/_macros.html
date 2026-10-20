@@ -25,6 +25,10 @@
   "refresh": '<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 21v-5h-5"/>',
   "phone": '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
   "check": '<path d="M4.5 12.5l5 5 10-11"/>',
+  "pushup": '<circle cx="5" cy="9" r="2"/><path d="M7 10.5l13 3M9 11v6M20 13.5V17M3 20h18"/>',
+  "squat": '<circle cx="12" cy="4" r="2"/><path d="M12 6.5V12l-4 2.5 1.5 5.5M12 12l4 2.5-1.5 5.5M7.5 9h9"/>',
+  "plank": '<circle cx="4.5" cy="10" r="2"/><path d="M6.5 11.5 20 13.5M8 12v5M20 13.5V17M3 20h18"/>',
+  "jump": '<circle cx="12" cy="4" r="2"/><path d="M12 6.5v7M5 5l7 4 7-4M12 13.5 8 20.5M12 13.5l4 7"/>',
   "x": '<path d="M6 6l12 12M18 6L6 18"/>',
   "play": '<path d="M7 4l12 8-12 8z"/>',
   "mountain": '<path d="M3 20l6.5-11 4 6 2.5-3.5L21 20z"/><path d="M8 11.5l1.5 1 1.5-1"/>',
@@ -71,6 +75,11 @@
 {% macro badge_icon(key, earned=True) -%}
 {%- set b = BADGES.get(key, ("Badge", "star", "blue", "")) -%}
 <span class="badge-icon {{ 'tone-' ~ b[2] if earned else 'locked' }}">{{ icon(b[1] if earned else "lock", 26) }}</span>
+{%- endmacro %}
+
+{# A badge circle from an icon name and colour, or a padlock when not earned yet. #}
+{% macro badge_circle(icon_name, tone, earned=True, size=22) -%}
+<span class="badge-icon {{ 'tone-' ~ tone if earned else 'locked' }}">{{ icon(icon_name if earned else "lock", size) }}</span>
 {%- endmacro %}
 
 {# A person's avatar: their chosen emoji on its colour, or else their first letter. #}

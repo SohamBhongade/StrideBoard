@@ -2,7 +2,7 @@
 {% block title %}Admin{% endblock %}
 {% block content %}
 
-{{ m.page_head("School", "admin", "Add people, run challenges and see the impact for the demo video.") }}
+{{ m.page_head("School", "admin", "Add people and see the impact for the demo video.") }}
 
 {# ---- Impact stats ---- #}
 {% set before, during = stats.avg_before or 0, stats.avg_during or 0 %}
@@ -41,7 +41,7 @@
   <p class="small muted">"Before" means days before each person joined StrideBoard.</p>
 </section>
 
-<div class="row row-even">
+<div class="row">
 
   {# ---- Add users from CSV ---- #}
   <section class="card card-soft" aria-labelledby="add-h">
@@ -69,66 +69,7 @@
     </div>
     {% endif %}
   </section>
-
-  {# ---- Create a challenge ---- #}
-  <section class="card card-blue" aria-labelledby="new-ch-h">
-    <div class="card-head">
-      <span class="icon-circle">{{ m.icon('flag') }}</span>
-      <h2 id="new-ch-h">New challenge</h2>
-    </div>
-    <form method="post" class="form" id="challenge-form" data-per-day="{{ per_day }}">
-      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <input type="hidden" name="action" value="create_challenge">
-      <div class="field">
-        <label for="title">Title</label>
-        <input class="input" id="title" name="title" placeholder="Walk to Jebel Jais" required>
-      </div>
-      <div class="field">
-        <label for="description">Description</label>
-        <input class="input" id="description" name="description" placeholder="One short sentence">
-      </div>
-      <div class="field">
-        <label for="kind">Type</label>
-        <select class="input" id="kind" name="kind">
-          <option value="school_distance">Whole-school distance</option>
-          <option value="department">Class vs class (average steps)</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <div class="field"><label for="start_date">Starts</label><input class="input" type="date" id="start_date" name="start_date" value="{{ start }}" required></div>
-        <div class="field"><label for="end_date">Ends</label><input class="input" type="date" id="end_date" name="end_date" value="{{ end }}" required></div>
-      </div>
-      <div class="field" data-distance-only>
-        <label for="target_steps">Target steps (whole school)</label>
-        <input class="input" id="target_steps" name="target_steps" inputmode="numeric" value="{{ suggested }}">
-        <span class="hint" id="target-hint">Suggested: active people × 7,000 × days = {{ suggested|num }} steps ({{ (suggested * 0.0007)|round(1) }} km).</span>
-      </div>
-      <button class="btn btn-dark" type="submit">{{ m.icon('plus', 18) }} Create challenge</button>
-    </form>
-  </section>
 </div>
-
-{# ---- Running challenges ---- #}
-<section class="card card-soft" style="margin-top:16px" aria-labelledby="running-h">
-  <h2 id="running-h" class="card-title">Running challenges</h2>
-  {% if challenges %}
-  <ul class="history">
-    {% for c in challenges %}
-    <li>
-      <span class="h-date"><strong>{{ c.title }}</strong><br><span class="small muted">{{ c.start_date|nice_date }} to {{ c.end_date|nice_date }} · {{ 'Distance' if c.kind == 'school_distance' else 'Class vs class' }}</span></span>
-      <form method="post" class="inline-form" data-confirm="Close &quot;{{ c.title }}&quot;? It will disappear from the Challenges page.">
-        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-        <input type="hidden" name="action" value="close_challenge">
-        <input type="hidden" name="challenge_id" value="{{ c.id }}">
-        <button class="btn btn-danger btn-sm" type="submit">Close</button>
-      </form>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-    {{ m.empty("No challenges running", "Create one above to get the school moving together.", "flag") }}
-  {% endif %}
-</section>
 
 {# ---- Everyone ---- #}
 <section class="card card-soft" style="margin-top:16px" aria-labelledby="users-h">

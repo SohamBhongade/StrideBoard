@@ -189,20 +189,21 @@
   </section>
 
   {# ---- Badges ---- #}
-  <section class="card card-soft" aria-labelledby="badges-h">
+  <a class="card card-soft badge-link" href="{{ url_for('badges') }}" aria-labelledby="badges-h">
     <div class="card-title-row">
       <h2 id="badges-h" class="card-title">Badges</h2>
-      <span class="right muted">{{ d.badges|length }} of {{ BADGES|length }} earned</span>
+      <span class="right muted">{{ badge_summary.earned }} of {{ badge_summary.total }} earned</span>
     </div>
-    <div class="badge-grid">
-      {% for b in badge_cards %}
-      <div class="badge-card{% if b.earned %} earned{% endif %}">
-        {{ m.badge_icon(b.key, b.earned) }}
-        <strong>{{ b.name }}</strong>
-        <span>{% if b.earned %}Earned {{ b.earned_on|nice_date }}{% else %}{{ b.how }}{% endif %}</span>
-      </div>
+    {% if badge_summary.recent %}
+    <div class="badge-strip">
+      {% for b in badge_summary.recent %}
+      <span class="badge-mini" title="{{ b.name }}">{{ m.badge_circle(b.icon, b.tone, True, 20) }}<span>{{ b.name }}</span></span>
       {% endfor %}
     </div>
-  </section>
+    {% else %}
+    <p class="muted">No badges yet. Your first one comes with your first 1,000 steps.</p>
+    {% endif %}
+    <span class="badge-more">See all badges {{ m.icon('play', 14) }}</span>
+  </a>
 </div>
 {% endblock %}

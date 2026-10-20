@@ -202,6 +202,7 @@ button { cursor: pointer; }
 .card-peri { background: var(--peri-bg); }
 .card-blue { background: var(--blue-bg); }
 .card-pink { background: var(--pink-bg); }
+.card-peach { background: var(--peach-bg); }
 .card-soft { background: var(--soft); }
 .card-white { background: var(--white); border: 1.5px solid var(--line); }
 .card-dark { background: var(--ink); color: #fff; }
@@ -538,3 +539,50 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---- Challenges: progression tracks ---- */
+.note { display: flex; gap: 8px; align-items: flex-start; color: var(--muted); margin: 0 0 16px; max-width: 72ch; }
+.note .icon { flex: none; margin-top: 2px; }
+.track-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .track-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.track { display: flex; flex-direction: column; gap: 14px; }
+.track .badge-icon { width: 48px; height: 48px; }
+.track-total { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.track-total strong { font-size: 40px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.level-row { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.level {
+  min-width: 44px; padding: 6px 9px; border-radius: 999px; text-align: center;
+  font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+  border: 1.5px dashed #9AA3AD; color: var(--muted); background: transparent;
+}
+.level.earned { border: 1.5px solid var(--ink); background: var(--ink); color: #fff; }
+.record { display: flex; align-items: center; gap: 12px; }
+.record .badge-icon { width: 44px; height: 44px; flex: none; }
+.record-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.track > .btn { align-self: flex-start; }
+
+/* ---- Badges page ---- */
+.badge-group { font-size: 16px; font-weight: 600; margin: 18px 0 10px; }
+.badge-group:first-of-type { margin-top: 6px; }
+.badge-group .muted { font-weight: 500; margin-left: 4px; }
+.badge-tiles { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.badge-tile {
+  background: var(--white); border-radius: 16px; padding: 12px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; min-width: 0;
+}
+.badge-tile .badge-icon { width: 40px; height: 40px; }
+.badge-tile strong { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.badge-tile:not(.earned) strong { color: var(--muted); }
+.badge-tile span { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+
+/* ---- Dashboard badge card: a link to the Badges page ---- */
+.badge-link { display: flex; flex-direction: column; gap: 14px; color: inherit; text-decoration: none; }
+.badge-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.badge-strip { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.badge-mini {
+  background: var(--white); border-radius: 18px; padding: 12px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  font-size: 13px; font-weight: 600; line-height: 1.25; min-width: 0;
+}
+.badge-mini .badge-icon { width: 44px; height: 44px; }
+.badge-more { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; align-self: flex-start; }
