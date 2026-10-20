@@ -3,12 +3,13 @@
 The pages people see. All data comes from data.py (Agent 1); this file never
 writes SQL. Run from the server folder with:  flask run
 """
+import gzip
 import secrets
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import (Flask, abort, flash, g, get_flashed_messages, jsonify, redirect,
-                   render_template, request, send_from_directory, session, url_for)
+                   render_template, request, session, url_for)
 
 import api
 import config
@@ -50,10 +51,9 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
                "jumping_jacks": "Do {n} jumping jacks in one go"}
 
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
-STAND_MINUTES = 45  # in-site "time to stand up" reminder interval
-# Bump this (and VERSION in static/sw.js) whenever style.css or app.js change,
-# so phones load the new files instead of an old cached copy.
-ASSET_VERSION = "9"
+# Bump this whenever style.css, app.js or the font change, so phones load the new
+# files instead of their saved copy (the service worker picks it up automatically).
+ASSET_VERSION = "10"
 
 PUBLIC_ENDPOINTS = {"login", "logout", "static", "offline", "service_worker"}
 
@@ -89,10 +89,44 @@ def create_app():
 
     db.init_app(app)
     app.register_blueprint(api.bp)
+    add_speed(app)
     add_template_helpers(app)
     add_security(app)
     add_routes(app)
     return app
+
+
+# -------------------------------------------------------------------- speed
+
+COMPRESSIBLE = ("text/", "application/javascript", "application/json", "image/svg+xml",
+                "application/manifest+json")
+
+
+def add_speed(app):
+    """Make pages load faster on phones and school Wi-Fi.
+
+    - Files whose address carries ?v=<ASSET_VERSION> (CSS, JS, the font) never change,
+      so phones may keep them for a year; a new version gets a new address.
+    - Other static files (icons, manifest) are kept for a day.
+    - Text responses are gzip-compressed: pages shrink to about a fifth.
+    """
+    @app.after_request
+    def cache_and_compress(resp):
+        if request.path.startswith("/static/") and resp.status_code == 200:
+            if request.args.get("v"):
+                resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            else:
+                resp.headers["Cache-Control"] = "public, max-age=86400"
+
+        if (resp.status_code == 200 and "gzip" in request.headers.get("Accept-Encoding", "")
+                and resp.mimetype.startswith(COMPRESSIBLE) and "Content-Encoding" not in resp.headers):
+            resp.direct_passthrough = False   # static files are streamed; read them to compress
+            body = resp.get_data()
+            if len(body) > 1024:
+                resp.set_data(gzip.compress(body, compresslevel=6))
+                resp.headers["Content-Encoding"] = "gzip"
+                resp.headers.add("Vary", "Accept-Encoding")
+        return resp
 
 
 # ---------------------------------------------------------------- templates
@@ -130,9 +164,17 @@ def add_template_helpers(app):
         now = datetime.now(TZ)
         return {"csrf_token": csrf_token, "user": g.get("user"), "TIERS": TIERS,
                 "today_label": f"{now:%A} {now.day} {now:%B}",
-                "BADGES": BADGES, "MOODS": MOODS, "STAND_MINUTES": STAND_MINUTES,
+                "BADGES": BADGES, "MOODS": MOODS, "stand_due": stand_due(),
+                "INACTIVE_MINUTES": config.INACTIVE_MINUTES, "INACTIVE_MAX_STEPS": config.INACTIVE_MAX_STEPS,
                 "ASSET_VERSION": ASSET_VERSION, "TRACK_LOOK": TRACK_LOOK,
                 "AVATARS": config.AVATARS, "AVATAR_COLORS": config.AVATAR_COLORS}
+
+
+def stand_due():
+    """True only when the phone's recent syncs show under 50 steps in 30+ minutes."""
+    if not g.get("user") or request.blueprint == api.bp.name:
+        return False
+    return data.inactivity(db.get_db(), g.user["id"]).get("inactive") is True
 
 
 def csrf_token():
@@ -388,7 +430,11 @@ def add_routes(app):
     @app.route("/sw.js")
     def service_worker():
         # Served from the root so it can work offline for the whole site.
-        resp = send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
+        # The asset version is filled in here, so the offline cache always matches the
+        # files the pages actually load (no need to edit sw.js by hand any more).
+        with open(f"{app.static_folder}/sw.js", encoding="utf-8") as f:
+            body = f.read().replace("__ASSET_VERSION__", ASSET_VERSION)
+        resp = app.response_class(body, mimetype="application/javascript")
         resp.headers["Cache-Control"] = "no-cache"
         return resp
 

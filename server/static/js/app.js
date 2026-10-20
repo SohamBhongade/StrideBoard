@@ -47,22 +47,19 @@
   }
 
   // ---- In-site "time to stand up" reminder
-  // Shows every N minutes between 7:00 and 21:00 while the site is open.
+  // The server sets data-due="1" only when the phone's syncs show fewer than 50 steps
+  // in the last 30+ minutes. It shows between 7:00 and 21:00, and "Done" hides it
+  // for 30 minutes.
   var stand = document.getElementById("stand-nudge");
   if (stand) {
-    var minutes = parseInt(stand.getAttribute("data-minutes"), 10) || 45;
-    var checkStand = function () {
-      var hour = new Date().getHours();
-      var last = parseInt(load("sb_stand_last") || "0", 10);
-      var due = Date.now() - last > minutes * 60 * 1000;
-      stand.hidden = !(due && hour >= 7 && hour < 21);
-    };
+    var hour = new Date().getHours();
+    var last = parseInt(load("sb_stand_last") || "0", 10);
+    var dismissedRecently = Date.now() - last < 30 * 60 * 1000;
+    stand.hidden = !(stand.getAttribute("data-due") === "1" && !dismissedRecently && hour >= 7 && hour < 21);
     stand.querySelector("[data-dismiss-stand]").addEventListener("click", function () {
       save("sb_stand_last", String(Date.now()));
       stand.hidden = true;
     });
-    checkStand();
-    setInterval(checkStand, 60 * 1000);
   }
 
   // ---- One-time hint on iPhone Safari: Share -> Add to Home Screen

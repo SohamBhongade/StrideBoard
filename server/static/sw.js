@@ -1,15 +1,14 @@
-// StrideBoard service worker: caches the app shell and shows an offline page.
-// Served at /sw.js (see app.py) so it covers the whole site.
-// Change VERSION (and ASSET_VERSION in app.py) whenever style.css or app.js change,
-// so phones get the new files.
-const VERSION = "strideboard-v9";
+// StrideBoard service worker: keeps the site's files on the phone and shows an
+// offline page. Served at /sw.js by app.py, which fills in __ASSET_VERSION__ so this
+// always matches the files the pages load. Nothing to edit here when files change.
+const VERSION = "strideboard-__ASSET_VERSION__";
 const SHELL = [
   "/offline",
-  "/static/css/style.css?v=4",
-  "/static/js/app.js?v=4",
+  "/static/css/style.css?v=__ASSET_VERSION__",
+  "/static/js/app.js?v=__ASSET_VERSION__",
+  "/static/fonts/outfit.woff2?v=__ASSET_VERSION__",
   "/static/manifest.json",
   "/static/icons/icon-192.png",
-  "/static/icons/icon-512.png",
   "/static/icons/apple-touch-icon.png"
 ];
 
@@ -39,7 +38,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (url.pathname.startsWith("/static/")) {
-    // Static files: cache first, then network.
-    event.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
+    // Static files: from the phone if saved, otherwise download once and save a copy.
+    event.respondWith(
+      caches.open(VERSION).then((cache) =>
+        cache.match(req).then((hit) => hit || fetch(req).then((resp) => {
+          if (resp.ok) cache.put(req, resp.clone());
+          return resp;
+        })))
+    );
   }
 });

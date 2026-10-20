@@ -56,6 +56,17 @@ CREATE TABLE IF NOT EXISTS exercises (
 );
 CREATE INDEX IF NOT EXISTS idx_exercises_user ON exercises(user_id, type, date);
 
+-- Each sync's step total for today, with the time it arrived. Only used to tell
+-- whether someone has been sitting still (the stand-up reminder). Kept for 2 days.
+CREATE TABLE IF NOT EXISTS step_samples (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  total INTEGER NOT NULL,
+  at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_samples_user ON step_samples(user_id, date, at);
+
 CREATE TABLE IF NOT EXISTS water (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

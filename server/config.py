@@ -72,6 +72,14 @@ BADGES = {
     "comeback": "Comeback Kid",
     "platinum": "Platinum Walker",
 }
+# --- Stand-up reminder: shown only when the phone's syncs show you've barely moved ---
+# "Inactive" = fewer than INACTIVE_MAX_STEPS new steps across at least INACTIVE_MINUTES,
+# judged from two syncs; the newer sync must be at most SYNC_FRESH_MINUTES old.
+INACTIVE_MINUTES = 30
+INACTIVE_MAX_STEPS = 50
+SYNC_FRESH_MINUTES = 15
+SAMPLE_KEEP_DAYS = 2
+
 # --- Progression tracks (the Challenges page) ---
 # Lifetime totals unlock level badges; the "record" badge levels up with your best in one go
 # (steps: best single day; exercises: best single set). Planks are in seconds.

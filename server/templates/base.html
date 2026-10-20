@@ -17,9 +17,16 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="StrideBoard">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap">
+  {# The Outfit font is hosted here (static/fonts, SIL Open Font License), not on Google:
+     no extra connections, and the page doesn't wait for another website. #}
+  {% set font_url = url_for('static', filename='fonts/outfit.woff2') ~ '?v=' ~ ASSET_VERSION %}
+  <link rel="preload" href="{{ font_url }}" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face {
+      font-family: "Outfit"; font-style: normal; font-weight: 100 900; font-display: swap;
+      src: url("{{ font_url }}") format("woff2");
+    }
+  </style>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ ASSET_VERSION }}">
   <script>
     // Intro animations (counting numbers, filling bars) play only the first time
@@ -86,9 +93,9 @@
 
     {% if user %}
     {# In-site reminders, shown by app.js. Hidden until due. #}
-    <div class="nudge nudge-pink" id="stand-nudge" data-minutes="{{ STAND_MINUTES }}" hidden>
+    <div class="nudge nudge-pink" id="stand-nudge" data-due="{{ 1 if stand_due else 0 }}" hidden>
       <span class="icon-circle">{{ m.icon('stand') }}</span>
-      <div class="nudge-text"><strong>Time to stand up</strong><span>Stretch or walk for 2 minutes. Your body will thank you.</span></div>
+      <div class="nudge-text"><strong>Time to stand up</strong><span>You've barely moved for {{ INACTIVE_MINUTES }} minutes. Stretch or walk for 2 minutes.</span></div>
       <button type="button" class="btn btn-dark btn-sm" data-dismiss-stand>Done</button>
     </div>
     <div class="nudge nudge-blue" id="ios-hint" hidden>
