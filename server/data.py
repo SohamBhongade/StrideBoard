@@ -807,6 +807,16 @@ def progression(conn, user_id):
 # Views
 # =====================================================================
 
+def earned_badges(conn, user_id):
+    """The general badges someone has: [{"key", "name", "earned_on"}], oldest first."""
+    return [
+        {"key": r["badge_key"], "name": config.BADGES.get(r["badge_key"], r["badge_key"]),
+         "earned_on": r["earned_on"]}
+        for r in conn.execute("SELECT badge_key, earned_on FROM badges WHERE user_id = ? "
+                              "ORDER BY earned_on, id", (user_id,))
+    ]
+
+
 def dashboard(conn, user_id, today):
     """Everything for the home page (game stage 1 and 2)."""
     user = _require_user(conn, user_id)
@@ -820,12 +830,7 @@ def dashboard(conn, user_id, today):
     weekly = _sum_steps(conn, user_id, monday, sunday)
     next_name, needed = calc.next_tier(weekly)
 
-    badges = [
-        {"key": r["badge_key"], "name": config.BADGES.get(r["badge_key"], r["badge_key"]),
-         "earned_on": r["earned_on"]}
-        for r in conn.execute("SELECT badge_key, earned_on FROM badges WHERE user_id = ? "
-                              "ORDER BY earned_on, id", (user_id,))
-    ]
+    badges = earned_badges(conn, user_id)
     mood = conn.execute("SELECT mood FROM moods WHERE user_id = ? AND date = ?",
                         (user_id, day)).fetchone()
     water = conn.execute("SELECT glasses FROM water WHERE user_id = ? AND date = ?",
