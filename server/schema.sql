@@ -67,6 +67,33 @@ CREATE TABLE IF NOT EXISTS step_samples (
 );
 CREATE INDEX IF NOT EXISTS idx_samples_user ON step_samples(user_id, date, at);
 
+-- EXP: the in-app currency. Every gain (+) and spend (-) is one row, so the balance
+-- is always the sum and nothing is ever lost or invented.
+CREATE TABLE IF NOT EXISTS exp_ledger (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL CHECK (amount <> 0),
+  reason TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_exp_user ON exp_ledger(user_id);
+
+-- Avatar items someone has bought (free items are owned by everyone, so not stored).
+CREATE TABLE IF NOT EXISTS avatar_owned (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_key TEXT NOT NULL,
+  bought_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, item_key)
+);
+
+-- What each person is wearing, one item per slot (missing slots use the defaults).
+CREATE TABLE IF NOT EXISTS avatar_equipped (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  slot TEXT NOT NULL,
+  item_key TEXT NOT NULL,
+  PRIMARY KEY (user_id, slot)
+);
+
 CREATE TABLE IF NOT EXISTS water (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

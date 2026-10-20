@@ -249,6 +249,124 @@ def set_avatar(conn, user_id, avatar, color):
 
 
 # =====================================================================
+# EXP and the avatar studio
+# =====================================================================
+
+def exp_balance(conn, user_id):
+    """Current EXP: the sum of every gain and spend."""
+    return conn.execute("SELECT COALESCE(SUM(amount), 0) FROM exp_ledger WHERE user_id = ?",
+                        (user_id,)).fetchone()[0]
+
+
+def add_exp(conn, user_id, amount, reason):
+    """Give someone EXP (a positive whole number). Returns the new balance.
+
+    The earning rules will call this; for now admins use it from the Admin page.
+    """
+    amount = calc.parse_int(amount, "EXP", 1, config.EXP_MAX_GRANT)
+    reason = (reason or "").strip()
+    if not 1 <= len(reason) <= 100:
+        raise ValueError("please give a short reason (1 to 100 characters)")
+    _require_user(conn, user_id)
+    conn.execute("INSERT INTO exp_ledger (user_id, amount, reason, created_at) VALUES (?, ?, ?, ?)",
+                 (user_id, amount, reason, local_now_iso()))
+    conn.commit()
+    return exp_balance(conn, user_id)
+
+
+def exp_history(conn, user_id, limit=20):
+    """Latest EXP gains and spends, newest first: [{"amount", "reason", "created_at"}]."""
+    rows = conn.execute("SELECT amount, reason, created_at FROM exp_ledger WHERE user_id = ? "
+                        "ORDER BY id DESC LIMIT ?", (user_id, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _default_build(user_id):
+    build = dict(config.AVATAR_DEFAULTS)
+    build["color"] = config.AVATAR_START_COLORS[user_id % len(config.AVATAR_START_COLORS)]
+    return build
+
+
+def avatar_builds(conn, user_ids):
+    """What each person's avatar is wearing: {user_id: {slot: item_key}} (defaults filled in)."""
+    ids = [int(u) for u in user_ids if u is not None]
+    builds = {u: _default_build(u) for u in ids}
+    if ids:
+        marks = ",".join("?" * len(ids))
+        for r in conn.execute(f"SELECT user_id, slot, item_key FROM avatar_equipped "
+                              f"WHERE user_id IN ({marks})", ids):
+            if r["item_key"] in config.AVATAR_ITEMS:
+                builds[r["user_id"]][r["slot"]] = r["item_key"]
+    return builds
+
+
+def avatar_build(conn, user_id):
+    return avatar_builds(conn, [user_id])[user_id]
+
+
+def avatar_shop(conn, user_id):
+    """Everything the studio needs: balance, what's worn, and every item with its state.
+
+    items: [{"key", "slot", "name", "price", "owned", "worn"}] in catalogue order.
+    """
+    _require_user(conn, user_id)
+    build = avatar_build(conn, user_id)
+    bought = {r[0] for r in conn.execute("SELECT item_key FROM avatar_owned WHERE user_id = ?", (user_id,))}
+    items = [{"key": k, "slot": slot, "name": name, "price": price,
+              "owned": price == 0 or k in bought, "worn": build.get(slot) == k}
+             for k, (slot, name, price) in config.AVATAR_ITEMS.items()]
+    return {"balance": exp_balance(conn, user_id), "build": build, "items": items}
+
+
+def _item(key):
+    if key not in config.AVATAR_ITEMS:
+        raise ValueError("that item doesn't exist")
+    slot, name, price = config.AVATAR_ITEMS[key]
+    return slot, name, price
+
+
+def wear_avatar_item(conn, user_id, key):
+    """Put on an item you own (free items are always yours)."""
+    slot, name, price = _item(key)
+    _require_user(conn, user_id)
+    if price > 0 and not conn.execute("SELECT 1 FROM avatar_owned WHERE user_id = ? AND item_key = ?",
+                                      (user_id, key)).fetchone():
+        raise ValueError(f"buy {name} first")
+    conn.execute("INSERT INTO avatar_equipped (user_id, slot, item_key) VALUES (?, ?, ?) "
+                 "ON CONFLICT (user_id, slot) DO UPDATE SET item_key = excluded.item_key",
+                 (user_id, slot, key))
+    conn.commit()
+
+
+def buy_avatar_item(conn, user_id, key):
+    """Spend EXP on an item and put it on. Returns the new balance."""
+    slot, name, price = _item(key)
+    _require_user(conn, user_id)
+    if price == 0:
+        raise ValueError(f"{name} is free: just tap Wear")
+    balance = exp_balance(conn, user_id)
+    if balance < price:
+        raise ValueError(f"{name} costs {price:,} EXP and you have {balance:,}")
+    try:
+        # The primary key stops the same item being bought twice (e.g. a double tap).
+        conn.execute("INSERT INTO avatar_owned (user_id, item_key, bought_at) VALUES (?, ?, ?)",
+                     (user_id, key, local_now_iso()))
+    except sqlite3.IntegrityError:
+        raise ValueError(f"you already own {name}") from None
+    conn.execute("INSERT INTO exp_ledger (user_id, amount, reason, created_at) VALUES (?, ?, ?, ?)",
+                 (user_id, -price, f"Bought {name}", local_now_iso()))
+    conn.commit()
+    wear_avatar_item(conn, user_id, key)
+    return exp_balance(conn, user_id)
+
+
+def find_user_id(conn, username):
+    """A user's id from their username (any case), or None."""
+    row = conn.execute("SELECT id FROM users WHERE username = ?", (_clean_username(username),)).fetchone()
+    return row["id"] if row else None
+
+
+# =====================================================================
 # Entries
 # =====================================================================
 

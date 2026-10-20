@@ -71,6 +71,24 @@
   </section>
 </div>
 
+{# ---- Give EXP (for testing until the earning rules exist) ---- #}
+<section class="card card-soft" style="margin-top:16px" aria-labelledby="exp-h">
+  <div class="card-head">
+    <span class="icon-circle">{{ m.icon('star') }}</span>
+    <h2 id="exp-h">Give EXP</h2>
+  </div>
+  <form method="post" class="form">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="give_exp">
+    <div class="form-row">
+      <div class="field"><label for="exp-user">Username</label><input class="input" id="exp-user" name="username" autocapitalize="none" required></div>
+      <div class="field"><label for="exp-amount">EXP</label><input class="input" id="exp-amount" name="amount" inputmode="numeric" pattern="[0-9]*" placeholder="500" required></div>
+    </div>
+    <div class="field"><label for="exp-reason">Reason</label><input class="input" id="exp-reason" name="reason" placeholder="Testing the avatar studio" maxlength="100"></div>
+    <button class="btn btn-dark" type="submit">{{ m.icon('plus', 18) }} Give EXP</button>
+  </form>
+</section>
+
 {# ---- Everyone ---- #}
 <section class="card card-soft" style="margin-top:16px" aria-labelledby="users-h">
   <div class="card-title-row">

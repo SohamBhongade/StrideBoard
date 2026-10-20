@@ -12,6 +12,7 @@ from flask import (Flask, abort, flash, g, get_flashed_messages, jsonify, redire
                    render_template, request, session, url_for)
 
 import api
+import avatar_art
 import config
 import data
 import db
@@ -53,7 +54,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "11"
+ASSET_VERSION = "12"
 
 PUBLIC_ENDPOINTS = {"login", "logout", "static", "offline", "service_worker"}
 
@@ -167,7 +168,26 @@ def add_template_helpers(app):
                 "BADGES": BADGES, "MOODS": MOODS, "stand_due": stand_due(),
                 "INACTIVE_MINUTES": config.INACTIVE_MINUTES, "INACTIVE_MAX_STEPS": config.INACTIVE_MAX_STEPS,
                 "ASSET_VERSION": ASSET_VERSION, "TRACK_LOOK": TRACK_LOOK,
+                "creature": avatar_art.render, "my_build": my_build(),
+                "try_on": lambda build, slot, key: {**build, slot: key},
                 "AVATARS": config.AVATARS, "AVATAR_COLORS": config.AVATAR_COLORS}
+
+
+def my_build():
+    """The logged-in person's avatar parts, for the top bar (None when logged out)."""
+    if not g.get("user") or request.blueprint == api.bp.name:
+        return None
+    if "my_build" not in g:
+        g.my_build = data.avatar_build(db.get_db(), g.user["id"])
+    return g.my_build
+
+
+def with_builds(conn, rows):
+    """Add each person's avatar parts to leaderboard rows (department rows get none)."""
+    builds = data.avatar_builds(conn, [r.get("user_id") for r in rows])
+    for r in rows:
+        r["build"] = builds.get(r.get("user_id"))
+    return rows
 
 
 def stand_due():
@@ -265,7 +285,7 @@ def add_routes(app):
         view = g.user["role"] if g.user["role"] in ("student", "teacher") else "student"
         board = data.leaderboard(conn, view, t)
         mine = next((r for r in board if r.get("user_id") == uid), None)
-        preview = board[:3] + ([mine] if mine and mine["rank"] > 3 else [])
+        preview = with_builds(conn, board[:3] + ([mine] if mine and mine["rank"] > 3 else []))
         return render_template("dashboard.html", d=d, week=week, preview=preview,
                                preview_view=view, my_rank=mine,
                                tier_progress=tier_progress(d["weekly_total"]),
@@ -317,7 +337,7 @@ def add_routes(app):
         view = request.args.get("view", default)
         if view not in views:
             view = default
-        rows = data.leaderboard(db.get_db(), view, today(), role=role)
+        rows = with_builds(db.get_db(), data.leaderboard(db.get_db(), view, today(), role=role))
         return render_template("leaderboard.html", rows=rows, view=view,
                                views=allowed, view_name=views[view])
 
@@ -377,15 +397,26 @@ def add_routes(app):
                 elif action == "goal":
                     data.set_custom_goal(conn, uid, to_int(request.form.get("goal"), "goal"))
                     flash("Daily goal saved. It will stay fixed until you change it.", "ok")
-                elif action == "avatar":
-                    data.set_avatar(conn, uid, request.form.get("avatar"),
-                                    request.form.get("avatar_color"))
-                    flash("Avatar saved. It shows next to your name on the leaderboards.", "ok")
+                elif action in ("avatar_buy", "avatar_wear"):
+                    key = request.form.get("item", "")
+                    name = config.AVATAR_ITEMS.get(key, (None, "That item"))[1]
+                    if action == "avatar_buy":
+                        left = data.buy_avatar_item(conn, uid, key)
+                        flash(f"Bought {name}! You have {left:,} EXP left.", "badge")
+                    else:
+                        data.wear_avatar_item(conn, uid, key)
+                        flash(f"Now wearing {name}.", "ok")
             except ValueError as e:
                 flash(first_upper(str(e)), "error")
+            slot = request.form.get("slot")
+            if action in ("avatar_buy", "avatar_wear") and slot in dict(config.AVATAR_SLOTS):
+                return redirect(url_for("settings", slot=slot, _anchor="studio"))
             return redirect(url_for("settings"))
+        slot = request.args.get("slot")
+        if slot not in dict(config.AVATAR_SLOTS):
+            slot = config.AVATAR_SLOTS[0][0]
         return render_template("settings.html", me=data.get_user(conn, uid), age_bands=AGE_BANDS,
-                               avatar_options=data.avatar_options(conn, uid),
+                               shop=data.avatar_shop(conn, uid), slot=slot, slots=config.AVATAR_SLOTS,
                                server_url=request.url_root.rstrip("/"))
 
     # ---------- Admin
@@ -409,6 +440,14 @@ def add_routes(app):
                                           request.form.get("description", "").strip(), kind, target,
                                           request.form.get("start_date"), request.form.get("end_date"))
                     flash("Challenge created.", "ok")
+                elif action == "give_exp":
+                    who = (request.form.get("username") or "").strip()
+                    target = data.find_user_id(conn, who) if who else None
+                    if target is None:
+                        raise ValueError(f"no one has the username {who or '(blank)'}")
+                    new = data.add_exp(conn, target, request.form.get("amount"),
+                                       request.form.get("reason") or "Given by an admin")
+                    flash(f"Gave EXP to {who}. Their balance is now {new:,}.", "ok")
                 elif action == "close_challenge":
                     data.close_challenge(conn, to_int(request.form.get("challenge_id"), "challenge"))
                     flash("Challenge closed.", "ok")
