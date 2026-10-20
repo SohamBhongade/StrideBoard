@@ -147,7 +147,7 @@ class SetupActivity : ComponentActivity() {
         if (!Prefs.isConfigured(this)) return
         syncButton.isEnabled = false
         lastSync.text = "Syncing…"
-        SyncRunner.run(this, inBackground = false)
+        SyncRunner.run(this, inBackground = false, force = true)
         syncButton.isEnabled = true
         refreshStatus()
     }

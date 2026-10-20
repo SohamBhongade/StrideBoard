@@ -46,6 +46,38 @@
     });
   }
 
+  // ---- Live steps from the Android app
+  // While the app is on screen it reads Health Connect every 30 seconds and calls
+  // StrideBoard.liveSteps(n). This updates today's numbers in place, without reloading.
+  window.StrideBoard = window.StrideBoard || {};
+  window.StrideBoard.liveSteps = function (steps) {
+    var card = document.querySelector("[data-live-steps]");
+    steps = parseInt(steps, 10);
+    if (!card || isNaN(steps) || steps < 0) return;
+    var num = card.querySelector("[data-count]");
+    var now = parseInt(num.getAttribute("data-count"), 10) || 0;
+    if (steps === now) return;
+    var goal = parseInt(card.getAttribute("data-goal"), 10) || 1;
+    var pct = Math.floor(steps * 100 / goal);
+    var shown = Math.min(pct, 100);
+    num.setAttribute("data-count", String(steps));
+    num.textContent = steps.toLocaleString("en-US");
+    card.querySelector("[data-live-chip]").textContent = pct + "% of goal";
+    var ring = card.querySelector("[data-live-ring]");
+    ring.setAttribute("aria-label", pct + "% of today's goal");
+    ring.querySelector(".fill").style.strokeDashoffset = (238.8 * (1 - shown / 100)).toFixed(1);
+    card.querySelector("[data-live-label]").innerHTML = pct >= 100
+      ? '<svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"/></svg>'
+      : pct + "%";
+    var on = Math.min(Math.floor(pct / 10), 10);
+    card.querySelectorAll(".blocks-10 .block").forEach(function (b, i) { b.classList.toggle("on", i < on); });
+    var note = card.querySelector("[data-live-note]");
+    if (note) note.innerHTML = pct >= 100
+      ? '<p class="small"><strong>Goal reached!</strong> Anything extra still counts towards your weekly tier.</p>'
+      : '<p class="small"><strong>' + (goal - steps).toLocaleString("en-US") +
+        ' to go.</strong> Moving more is linked to better mood and sleep, and a walk between lessons all adds up.</p>';
+  };
+
   // ---- In-site "time to stand up" reminder
   // The server sets data-due="1" only when the phone's syncs show fewer than 50 steps
   // in the last 30+ minutes. It shows between 7:00 and 21:00, and "Done" hides it
