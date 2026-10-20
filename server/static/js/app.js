@@ -259,3 +259,52 @@
     });
   }
 })();
+
+// ---- Mini challenges: a running clock, the Done button unlocking, and live walk progress
+(function () {
+  var box = document.querySelector("[data-mini-live]");
+  if (!box) return;
+  var started = Date.now() - (parseInt(box.getAttribute("data-elapsed"), 10) || 0) * 1000;
+  var wait = parseInt(box.getAttribute("data-wait"), 10) || 0;
+  var unlockAt = Date.now() + wait * 1000;
+  var plank = parseInt(box.getAttribute("data-plank"), 10) || 0;
+  var clock = box.querySelector("[data-mini-clock]");
+  var done = box.querySelector("[data-mini-done]");
+  var label = box.querySelector("[data-done-label]");
+  function mmss(s) {
+    s = Math.max(0, Math.floor(s));
+    var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = ("0" + s % 60).slice(-2);
+    return h ? h + ":" + ("0" + m).slice(-2) + ":" + sec : m + ":" + sec;
+  }
+  function tick() {
+    var secs = (Date.now() - started) / 1000;
+    if (clock) clock.textContent = plank ? (secs >= plank ? "Time!" : mmss(plank - secs)) : mmss(secs);
+    if (done && done.disabled) {
+      var left = Math.ceil((unlockAt - Date.now()) / 1000);
+      if (left <= 0) { done.disabled = false; if (label) label.textContent = "Done"; }
+      else if (label) label.textContent = "Done in " + left + "s";
+    }
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // Walks: the Android app calls StrideBoard.liveSteps(today's total) every 30 seconds.
+  var base = box.getAttribute("data-walk-base");
+  if (base === null) return;
+  base = parseInt(base, 10) || 0;
+  var goal = parseInt(box.getAttribute("data-walk-amount"), 10) || 1;
+  var reloading = false;
+  var previous = window.StrideBoard && window.StrideBoard.liveSteps;
+  window.StrideBoard = window.StrideBoard || {};
+  window.StrideBoard.liveSteps = function (steps) {
+    if (previous) previous(steps);
+    steps = parseInt(steps, 10);
+    if (isNaN(steps)) return;
+    var walked = Math.max(0, Math.min(goal, steps - base));
+    var n = box.querySelector("[data-walk-done]");
+    if (n) n.textContent = walked.toLocaleString("en-US");
+    var bar = box.querySelector("[data-walk-bar]");
+    if (bar) bar.style.setProperty("--w", Math.floor(walked * 100 / goal) + "%");
+    if (walked >= goal && !reloading) { reloading = true; setTimeout(function () { location.reload(); }, 1200); }
+  };
+})();

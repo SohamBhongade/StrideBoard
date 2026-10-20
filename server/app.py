@@ -27,8 +27,6 @@ LEADERBOARD_VIEWS = [("student", "Students"), ("teacher", "Teachers"),
 AGE_BANDS = [("under_13", "Under 13"), ("teen_13_17", "13 to 17"),
              ("adult_18_39", "18 to 39"), ("adult_40_59", "40 to 59"),
              ("senior_60_plus", "60 and over")]
-ACTIVITY_TYPES = [("walk", "Walk"), ("gym", "Gym"), ("sport", "Sport"),
-                  ("yoga", "Yoga"), ("stretch", "Stretch"), ("other", "Other")]
 MOODS = [(1, "Low"), (2, "Meh"), (3, "Okay"), (4, "Good"), (5, "Great")]
 # badge key -> (name, icon, colour, how to earn it). Names come from config.BADGES below.
 _BADGE_LOOK = {
@@ -45,8 +43,6 @@ BADGES = {k: (config.BADGES.get(k, v[0]),) + v[1:] for k, v in _BADGE_LOOK.items
 # How each progression track looks: icon and colour (the levels live in config.TRACKS).
 TRACK_LOOK = {"steps": ("foot", "blue"), "pushups": ("pushup", "pink"), "squats": ("squat", "peach"),
               "planks": ("plank", "mint"), "jumping_jacks": ("jump", "violet")}
-EXERCISE_CHOICES = [("pushups", "Push-ups"), ("squats", "Squats"), ("planks", "Plank (seconds)"),
-                    ("jumping_jacks", "Jumping jacks")]
 RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups in one go",
                "squats": "Do {n} squats in one go", "planks": "Hold a plank for {n}",
                "jumping_jacks": "Do {n} jumping jacks in one go"}
@@ -54,7 +50,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "13"
+ASSET_VERSION = "14"
 
 PUBLIC_ENDPOINTS = {"login", "logout", "static", "offline", "service_worker"}
 
@@ -316,7 +312,7 @@ def add_routes(app):
             return redirect(url_for(safe_next("log")))
         d = data.dashboard(conn, uid, today())
         return render_template("log.html", dates=dates, d=d, water_target=WATER_TARGET,
-                               activity_types=ACTIVITY_TYPES, exercise_choices=EXERCISE_CHOICES,
+                               mini=data.mini_state(conn, uid),
                                recent=data.history(conn, uid, 8, today()))
 
     # ---------- Leaderboards
@@ -354,13 +350,22 @@ def add_routes(app):
                                tier_up=tier_rank(w["tier"]) - tier_rank(w["last_tier"]))
 
     # ---------- Challenges
-    @app.route("/challenges")
+    @app.route("/challenges", methods=["GET", "POST"])
     def challenges():
-        """Progression tracks: lifetime totals unlock levels, best-in-one-go unlocks records."""
+        """Mini challenges (earn EXP) on top, then the progression tracks they feed."""
         conn, uid = db.get_db(), g.user["id"]
+        if request.method == "POST":
+            try:
+                handle_mini(conn, uid)
+            except ValueError as e:
+                flash(first_upper(str(e)), "error")
+            return redirect(url_for("challenges") + "#mini")
+        walk = data.check_walks(conn, uid)
+        if walk:
+            flash(f"{walk['label']}: done! +{walk['exp']} EXP. You have {walk['balance']:,} EXP.", "badge")
         badges = all_badges(conn, uid, data.dashboard(conn, uid, today())["badges"])
         return render_template("challenges.html", tracks=data.progression(conn, uid),
-                               summary=badge_summary(badges))
+                               summary=badge_summary(badges), mini=data.mini_state(conn, uid))
 
     # ---------- Badges: everything still to earn on top, earned at the bottom
     @app.route("/badges")
@@ -485,7 +490,7 @@ def add_routes(app):
 # ------------------------------------------------------------------ helpers
 
 def save_log_form(conn, uid, dates):
-    """Handle one of the small forms on /log or the dashboard (mood, water, activity)."""
+    """Handle one of the small forms on /log or the dashboard (mood, water)."""
     action = request.form.get("action")
     day = request.form.get("date") or today()
     if day not in dates:
@@ -501,29 +506,30 @@ def save_log_form(conn, uid, dates):
         current = data.dashboard(conn, uid, today())["water_today"] or 0
         change = 1 if request.form.get("change") == "plus" else -1
         data.save_water(conn, uid, today(), max(0, current + change))
-    elif action == "exercise":
-        kind = request.form.get("type")
-        if kind not in dict(EXERCISE_CHOICES):
-            raise ValueError("please choose an exercise")
-        before = {t["key"]: t for t in data.progression(conn, uid)}[kind]
-        data.save_exercise(conn, uid, day, kind, request.form.get("amount"))
-        after = {t["key"]: t for t in data.progression(conn, uid)}[kind]
-        amount = to_int(request.form.get("amount"), "amount")
-        flash(f"Saved {fmt_amount(amount, kind)}. Total: {fmt_amount(after['total'], kind)}.", "ok")
-        new = [lv for lv, old in zip(after["levels"], before["levels"]) if lv["earned"] and not old["earned"]]
-        new += [lv for lv, old in zip(after["record"]["levels"], before["record"]["levels"])
-                if lv["earned"] and not old["earned"]]
+    else:
+        raise ValueError("unknown form")
+
+
+
+def handle_mini(conn, uid):
+    """Start, finish or back out of a mini challenge (forms on the Challenges page)."""
+    action = request.form.get("action")
+    if action == "mini_start":
+        data.start_mini(conn, uid, request.form.get("key"))
+    elif action == "mini_done":
+        before = {t["key"]: t for t in data.progression(conn, uid)}
+        won = data.finish_mini(conn, uid)
+        after = {t["key"]: t for t in data.progression(conn, uid)}[won["track"]]
+        old = before[won["track"]]
+        flash(f"{won['label']}: done! +{won['exp']} EXP. You have {won['balance']:,} EXP.", "ok")
+        new = [1 for lv, o in zip(after["levels"], old["levels"]) if lv["earned"] and not o["earned"]]
+        new += [1 for lv, o in zip(after["record"]["levels"], old["record"]["levels"])
+                if lv["earned"] and not o["earned"]]
         if new:
-            flash(f"New badge{'s' if len(new) > 1 else ''} unlocked! See them on the Challenges page.", "badge")
-    elif action == "activity":
-        kind = request.form.get("type")
-        if kind not in dict(ACTIVITY_TYPES):
-            raise ValueError("please choose an activity type")
-        minutes = to_int(request.form.get("minutes"), "minutes")
-        if not 1 <= minutes <= 600:
-            raise ValueError("minutes must be between 1 and 600")
-        data.add_activity(conn, uid, day, kind, minutes)
-        flash(f"Saved {minutes} minutes of {dict(ACTIVITY_TYPES)[kind].lower()}.", "ok")
+            flash(f"New badge{'s' if len(new) > 1 else ''} unlocked on the {after['name']} track!", "badge")
+    elif action == "mini_quit":
+        label = data.quit_mini(conn, uid)
+        flash(f"Backed out of {label}. No worries, try another any time.", "ok")
     else:
         raise ValueError("unknown form")
 

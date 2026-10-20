@@ -130,3 +130,17 @@ CREATE TABLE IF NOT EXISTS meta (
 -- Indexes make the weekly leaderboard queries fast.
 CREATE INDEX IF NOT EXISTS idx_steps_date ON steps(date);
 CREATE INDEX IF NOT EXISTS idx_moods_user_date ON moods(user_id, date);
+
+-- Mini challenges: one row per attempt. status: active, done or quit.
+-- base_steps is today's step total when a walk started (walks finish on new steps).
+CREATE TABLE IF NOT EXISTS mini_runs (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,
+  date TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','done','quit')),
+  base_steps INTEGER NOT NULL DEFAULT 0,
+  started_at TEXT NOT NULL,
+  finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_mini_user ON mini_runs(user_id, date, status);

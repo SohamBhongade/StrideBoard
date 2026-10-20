@@ -184,3 +184,22 @@ MIN_MOOD_DAYS_FOR_INSIGHT = 3      # mood insight needs 3+ days in each group
 KM_PER_STEP = 0.0007
 DISTANCE_STEPS_PER_USER_PER_DAY = 7_000
 ACTIVE_USER_DAYS = 14              # "active" = has steps in the last 14 days
+
+# --- Mini challenges: the way to earn EXP. Start one, do it, tap Done. ---
+# Exercises go straight into the Challenges tracks (no typing numbers in).
+# Walks finish by themselves once the phone has sent enough new steps.
+# min_seconds: Done can't be tapped sooner than this after starting (stops instant taps).
+# key -> {track, amount, exp, min_seconds}. Order = display order.
+MINI_CHALLENGES = {
+    "pushups_10": {"track": "pushups", "amount": 10, "exp": 10, "min_seconds": 15},
+    "pushups_25": {"track": "pushups", "amount": 25, "exp": 25, "min_seconds": 40},
+    "squats_15": {"track": "squats", "amount": 15, "exp": 10, "min_seconds": 20},
+    "squats_30": {"track": "squats", "amount": 30, "exp": 20, "min_seconds": 45},
+    "planks_30": {"track": "planks", "amount": 30, "exp": 10, "min_seconds": 30},
+    "planks_60": {"track": "planks", "amount": 60, "exp": 25, "min_seconds": 60},
+    "jumping_jacks_25": {"track": "jumping_jacks", "amount": 25, "exp": 10, "min_seconds": 20},
+    "jumping_jacks_50": {"track": "jumping_jacks", "amount": 50, "exp": 20, "min_seconds": 40},
+    "walk_1000": {"track": "steps", "amount": 1_000, "exp": 15, "min_seconds": 300},
+    "walk_2500": {"track": "steps", "amount": 2_500, "exp": 35, "min_seconds": 900},
+}
+MINI_DAILY_LIMIT = 3               # each mini challenge can earn EXP this many times a day

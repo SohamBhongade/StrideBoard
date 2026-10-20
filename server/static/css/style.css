@@ -619,3 +619,26 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .item-tile .btn[disabled] { font-size: 13px; }
 .item-tile .chip { max-width: 100%; min-width: 0; white-space: nowrap; padding: 6px 10px; font-size: 13px; gap: 4px; justify-content: center; }
 .item-tile .chip svg { width: 14px; height: 14px; flex: none; }
+
+/* ---------- Mini challenges */
+.mini { margin-bottom: 16px; display: flex; flex-direction: column; gap: 14px; }
+.mini-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.mini-tile {
+  background: var(--white); border-radius: 18px; padding: 14px 10px; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+}
+.mini-tile strong { font-size: 15px; font-weight: 600; line-height: 1.2; }
+.mini-exp { font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
+.mini-tile .inline-form { margin-top: auto; width: 100%; }
+.mini-tile .btn { width: 100%; }
+.mini-tile .chip { margin-top: auto; padding: 6px 10px; font-size: 13px; gap: 4px; }
+.mini-live { background: var(--white); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.mini-live-head { display: flex; align-items: center; gap: 12px; }
+.mini-live-head > div { display: flex; flex-direction: column; min-width: 0; }
+.mini-live-title { font-size: 24px; font-weight: 600; line-height: 1.15; }
+.mini-clock { font-size: clamp(56px, 16vw, 80px); font-weight: 600; letter-spacing: -.03em; line-height: 1;
+  text-align: center; font-variant-numeric: tabular-nums; padding: 8px 0; }
+.mini-hint { text-align: center; }
+.mini-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.mini-actions > * { flex: 1 1 140px; }
+.mini-actions .btn { width: 100%; }

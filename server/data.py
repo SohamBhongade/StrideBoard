@@ -438,6 +438,8 @@ def save_steps(conn, user_id, date, steps, source, today=None):
         _record_sample(conn, user_id, day, steps)
     new_badges = award_badges(conn, user_id, day, today)
     conn.commit()
+    if day == local_today().isoformat():
+        check_walks(conn, user_id)   # a walking mini challenge may now be finished
 
     monday, sunday = calc.week_bounds(today)
     total = _sum_steps(conn, user_id, monday, sunday)
@@ -991,3 +993,157 @@ def maybe_update_goals(conn, today=None):
         return False
     update_weekly_goals(conn, today)
     return True
+
+
+# ------------------------------------------------------------------ mini challenges
+
+def mini_label(key):
+    """'10 push-ups', '30-second plank', 'Walk 1,000 steps'."""
+    c = config.MINI_CHALLENGES[key]
+    if c["track"] == "steps":
+        return f"Walk {c['amount']:,} steps"
+    if c["track"] == "planks":
+        return f"{c['amount']}-second plank"
+    return f"{c['amount']} {config.TRACKS[c['track']]['unit']}"
+
+
+def _now(now):
+    return now or datetime.fromisoformat(local_now_iso())
+
+
+def _steps_on(conn, user_id, day):
+    row = conn.execute("SELECT steps FROM steps WHERE user_id = ? AND date = ?",
+                       (user_id, day)).fetchone()
+    return row["steps"] if row else 0
+
+
+def _active_run(conn, user_id):
+    return conn.execute("SELECT * FROM mini_runs WHERE user_id = ? AND status = 'active' "
+                        "ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+
+
+def _done_today(conn, user_id, day):
+    rows = conn.execute("SELECT key, COUNT(*) AS n FROM mini_runs WHERE user_id = ? AND date = ? "
+                        "AND status = 'done' GROUP BY key", (user_id, day)).fetchall()
+    return {r["key"]: r["n"] for r in rows}
+
+
+def _complete_run(conn, run, now):
+    """Mark a run done, add it to the Challenges track and pay its EXP. Returns a summary."""
+    c = config.MINI_CHALLENGES[run["key"]]
+    day = now.date().isoformat()
+    if c["track"] != "steps":   # walks already count through the phone's steps
+        conn.execute("INSERT INTO exercises (user_id, date, type, amount, created_at) "
+                     "VALUES (?, ?, ?, ?, ?)", (run["user_id"], day, c["track"], c["amount"],
+                                                now.isoformat(timespec="seconds")))
+    conn.execute("UPDATE mini_runs SET status = 'done', finished_at = ? WHERE id = ?",
+                 (now.isoformat(timespec="seconds"), run["id"]))
+    conn.execute("INSERT INTO exp_ledger (user_id, amount, reason, created_at) VALUES (?, ?, ?, ?)",
+                 (run["user_id"], c["exp"], "Mini challenge: " + mini_label(run["key"]),
+                  now.isoformat(timespec="seconds")))
+    conn.commit()
+    return {"key": run["key"], "label": mini_label(run["key"]), "exp": c["exp"],
+            "track": c["track"], "balance": exp_balance(conn, run["user_id"])}
+
+
+def check_walks(conn, user_id, now=None):
+    """Finish an active walk if the phone has sent enough new steps. Returns the summary or None.
+
+    A walk started on an earlier day can't be measured any more (steps restart at midnight),
+    so it is quietly dropped.
+    """
+    now = _now(now)
+    run = _active_run(conn, user_id)
+    if not run or config.MINI_CHALLENGES[run["key"]]["track"] != "steps":
+        return None
+    if run["date"] != now.date().isoformat():
+        conn.execute("UPDATE mini_runs SET status = 'quit', finished_at = ? WHERE id = ?",
+                     (now.isoformat(timespec="seconds"), run["id"]))
+        conn.commit()
+        return None
+    c = config.MINI_CHALLENGES[run["key"]]
+    walked = _steps_on(conn, user_id, run["date"]) - run["base_steps"]
+    elapsed = (now - datetime.fromisoformat(run["started_at"])).total_seconds()
+    if walked >= c["amount"] and elapsed >= c["min_seconds"]:
+        return _complete_run(conn, run, now)
+    return None
+
+
+def mini_state(conn, user_id, now=None):
+    """Everything the mini challenge panel needs.
+
+    {"active": {...} or None, "challenges": [...], "exp_today": n, "balance": n}
+    """
+    now = _now(now)
+    day = now.date().isoformat()
+    _require_user(conn, user_id)
+    done = _done_today(conn, user_id, day)
+    active = None
+    run = _active_run(conn, user_id)
+    if run:
+        c = config.MINI_CHALLENGES[run["key"]]
+        elapsed = int((now - datetime.fromisoformat(run["started_at"])).total_seconds())
+        active = {"key": run["key"], "label": mini_label(run["key"]), "track": c["track"],
+                  "amount": c["amount"], "exp": c["exp"], "elapsed": max(0, elapsed),
+                  "wait": max(0, c["min_seconds"] - elapsed), "started_at": run["started_at"]}
+        if c["track"] == "steps":
+            walked = max(0, _steps_on(conn, user_id, day) - run["base_steps"])
+            active.update(walked=min(walked, c["amount"]), base_steps=run["base_steps"],
+                          percent=min(100, walked * 100 // c["amount"]))
+    items = []
+    for key, c in config.MINI_CHALLENGES.items():
+        n = done.get(key, 0)
+        items.append({"key": key, "label": mini_label(key), "track": c["track"], "exp": c["exp"],
+                      "done_today": n, "left_today": max(0, config.MINI_DAILY_LIMIT - n)})
+    exp_today = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) FROM exp_ledger WHERE user_id = ? AND amount > 0 "
+        "AND reason LIKE 'Mini challenge:%' AND substr(created_at, 1, 10) = ?",
+        (user_id, day)).fetchone()[0]
+    return {"active": active, "challenges": items, "exp_today": exp_today,
+            "balance": exp_balance(conn, user_id), "daily_limit": config.MINI_DAILY_LIMIT}
+
+
+def start_mini(conn, user_id, key, now=None):
+    """Start a mini challenge. Only one at a time, each up to MINI_DAILY_LIMIT times a day."""
+    now = _now(now)
+    if key not in config.MINI_CHALLENGES:
+        raise ValueError("that mini challenge doesn't exist")
+    _require_user(conn, user_id)
+    if _active_run(conn, user_id):
+        raise ValueError("finish or back out of your current challenge first")
+    day = now.date().isoformat()
+    if _done_today(conn, user_id, day).get(key, 0) >= config.MINI_DAILY_LIMIT:
+        raise ValueError(f"you've done {mini_label(key)} {config.MINI_DAILY_LIMIT} times today. "
+                         "Try a different one, or come back tomorrow")
+    conn.execute("INSERT INTO mini_runs (user_id, key, date, base_steps, started_at) "
+                 "VALUES (?, ?, ?, ?, ?)",
+                 (user_id, key, day, _steps_on(conn, user_id, day), now.isoformat(timespec="seconds")))
+    conn.commit()
+
+
+def finish_mini(conn, user_id, now=None):
+    """Tap Done on the active exercise challenge. Returns the summary from _complete_run."""
+    now = _now(now)
+    run = _active_run(conn, user_id)
+    if not run:
+        raise ValueError("you don't have a challenge going")
+    c = config.MINI_CHALLENGES[run["key"]]
+    if c["track"] == "steps":
+        raise ValueError("walks finish by themselves once your phone sends the new steps")
+    elapsed = (now - datetime.fromisoformat(run["started_at"])).total_seconds()
+    if elapsed < c["min_seconds"]:
+        left = int(c["min_seconds"] - elapsed + 0.999)
+        raise ValueError(f"that was quick! Give it {left} more second{'s' if left != 1 else ''}")
+    return _complete_run(conn, run, now)
+
+
+def quit_mini(conn, user_id, now=None):
+    """Back out of the active challenge. No EXP, nothing lost."""
+    now = _now(now)
+    run = _active_run(conn, user_id)
+    if not run:
+        raise ValueError("you don't have a challenge going")
+    conn.execute("UPDATE mini_runs SET status = 'quit', finished_at = ? WHERE id = ?",
+                 (now.isoformat(timespec="seconds"), run["id"]))
+    conn.commit()
+    return mini_label(run["key"])
