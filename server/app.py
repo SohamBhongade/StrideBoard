@@ -453,6 +453,15 @@ def add_routes(app):
                     new = data.add_exp(conn, target, request.form.get("amount"),
                                        request.form.get("reason") or "Given by an admin")
                     flash(f"Gave EXP to {who}. Their balance is now {new:,}.", "ok")
+                elif action == "set_role":
+                    who = (request.form.get("username") or "").strip()
+                    target = data.find_user_id(conn, who) if who else None
+                    if target is None:
+                        raise ValueError(f"no one has the username {who or '(blank)'}")
+                    role = request.form.get("role")
+                    was = data.set_role(conn, target, role, request.form.get("department"),
+                                        acting_admin_id=g.user["id"])
+                    flash(f"{who} is now {'an' if role == 'admin' else 'a'} {role} (was {was}).", "ok")
                 elif action == "close_challenge":
                     data.close_challenge(conn, to_int(request.form.get("challenge_id"), "challenge"))
                     flash("Challenge closed.", "ok")

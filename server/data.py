@@ -360,6 +360,26 @@ def buy_avatar_item(conn, user_id, key):
     return exp_balance(conn, user_id)
 
 
+def set_role(conn, user_id, role, department=None, acting_admin_id=None):
+    """Change someone's role (student, teacher or admin). Optionally set their class/department.
+
+    You can't take admin away from yourself, so there is always at least one admin.
+    """
+    role = (role or "").strip().lower()
+    if role not in config.ROLES:
+        raise ValueError("role must be student, teacher or admin")
+    user = _require_user(conn, user_id)
+    if user_id == acting_admin_id and role != "admin":
+        raise ValueError("you can't remove your own admin role")
+    department = (department or "").strip() or None
+    if department and len(department) > 50:
+        raise ValueError("department must be at most 50 characters")
+    conn.execute("UPDATE users SET role = ?, department = COALESCE(?, department) WHERE id = ?",
+                 (role, department, user_id))
+    conn.commit()
+    return user["role"]
+
+
 def find_user_id(conn, username):
     """A user's id from their username (any case), or None."""
     row = conn.execute("SELECT id FROM users WHERE username = ?", (_clean_username(username),)).fetchone()
