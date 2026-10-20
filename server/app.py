@@ -51,7 +51,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "17"
+ASSET_VERSION = "18"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -166,9 +166,22 @@ def add_template_helpers(app):
                 "BADGES": BADGES, "MOODS": MOODS, "stand_due": stand_due(),
                 "INACTIVE_MINUTES": config.INACTIVE_MINUTES, "INACTIVE_MAX_STEPS": config.INACTIVE_MAX_STEPS,
                 "ASSET_VERSION": ASSET_VERSION, "TRACK_LOOK": TRACK_LOOK,
-                "creature": avatar_art.render, "my_build": my_build(),
+                "creature": creature, "avatar_sheet": avatar_sheet, "my_build": my_build(),
                 "try_on": lambda build, slot, key: {**build, slot: key},
                 "AVATARS": config.AVATARS, "AVATAR_COLORS": config.AVATAR_COLORS}
+
+
+def creature(build, size=40, title=None):
+    """Draw an avatar. Each different look is drawn once per page (see avatar_sheet)."""
+    looks = g.setdefault("avatar_looks", {})
+    key = avatar_art.look_key(build)
+    looks.setdefault(key, dict(build))
+    return avatar_art.render_use(key, size, title)
+
+
+def avatar_sheet():
+    """The drawings for every look used on this page. base.html puts it at the very end."""
+    return avatar_art.render_sheet(g.pop("avatar_looks", {}))
 
 
 def my_build():
@@ -240,6 +253,14 @@ def add_security(app):
 SIGNUP_LOG = {}   # network address -> times of recent sign-ups (kept in memory)
 
 
+def _prune(log, window):
+    """Drop old entries from an in-memory limiter so it never grows without end."""
+    if len(log) > 2000:
+        now = datetime.now().timestamp()
+        for key in [k for k, times in log.items() if not times or now - times[-1] > window]:
+            del log[key]
+
+
 def too_many_signups(addr, kind="signup"):
     now = datetime.now().timestamp()
     key = (kind, addr)
@@ -249,6 +270,7 @@ def too_many_signups(addr, kind="signup"):
 
 
 def note_signup(addr, kind="signup"):
+    _prune(SIGNUP_LOG, 3600)
     SIGNUP_LOG.setdefault((kind, addr), []).append(datetime.now().timestamp())
 
 
@@ -271,6 +293,7 @@ def login_locked(name):
 
 
 def note_failed_login(name):
+    _prune(FAILED_LOGINS, LOGIN_LOCK_MINUTES * 60)
     FAILED_LOGINS.setdefault(_login_key(name), []).append(datetime.now().timestamp())
 
 
@@ -516,15 +539,16 @@ def add_routes(app):
         walk = data.check_walks(conn, uid)
         if walk:
             flash(f"{walk['label']}: done! +{walk['exp']} EXP. You have {walk['balance']:,} EXP.", "badge")
-        badges = all_badges(conn, uid, data.dashboard(conn, uid, today())["badges"])
-        return render_template("challenges.html", tracks=data.progression(conn, uid),
+        tracks = data.progression(conn, uid)
+        badges = all_badges(conn, uid, data.earned_badges(conn, uid), tracks)
+        return render_template("challenges.html", tracks=tracks,
                                summary=badge_summary(badges), mini=data.mini_state(conn, uid))
 
     # ---------- Badges: everything still to earn on top, earned at the bottom
     @app.route("/badges")
     def badges():
         conn, uid = db.get_db(), g.user["id"]
-        items = all_badges(conn, uid, data.dashboard(conn, uid, today())["badges"])
+        items = all_badges(conn, uid, data.earned_badges(conn, uid))
         groups = []   # [(group name, [badges])] in display order
         for b in items:
             if not groups or groups[-1][0] != b["group"]:
@@ -774,7 +798,7 @@ def fmt_amount(n, track, short=False):
     return f"{n:,} {unit}"
 
 
-def all_badges(conn, uid, earned_general):
+def all_badges(conn, uid, earned_general, tracks=None):
     """Every badge a person can earn, in display order.
 
     Each: {"group", "name", "icon", "tone", "earned", "earned_on", "hint"}.
@@ -783,7 +807,7 @@ def all_badges(conn, uid, earned_general):
     got = {b["key"]: b["earned_on"] for b in earned_general}
     items = [{"group": "General", "name": v[0], "icon": v[1], "tone": v[2],
               "earned": k in got, "earned_on": got.get(k), "hint": v[3]} for k, v in BADGES.items()]
-    for t in data.progression(conn, uid):
+    for t in (tracks if tracks is not None else data.progression(conn, uid)):
         ic, tone = TRACK_LOOK[t["key"]]
         for lv in t["levels"]:
             items.append({"group": t["name"], "icon": ic, "tone": tone,

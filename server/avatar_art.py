@@ -140,14 +140,10 @@ def _hat(key):
     return ""
 
 
-def render(build, size=40, title=None):
-    """The avatar as an inline SVG (Markup). Unknown or missing parts fall back to the defaults."""
-    uid = next(_ids)
+def _parts(build, uid):
+    """Everything inside the <svg>: background, feet, body, face, extras, headwear."""
     main, shade = COLORS.get(build.get("color"), COLORS["color_mint"])
-    label = f'<title>{title}</title>' if title else ""
-    svg = (
-        f'<svg class="creature" width="{size}" height="{size}" viewBox="3 3 94 94" role="img" '
-        f'aria-hidden="{"false" if title else "true"}">{label}'
+    return (
         f'{_bg(build.get("bg"), uid)}'
         f'{_feet(build.get("shoes"), shade)}'
         f'<ellipse cx="50" cy="56" rx="27" ry="29" fill="{main}" stroke="{INK}" stroke-width="1.6"/>'
@@ -155,6 +151,48 @@ def render(build, size=40, title=None):
         '<circle cx="34" cy="59" r="3.6" fill="#F49A8F" opacity=".45"/><circle cx="66" cy="59" r="3.6" fill="#F49A8F" opacity=".45"/>'
         f'{_eyes(build.get("eyes"))}{_mouth(build.get("mouth"))}'
         f'{_extra(build.get("extra"))}{_hat(build.get("hat"))}'
-        '</svg>'
     )
-    return Markup(svg)
+
+
+def render(build, size=40, title=None):
+    """The avatar as a complete inline SVG (Markup). Unknown or missing parts fall back to the defaults."""
+    uid = next(_ids)
+    label = f'<title>{title}</title>' if title else ""
+    return Markup(
+        f'<svg class="creature" width="{size}" height="{size}" viewBox="3 3 94 94" role="img" '
+        f'aria-hidden="{"false" if title else "true"}">{label}{_parts(build, uid)}</svg>'
+    )
+
+
+# ---- Pages with many avatars (leaderboards): draw each different look once ----------
+# A page keeps a small "sheet" of the looks it used; each avatar just points at its look.
+# 300 people on a board usually share a handful of looks, so the page stays small.
+
+def look_key(build):
+    """A short id for a look, the same for identical builds."""
+    import hashlib
+    text = "|".join(f"{k}={build.get(k)}" for k in sorted(build))
+    return "av" + hashlib.sha1(text.encode()).hexdigest()[:10]
+
+
+def render_use(key, size=40, title=None):
+    """An avatar that points at its look on the page's sheet (see render_sheet)."""
+    label = f'<title>{title}</title>' if title else ""
+    return Markup(
+        f'<svg class="creature" width="{size}" height="{size}" role="img" '
+        f'aria-hidden="{"false" if title else "true"}">{label}<use href="#{key}"/></svg>'
+    )
+
+
+def render_sheet(looks):
+    """The hidden sheet with one drawing per look: {key: build}. Put it once, at the end of the page.
+
+    It is hidden by size, not display:none, because browsers don't paint gradients
+    from a display:none SVG.
+    """
+    if not looks:
+        return Markup("")
+    symbols = "".join(f'<symbol id="{key}" viewBox="3 3 94 94">{_parts(build, next(_ids))}</symbol>'
+                      for key, build in looks.items())
+    return Markup('<svg width="0" height="0" aria-hidden="true" focusable="false" '
+                  f'style="position:absolute;width:0;height:0;overflow:hidden">{symbols}</svg>')

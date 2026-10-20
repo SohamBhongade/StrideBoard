@@ -125,5 +125,6 @@
 
 <script src="{{ url_for('static', filename='js/app.js') }}?v={{ ASSET_VERSION }}" defer></script>
 {% block scripts %}{% endblock %}
+{{ avatar_sheet() }}
 </body>
 </html>
