@@ -45,12 +45,40 @@ object Prefs {
     /** Time of the last sync that fully worked (0 = never). */
     fun lastSuccessAt(c: Context) = sp(c).getLong(KEY_LAST_SUCCESS, 0L)
 
-    /** Time of the last sync attempt of any kind (0 = never). Used for the 15-minute limit. */
+    /** Time of the last sync attempt of any kind (0 = never). */
     fun lastAttemptAt(c: Context) = sp(c).getLong(KEY_LAST_ATTEMPT, 0L)
     fun lastMessage(c: Context) = sp(c).getString(KEY_LAST_MESSAGE, "") ?: ""
     fun lastOk(c: Context) = sp(c).getBoolean(KEY_LAST_OK, true)
 
     fun recordAttempt(c: Context, now: Long) = sp(c).edit { putLong(KEY_LAST_ATTEMPT, now) }
+
+    // ---- What was last sent for each day, so unchanged totals aren't sent again.
+    private const val SENT_STEPS = "sent_steps_"
+    private const val SENT_AT = "sent_at_"
+
+    fun lastSentSteps(c: Context, date: String) = sp(c).getLong(SENT_STEPS + date, -1L)
+    fun lastSentAt(c: Context, date: String) = sp(c).getLong(SENT_AT + date, 0L)
+
+    /** Remember a day's total was accepted by the server. Forgets days older than yesterday. */
+    fun markSent(c: Context, date: String, steps: Long, now: Long, keepDates: Set<String>) {
+        val prefs = sp(c)
+        prefs.edit {
+            putLong(SENT_STEPS + date, steps)
+            putLong(SENT_AT + date, now)
+            for (key in prefs.all.keys) {
+                val d = key.removePrefix(SENT_STEPS).removePrefix(SENT_AT)
+                if ((key.startsWith(SENT_STEPS) || key.startsWith(SENT_AT)) && d !in keepDates) remove(key)
+            }
+        }
+    }
+
+    /** Today's total as last read from Health Connect (-1 = not read yet), for the live dashboard. */
+    private const val KEY_TODAY_READ = "today_read"
+    private const val KEY_TODAY_READ_DATE = "today_read_date"
+    fun todayRead(c: Context, date: String): Long =
+        if (sp(c).getString(KEY_TODAY_READ_DATE, "") == date) sp(c).getLong(KEY_TODAY_READ, -1L) else -1L
+    fun setTodayRead(c: Context, date: String, steps: Long) =
+        sp(c).edit { putString(KEY_TODAY_READ_DATE, date); putLong(KEY_TODAY_READ, steps) }
 
     fun recordResult(c: Context, ok: Boolean, message: String, now: Long = System.currentTimeMillis()) {
         sp(c).edit {

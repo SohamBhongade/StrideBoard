@@ -64,13 +64,14 @@ object ApiClient {
                 else -> ApiResult.Rejected(error ?: "Website answered with code $code.")
             }
         } catch (e: IOException) {
+            conn?.disconnect()   // a broken connection must not be reused
             val msg = e.message ?: ""
             if (msg.contains("Cleartext", ignoreCase = true)) {
                 return ApiResult.Rejected("This app only talks to https:// addresses.")
             }
             return ApiResult.TryLater("no connection")
-        } finally {
-            conn?.disconnect()
         }
+        // No disconnect() after a good answer: the response was read to the end, so Android
+        // keeps the connection open and the next upload skips the slow HTTPS handshake.
     }
 }

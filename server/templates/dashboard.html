@@ -10,28 +10,29 @@
 <div class="grid-3">
 
   {# ---- Stage 1: the goal ---- #}
-  <section class="card card-peri" aria-labelledby="steps-h">
+  <section class="card card-peri" aria-labelledby="steps-h" data-live-steps data-goal="{{ d.daily_goal }}">
     <div class="card-head">
       <span class="icon-circle">{{ m.icon('foot') }}</span>
       <h2 id="steps-h">Today's steps</h2>
-      <span class="chip chip-dark">{{ d.goal_percent }}% of goal</span>
+      <span class="chip chip-dark" data-live-chip>{{ d.goal_percent }}% of goal</span>
     </div>
     <div class="steps-top">
       <div class="big-num"><strong data-count="{{ d.today_steps }}">{{ d.today_steps|num }}</strong><span>/ {{ d.daily_goal|num }}</span></div>
       {% set pct = [d.goal_percent, 100]|min %}
-      <div class="ring" role="img" aria-label="{{ d.goal_percent }}% of today's goal">
+      <div class="ring" role="img" aria-label="{{ d.goal_percent }}% of today's goal" data-live-ring>
         <svg width="92" height="92" viewBox="0 0 92 92">
           <circle class="track" cx="46" cy="46" r="38" fill="none" stroke-width="10"/>
           <circle class="fill" cx="46" cy="46" r="38" fill="none" stroke-width="10"
                   stroke-dasharray="238.8" style="stroke-dashoffset: {{ (238.8 * (1 - pct / 100))|round(1) }}"/>
         </svg>
-        <span class="ring-label">{% if d.goal_percent >= 100 %}{{ m.icon('check', 26) }}{% else %}{{ d.goal_percent }}%{% endif %}</span>
+        <span class="ring-label" data-live-label>{% if d.goal_percent >= 100 %}{{ m.icon('check', 26) }}{% else %}{{ d.goal_percent }}%{% endif %}</span>
       </div>
     </div>
     {% set on = [d.goal_percent // 10, 10]|min %}
     <div class="blocks blocks-10" aria-hidden="true">
       {% for i in range(10) %}<span class="block{% if i < on %} on{% endif %}" style="--i: {{ i }}"></span>{% endfor %}
     </div>
+    <div data-live-note>
     {% if d.today_steps == 0 %}
       <p class="small">No steps yet today. Your phone syncs them for you (set it up in <a href="{{ url_for('settings') }}">Settings</a>).</p>
     {% elif d.goal_percent >= 100 %}
@@ -39,6 +40,7 @@
     {% else %}
       <p class="small"><strong>{{ (d.daily_goal - d.today_steps)|num }} to go.</strong> Moving more is linked to better mood and sleep, and a walk between lessons all adds up.</p>
     {% endif %}
+    </div>
     {# iPhone only (shown by app.js): runs the "StrideBoard Sync" Shortcut, which reads
        Apple Health and sends the steps. The name must match the Shortcut exactly. #}
     <div class="ios-sync" data-ios-sync hidden>

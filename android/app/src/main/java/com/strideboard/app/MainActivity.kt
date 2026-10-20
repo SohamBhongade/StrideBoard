@@ -22,7 +22,11 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /** Main screen: the StrideBoard website full screen, with a slim sync banner on top. */
 class MainActivity : ComponentActivity() {
@@ -36,6 +40,13 @@ class MainActivity : ComponentActivity() {
     private var mainFrameFailed = false
     private var stepsGranted: Boolean? = null
     private var syncing = false
+    private var liveJob: Job? = null
+    private var firstTick = true
+
+    companion object {
+        /** While the app is on screen, check Health Connect this often. */
+        private const val LIVE_INTERVAL_MS = 30_000L
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,10 +103,11 @@ class MainActivity : ComponentActivity() {
         // The address may have changed on the setup screen.
         if (Prefs.serverUrl(this) != loadedBase) loadSite()
         refreshBanner()
-        lifecycleScope.launch { syncOnOpen() }
+        startLive()
     }
 
     override fun onPause() {
+        liveJob?.cancel()
         if (::webView.isInitialized) {
             webView.onPause()
             CookieManager.getInstance().flush() // keep the website login
@@ -135,24 +147,43 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Sync whenever the app is opened (at most once a minute), then reload the page so the
-     * dashboard shows the steps that were just sent instead of the count from before.
+     * Live steps: while the app is on screen, read Health Connect every 30 seconds, send any
+     * change to the website, and update the numbers on the page in place (no reload).
+     * Stops as soon as the app leaves the screen (onPause), so it doesn't drain the battery.
      */
-    private suspend fun syncOnOpen() {
+    private fun startLive() {
+        liveJob?.cancel()
+        firstTick = true
+        liveJob = lifecycleScope.launch {
+            while (isActive) {
+                liveTick()
+                delay(LIVE_INTERVAL_MS)
+            }
+        }
+    }
+
+    private suspend fun liveTick() {
         val status = StepReader.status(this)
         stepsGranted = status.available && status.stepsGranted
-        SyncScheduler.update(this, status.backgroundGranted)
-        val dueAt = Prefs.lastAttemptAt(this) + 60 * 1000L
-        if (stepsGranted == true && !syncing && System.currentTimeMillis() >= dueAt) {
-            syncing = true
+        if (firstTick) SyncScheduler.update(this, status.backgroundGranted)
+        if (stepsGranted == true && !syncing) {
+            syncing = firstTick          // only show "Syncing steps…" on the first check
             refreshBanner()
             val outcome = SyncRunner.run(this, inBackground = false)
             syncing = false
-            if (outcome == SyncOutcome.SUCCESS && offlineView.visibility != View.VISIBLE) {
-                webView.reload()
-            }
+            if (outcome == SyncOutcome.SUCCESS || outcome == SyncOutcome.NOTHING_TO_SEND) showLiveSteps()
         }
+        firstTick = false
         refreshBanner()
+    }
+
+    /** Tell the page today's latest total; the website's app.js updates the numbers. */
+    private fun showLiveSteps() {
+        if (offlineView.visibility == View.VISIBLE) return
+        val steps = Prefs.todayRead(this, LocalDate.now(StepReader.DUBAI).toString())
+        if (steps < 0) return
+        webView.evaluateJavascript(
+            "window.StrideBoard && window.StrideBoard.liveSteps && window.StrideBoard.liveSteps($steps)", null)
     }
 
     private fun refreshBanner() {
@@ -163,7 +194,9 @@ class MainActivity : ComponentActivity() {
             stepsGranted == false -> "Step sync is off · tap to set up" to true
             !Prefs.lastOk(this) -> "Step sync needs attention · tap to fix" to true
             lastSuccess == 0L -> "Steps not synced yet · tap to sync" to false
-            now - lastSuccess < 60_000 -> "Steps synced just now" to false
+            now - lastSuccess < 60_000 ->
+                (if (liveJob?.isActive == true) "Live · your steps update every 30 seconds"
+                 else "Steps synced just now") to false
             else -> "Steps synced " + DateUtils.getRelativeTimeSpanString(
                 lastSuccess, now, DateUtils.MINUTE_IN_MILLIS
             ) to false

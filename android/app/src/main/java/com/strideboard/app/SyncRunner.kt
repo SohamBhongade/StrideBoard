@@ -28,11 +28,19 @@ enum class SyncOutcome {
 object SyncRunner {
     private val lock = Mutex()
 
-    suspend fun run(context: Context, inBackground: Boolean): SyncOutcome = lock.withLock {
-        withContext(Dispatchers.IO) { runLocked(context.applicationContext, inBackground) }
-    }
+    /**
+     * Today's total is re-sent at least this often even if it hasn't changed: the website
+     * uses those check-ins to tell when someone has been sitting still (stand-up reminder).
+     */
+    private const val RESEND_UNCHANGED_MS = 5 * 60 * 1000L
 
-    private suspend fun runLocked(c: Context, inBackground: Boolean): SyncOutcome {
+    /** force = send both days even if unchanged (the "Sync now" button). */
+    suspend fun run(context: Context, inBackground: Boolean, force: Boolean = false): SyncOutcome =
+        lock.withLock {
+            withContext(Dispatchers.IO) { runLocked(context.applicationContext, inBackground, force) }
+        }
+
+    private suspend fun runLocked(c: Context, inBackground: Boolean, force: Boolean): SyncOutcome {
         val now = System.currentTimeMillis()
         Prefs.recordAttempt(c, now)
 
@@ -65,12 +73,24 @@ object SyncRunner {
             return SyncOutcome.RETRY
         }
 
-        // Never send 0: a hand-typed entry on the website must not be wiped out.
-        val toSend = days.filter { it.steps > 0 }
+        val todayDate = LocalDate.now(StepReader.DUBAI)
+        days.firstOrNull { it.date == todayDate }?.let { Prefs.setTodayRead(c, it.date.toString(), it.steps) }
+
+        // Never send 0. Skip a day whose total the server already has, except that today
+        // is re-sent every few minutes (see RESEND_UNCHANGED_MS).
+        val toSend = days.filter { day ->
+            val d = day.date.toString()
+            val unchanged = Prefs.lastSentSteps(c, d) == day.steps
+            val recentlySent = now - Prefs.lastSentAt(c, d) < RESEND_UNCHANGED_MS
+            day.steps > 0 && (force || !unchanged || (day.date == todayDate && !recentlySent))
+        }
         if (toSend.isEmpty()) {
-            Prefs.recordResult(c, true, "No steps recorded yet for yesterday or today, so nothing was sent.")
+            val anySteps = days.any { it.steps > 0 }
+            Prefs.recordResult(c, true, if (anySteps) "Up to date." else
+                "No steps recorded yet for yesterday or today, so nothing was sent.")
             return SyncOutcome.NOTHING_TO_SEND
         }
+        val keepDates = days.map { it.date.toString() }.toSet()
 
         val server = Prefs.serverUrl(c)
         val token = Prefs.token(c)
@@ -84,6 +104,7 @@ object SyncRunner {
             val label = "${dayLabel(day.date)} ${fmt(day.steps)}"
             when (val r = ApiClient.postSteps(server, token, day.date.toString(), day.steps)) {
                 is ApiResult.Ok -> {
+                    Prefs.markSent(c, day.date.toString(), day.steps, now, keepDates)
                     sent += label
                     r.weeklyTotal?.let { weekly = it }
                     r.tier?.let { tier = it }
