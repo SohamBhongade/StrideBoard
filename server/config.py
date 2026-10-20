@@ -21,6 +21,12 @@ DATABASE = os.environ.get(
 # account on the sign-up page (stops strangers joining). Leave unset for no code.
 JOIN_CODE = os.environ.get("STRIDEBOARD_JOIN_CODE", "").strip()
 SIGNUP_ROLES = ("student", "teacher")   # admin is never offered on the sign-up page
+# The choices on the sign-up page. Add a class or department by adding it to the list.
+SIGNUP_CLASSES = (
+    [f"Grade 9{c}" for c in "ABCD"] + [f"Grade 10{c}" for c in "ABCD"]
+    + [f"Grade 11{c}" for c in "ABC"] + [f"Grade 12{c}" for c in "ABC"]
+)
+SIGNUP_DEPARTMENTS = ["English", "Science", "Social Science", "Maths", "Computer Science", "PE"]
 SIGNUPS_PER_HOUR = 10                   # per network address, to stop spam accounts
 # Email check for sign-ups: a 6-digit code is sent from a Gmail account.
 # STRIDEBOARD_GMAIL_USER / STRIDEBOARD_GMAIL_APP_PASSWORD: that account and its app password.

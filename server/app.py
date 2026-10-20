@@ -51,7 +51,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "16"
+ASSET_VERSION = "17"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -296,9 +296,10 @@ def add_routes(app):
                     raise ValueError("that school code isn't right. Ask your teacher for it")
                 if too_many_signups(request.remote_addr):
                     raise ValueError("too many sign-ups from here. Try again in an hour")
+                dept = form.get("class") if form.get("role") == "student" else form.get("department")
                 pending, email, code = data.start_signup(
                     db.get_db(), app.config["SECRET_KEY"], form.get("email"), form.get("username"),
-                    form.get("display_name"), form.get("role"), form.get("department"),
+                    form.get("display_name"), form.get("role"), dept,
                     form.get("age_band"), form.get("pin"), form.get("pin_again"))
                 app.config["SEND_CODE"](email, code)
             except ValueError as e:
@@ -308,6 +309,7 @@ def add_routes(app):
                 session["signup_id"] = pending
                 return redirect(url_for("signup_verify"))
         return render_template("signup.html", form=form, age_bands=AGE_BANDS, open_now=open_now,
+                               classes=config.SIGNUP_CLASSES, departments=config.SIGNUP_DEPARTMENTS,
                                need_code=bool(config.JOIN_CODE), domains=config.EMAIL_DOMAINS)
 
     @app.route("/signup/verify", methods=["GET", "POST"])
