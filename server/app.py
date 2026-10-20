@@ -53,7 +53,7 @@ WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like t
 # files instead of their saved copy (the service worker picks it up automatically).
 ASSET_VERSION = "16"
 
-PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "logout", "static", "offline", "service_worker"}
+PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
 
 def today():
@@ -240,11 +240,16 @@ def add_security(app):
 SIGNUP_LOG = {}   # network address -> times of recent sign-ups (kept in memory)
 
 
-def too_many_signups(addr):
+def too_many_signups(addr, kind="signup"):
     now = datetime.now().timestamp()
-    recent = [t for t in SIGNUP_LOG.get(addr, []) if now - t < 3600]
-    SIGNUP_LOG[addr] = recent
+    key = (kind, addr)
+    recent = [t for t in SIGNUP_LOG.get(key, []) if now - t < 3600]
+    SIGNUP_LOG[key] = recent
     return len(recent) >= config.SIGNUPS_PER_HOUR
+
+
+def note_signup(addr, kind="signup"):
+    SIGNUP_LOG.setdefault((kind, addr), []).append(datetime.now().timestamp())
 
 
 def admin_only():
@@ -299,7 +304,7 @@ def add_routes(app):
             except ValueError as e:
                 flash(first_upper(str(e)), "error")
             else:
-                SIGNUP_LOG.setdefault(request.remote_addr, []).append(datetime.now().timestamp())
+                note_signup(request.remote_addr)
                 session["signup_id"] = pending
                 return redirect(url_for("signup_verify"))
         return render_template("signup.html", form=form, age_bands=AGE_BANDS, open_now=open_now,
@@ -320,7 +325,7 @@ def add_routes(app):
             try:
                 if request.form.get("action") == "resend":
                     to, code = data.resend_signup_code(conn, pending)
-                    app.config["SEND_CODE"](to, code)
+                    app.config["SEND_CODE"](to, code, "signup")
                     flash(f"New code sent to {to}.", "ok")
                 else:
                     uid = data.finish_signup(conn, pending, request.form.get("verify_code"))
@@ -333,6 +338,51 @@ def add_routes(app):
                 flash(first_upper(str(e)), "error")
             return redirect(url_for("signup_verify"))
         return render_template("signup_verify.html", email=email)
+
+    @app.route("/forgot", methods=["GET", "POST"])
+    def forgot():
+        """Forgot your PIN? Type the account's recovery email, get a code, choose a new PIN."""
+        if g.user:
+            return redirect(url_for("settings"))
+        conn = db.get_db()
+        if request.method == "POST":
+            action = request.form.get("action")
+            try:
+                if action == "send":
+                    if not mailer.ready():
+                        raise ValueError("email isn't set up on this site yet. Ask an admin to reset your PIN")
+                    if too_many_signups(request.remote_addr, "reset"):
+                        raise ValueError("too many tries from here. Try again in an hour")
+                    email = (request.form.get("email") or "").strip()
+                    found = data.start_pin_reset(conn, app.config["SECRET_KEY"], email)
+                    note_signup(request.remote_addr, "reset")
+                    if found:
+                        app.config["SEND_CODE"](found[1], found[2], "reset")
+                    session["reset_id"] = found[0] if found else 0
+                    session["reset_email"] = email
+                elif action == "resend":
+                    if session.get("reset_id"):
+                        to, code = data.resend_email_code(conn, session["reset_id"], "reset")
+                        app.config["SEND_CODE"](to, code, "reset")
+                    flash("If an account uses that email, a new code is on its way.", "ok")
+                elif action == "restart":
+                    session.pop("reset_id", None)
+                    session.pop("reset_email", None)
+                elif action == "reset":
+                    if not session.get("reset_id"):
+                        raise ValueError("that code isn't right. Check you typed the email your account uses")
+                    uid = data.finish_pin_reset(conn, session["reset_id"], request.form.get("verify_code"),
+                                                request.form.get("pin"), request.form.get("pin_again"))
+                    session.clear()
+                    session.permanent = True
+                    session["user_id"] = uid
+                    flash("PIN changed. You're logged in.", "ok")
+                    return redirect(url_for("dashboard"))
+            except ValueError as e:
+                flash(first_upper(str(e)), "error")
+            return redirect(url_for("forgot"))
+        return render_template("forgot.html", email=session.get("reset_email"),
+                               step2="reset_id" in session, mail_ready=mailer.ready())
 
     @app.route("/logout", methods=["GET", "POST"])
     def logout():
@@ -470,6 +520,31 @@ def add_routes(app):
                 elif action == "goal":
                     data.set_custom_goal(conn, uid, to_int(request.form.get("goal"), "goal"))
                     flash("Daily goal saved. It will stay fixed until you change it.", "ok")
+                elif action == "email_send":
+                    if not mailer.ready():
+                        raise ValueError("email isn't set up on this site yet")
+                    if too_many_signups(request.remote_addr, "email"):
+                        raise ValueError("too many emails from here. Try again in an hour")
+                    cid, to, code = data.start_email_link(conn, app.config["SECRET_KEY"], uid,
+                                                          request.form.get("email"))
+                    app.config["SEND_CODE"](to, code, "link")
+                    note_signup(request.remote_addr, "email")
+                    session["email_link_id"] = cid
+                    flash(f"Code sent to {to}.", "ok")
+                elif action == "email_verify":
+                    data.finish_email_link(conn, session.get("email_link_id"), uid,
+                                           request.form.get("verify_code"))
+                    session.pop("email_link_id", None)
+                    flash("Recovery email saved. If you forget your PIN, you can reset it with this email.", "ok")
+                elif action == "email_resend":
+                    to, code = data.resend_email_code(conn, session.get("email_link_id"), "link")
+                    app.config["SEND_CODE"](to, code, "link")
+                    flash(f"New code sent to {to}.", "ok")
+                elif action == "email_cancel":
+                    session.pop("email_link_id", None)
+                elif action == "email_remove":
+                    data.remove_email(conn, uid)
+                    flash("Recovery email removed.", "ok")
                 elif action in ("avatar_buy", "avatar_wear"):
                     key = request.form.get("item", "")
                     name = config.AVATAR_ITEMS.get(key, (None, "That item"))[1]
@@ -484,13 +559,18 @@ def add_routes(app):
             slot = request.form.get("slot")
             if action in ("avatar_buy", "avatar_wear") and slot in dict(config.AVATAR_SLOTS):
                 return redirect(url_for("settings", slot=slot, _anchor="studio"))
+            if action and action.startswith("email_"):
+                return redirect(url_for("settings", _anchor="recovery"))
             return redirect(url_for("settings"))
         slot = request.args.get("slot")
         if slot not in dict(config.AVATAR_SLOTS):
             slot = config.AVATAR_SLOTS[0][0]
         return render_template("settings.html", me=data.get_user(conn, uid), age_bands=AGE_BANDS,
                                shop=data.avatar_shop(conn, uid), slot=slot, slots=config.AVATAR_SLOTS,
-                               server_url=request.url_root.rstrip("/"))
+                               server_url=request.url_root.rstrip("/"),
+                               email_linked=data.has_email(conn, uid), mail_ready=mailer.ready(),
+                               email_pending=(data.email_code_info(conn, session["email_link_id"], "link")
+                                              if session.get("email_link_id") else None))
 
     # ---------- Admin
     @app.route("/admin", methods=["GET", "POST"])

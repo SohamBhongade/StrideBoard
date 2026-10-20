@@ -23,20 +23,33 @@ def ready():
     return debug_mode() or bool(config.GMAIL_USER and config.GMAIL_APP_PASSWORD)
 
 
-def send_code(to, code):
-    """Email a 6-digit sign-up code. Raises ValueError if it couldn't be sent."""
+WORDING = {
+    "signup": ("{code} is your StrideBoard code",
+               "Your StrideBoard sign-up code is: {code}\n\nType it on the sign-up page within {mins} minutes.\n\n"
+               "If you didn't try to make a StrideBoard account, you can ignore this email.\n"),
+    "link": ("{code} is your StrideBoard code",
+             "Your code to add this email to your StrideBoard account is: {code}\n\n"
+             "Type it on the Settings page within {mins} minutes.\n\n"
+             "If you didn't ask for this, you can ignore this email.\n"),
+    "reset": ("{code} is your StrideBoard PIN reset code",
+              "Someone asked to reset the PIN of the StrideBoard account that uses this email.\n\n"
+              "Your code is: {code}\n\nType it on the 'Forgot your PIN?' page within {mins} minutes.\n\n"
+              "If it wasn't you, ignore this email. Your PIN stays the same.\n"),
+}
+
+
+def send_code(to, code, purpose="signup"):
+    """Email a 6-digit code. Raises ValueError if it couldn't be sent."""
     if debug_mode():
-        log.warning("MAIL DEBUG: sign-up code for %s is %s", to, code)
-        print(f"MAIL DEBUG: sign-up code for {to} is {code}", flush=True)
+        log.warning("MAIL DEBUG: %s code for %s is %s", purpose, to, code)
+        print(f"MAIL DEBUG: {purpose} code for {to} is {code}", flush=True)
         return
+    subject, body = WORDING[purpose]
     msg = EmailMessage()
-    msg["Subject"] = f"{code} is your StrideBoard code"
+    msg["Subject"] = subject.format(code=code)
     msg["From"] = f"StrideBoard <{config.GMAIL_USER}>"
     msg["To"] = to
-    msg.set_content(
-        f"Your StrideBoard sign-up code is: {code}\n\n"
-        f"Type it on the sign-up page within {config.CODE_MINUTES} minutes.\n\n"
-        "If you didn't try to make a StrideBoard account, you can ignore this email.\n")
+    msg.set_content(body.format(code=code, mins=config.CODE_MINUTES))
     try:
         with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as smtp:
             smtp.starttls()

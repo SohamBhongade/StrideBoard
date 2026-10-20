@@ -159,3 +159,18 @@ CREATE TABLE IF NOT EXISTS pending_signups (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_pending_email ON pending_signups(email_hash);
+
+-- Email codes for logged-in people adding a recovery email ('link') and for
+-- "Forgot your PIN?" ('reset'). Rows are deleted once used; addresses aren't kept.
+CREATE TABLE IF NOT EXISTS email_codes (
+  id INTEGER PRIMARY KEY,
+  purpose TEXT NOT NULL CHECK (purpose IN ('link','reset')),
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  email_hash TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  sends INTEGER NOT NULL DEFAULT 1,
+  sent_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);

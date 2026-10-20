@@ -69,6 +69,41 @@
   </section>
 </div>
 
+{# ---- Recovery email: lets you reset a forgotten PIN ---- #}
+<section class="card card-soft" id="recovery" aria-labelledby="recovery-h" style="margin-top:16px">
+  <div class="card-head">
+    <span class="icon-circle">{{ m.icon('info') }}</span>
+    <h2 id="recovery-h">Recovery email</h2>
+    {% if email_linked %}<span class="chip chip-dark">{{ m.icon('check', 15) }} Added</span>{% endif %}
+  </div>
+  {% if email_pending %}
+    <p class="small">We sent a code to <strong>{{ email_pending.email }}</strong>. Type it here to finish.</p>
+    <form method="post" class="form" style="margin-top:12px">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <div class="field"><label for="verify_code">Code</label>
+        <input class="input code-input" id="verify_code" name="verify_code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" required></div>
+      <div class="mini-actions">
+        <button class="btn btn-dark" type="submit" name="action" value="email_verify">{{ m.icon('check', 18) }} Save email</button>
+        <button class="btn btn-outline" type="submit" name="action" value="email_resend" formnovalidate>Send a new code</button>
+        <button class="btn btn-outline" type="submit" name="action" value="email_cancel" formnovalidate>Cancel</button>
+      </div>
+    </form>
+  {% elif not mail_ready %}
+    <p class="small muted">Not available yet: email isn't set up on this site.</p>
+  {% else %}
+    <p class="small muted">{% if email_linked %}You can reset your PIN with your recovery email from the login page. We only keep a scrambled fingerprint of it, so it isn't shown here.{% else %}Add an email so you can reset your PIN if you forget it ("Forgot your PIN?" on the login page).{% endif %}</p>
+    <form method="post" class="form" style="margin-top:12px">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <div class="field"><label for="recovery-email">{{ 'Change to a different email' if email_linked else 'Email' }}</label>
+        <input class="input" id="recovery-email" name="email" type="email" autocomplete="email" autocapitalize="none" required></div>
+      <div class="mini-actions">
+        <button class="btn btn-dark" type="submit" name="action" value="email_send">Send me a code</button>
+        {% if email_linked %}<button class="btn btn-outline" type="submit" name="action" value="email_remove" formnovalidate>Remove</button>{% endif %}
+      </div>
+    </form>
+  {% endif %}
+</section>
+
 {# ---- Avatar studio: build your character, buy parts with EXP ---- #}
 <section class="card card-soft studio" id="studio" aria-labelledby="studio-h" style="margin-top:16px">
   <div class="studio-head">

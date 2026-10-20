@@ -1298,3 +1298,123 @@ def quit_mini(conn, user_id, now=None):
                  (now.isoformat(timespec="seconds"), run["id"]))
     conn.commit()
     return mini_label(run["key"])
+
+
+# ------------------------------------------------------------------ recovery email + PIN reset
+
+def has_email(conn, user_id):
+    row = conn.execute("SELECT email_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+    return bool(row and row["email_hash"])
+
+
+def _new_email_code(conn, purpose, user_id, email, fingerprint, now):
+    stamp = now.isoformat(timespec="seconds")
+    cutoff = (now - timedelta(days=1)).isoformat(timespec="seconds")
+    conn.execute("DELETE FROM email_codes WHERE created_at < ? OR (user_id = ? AND purpose = ?)",
+                 (cutoff, user_id, purpose))
+    code = _new_code()
+    cur = conn.execute(
+        "INSERT INTO email_codes (purpose, user_id, email, email_hash, code_hash, sent_at, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (purpose, user_id, email.strip(), fingerprint, generate_password_hash(code), stamp, stamp))
+    conn.commit()
+    return cur.lastrowid, email.strip(), code
+
+
+def start_email_link(conn, secret, user_id, email, now=None):
+    """A logged-in person adds (or changes) their recovery email. Returns (id, email, code)."""
+    now = _now(now)
+    _require_user(conn, user_id)
+    fingerprint = email_fingerprint(email, secret)
+    row = conn.execute("SELECT id FROM users WHERE email_hash = ?", (fingerprint,)).fetchone()
+    if row and row["id"] != user_id:
+        raise ValueError("that email is already used by another account")
+    if row:
+        raise ValueError("that email is already your recovery email")
+    return _new_email_code(conn, "link", user_id, email, fingerprint, now)
+
+
+def start_pin_reset(conn, secret, email, now=None):
+    """'Forgot your PIN?': (id, email, code) if an account has this email, else None.
+
+    The page says the same thing either way, so it can't be used to find out who has an account.
+    """
+    now = _now(now)
+    fingerprint = email_fingerprint(email, secret)
+    row = conn.execute("SELECT id FROM users WHERE email_hash = ?", (fingerprint,)).fetchone()
+    if row is None:
+        return None
+    return _new_email_code(conn, "reset", row["id"], email, fingerprint, now)
+
+
+def email_code_info(conn, code_id, purpose):
+    """{"email", "user_id"} for a waiting code, or None."""
+    row = conn.execute("SELECT email, user_id FROM email_codes WHERE id = ? AND purpose = ?",
+                       (code_id, purpose)).fetchone()
+    return dict(row) if row else None
+
+
+def resend_email_code(conn, code_id, purpose, now=None):
+    now = _now(now)
+    row = conn.execute("SELECT * FROM email_codes WHERE id = ? AND purpose = ?", (code_id, purpose)).fetchone()
+    if row is None:
+        raise ValueError("that has expired. Please start again")
+    waited = (now - datetime.fromisoformat(row["sent_at"])).total_seconds()
+    if waited < config.CODE_RESEND_SECONDS:
+        raise ValueError(f"please wait {int(config.CODE_RESEND_SECONDS - waited) + 1} seconds before asking again")
+    if row["sends"] >= config.CODE_MAX_SENDS:
+        raise ValueError("too many codes sent. Please try again later")
+    code = _new_code()
+    conn.execute("UPDATE email_codes SET code_hash = ?, sends = sends + 1, attempts = 0, sent_at = ? WHERE id = ?",
+                 (generate_password_hash(code), now.isoformat(timespec="seconds"), code_id))
+    conn.commit()
+    return row["email"], code
+
+
+def _check_email_code(conn, code_id, purpose, code, now):
+    row = conn.execute("SELECT * FROM email_codes WHERE id = ? AND purpose = ?", (code_id, purpose)).fetchone()
+    if row is None:
+        raise ValueError("that has expired. Please start again")
+    if (now - datetime.fromisoformat(row["sent_at"])).total_seconds() > config.CODE_MINUTES * 60:
+        raise ValueError("that code has expired. Tap 'Send a new code'")
+    if row["attempts"] >= config.CODE_TRIES:
+        raise ValueError("too many wrong codes. Tap 'Send a new code'")
+    code = str(code or "").strip().translate(calc._DIGITS).replace(" ", "")
+    if not check_password_hash(row["code_hash"], code):
+        conn.execute("UPDATE email_codes SET attempts = attempts + 1 WHERE id = ?", (code_id,))
+        conn.commit()
+        left = config.CODE_TRIES - row["attempts"] - 1
+        raise ValueError(f"that code isn't right. {left} tr{'y' if left == 1 else 'ies'} left"
+                         if left else "that code isn't right. Tap 'Send a new code'")
+    return row
+
+
+def finish_email_link(conn, code_id, user_id, code, now=None):
+    """Check the code and save the recovery email (as a fingerprint) on the account."""
+    row = _check_email_code(conn, code_id, "link", code, _now(now))
+    if row["user_id"] != user_id:
+        raise ValueError("that has expired. Please start again")
+    taken = conn.execute("SELECT id FROM users WHERE email_hash = ? AND id != ?",
+                         (row["email_hash"], user_id)).fetchone()
+    if taken:
+        raise ValueError("that email is already used by another account")
+    conn.execute("UPDATE users SET email_hash = ? WHERE id = ?", (row["email_hash"], user_id))
+    conn.execute("DELETE FROM email_codes WHERE id = ?", (code_id,))
+    conn.commit()
+
+
+def remove_email(conn, user_id):
+    conn.execute("UPDATE users SET email_hash = NULL WHERE id = ?", (user_id,))
+    conn.commit()
+
+
+def finish_pin_reset(conn, code_id, code, pin, pin_again, now=None):
+    """Check the code and set a new PIN. Returns the user id."""
+    pin = clean_pin(pin)
+    if pin != str(pin_again or "").strip():
+        raise ValueError("the two PINs don't match")
+    row = _check_email_code(conn, code_id, "reset", code, _now(now))
+    conn.execute("UPDATE users SET pin_hash = ? WHERE id = ?", (generate_password_hash(pin), row["user_id"]))
+    conn.execute("DELETE FROM email_codes WHERE id = ?", (code_id,))
+    conn.commit()
+    return row["user_id"]
