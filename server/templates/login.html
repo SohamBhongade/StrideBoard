@@ -28,6 +28,7 @@
     </div>
     <button class="btn btn-dark btn-block" type="submit">Log in {{ m.icon('play', 16) }}</button>
   </form>
+  <p class="login-switch"><a href="{{ url_for('forgot') }}">Forgot your PIN?</a></p>
   <p class="login-switch">New here? <a href="{{ url_for('signup') }}">Create an account</a></p>
 </div>
 {% endblock %}

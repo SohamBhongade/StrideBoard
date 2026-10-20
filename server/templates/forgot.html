@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Forgot your PIN{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="login-brand"><span class="mark">{{ m.logo(34) }}</span> StrideBoard</div>
+
+  {% if not step2 %}
+  <div>
+    <h1 class="hero"><span class="light">Forgot your</span> PIN?</h1>
+    <p class="muted hero-sub">Type the email you added to your account. We'll send a code so you can choose a new PIN.</p>
+  </div>
+  <form method="post" class="card card-soft form" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="email">Email</label>
+      <input class="input" id="email" name="email" type="email" autocomplete="email" autocapitalize="none" required autofocus>
+      <span class="hint">No email on your account? Ask your teacher or the StrideBoard admin to reset your PIN.</span>
+    </div>
+    <button class="btn btn-dark btn-block" type="submit" name="action" value="send">Send me a code {{ m.icon('play', 16) }}</button>
+  </form>
+  {% else %}
+  <div>
+    <h1 class="hero"><span class="light">Check your</span> email.</h1>
+    <p class="muted hero-sub">If an account uses <strong>{{ email }}</strong>, we sent it a code. Check spam too.</p>
+  </div>
+  <form method="post" class="card card-soft form" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="verify_code">Code</label>
+      <input class="input code-input" id="verify_code" name="verify_code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" required autofocus>
+    </div>
+    <div class="form-row">
+      <div class="field"><label for="pin">New PIN</label><input class="input" id="pin" name="pin" type="password" inputmode="numeric" autocomplete="new-password" required></div>
+      <div class="field"><label for="pin_again">New PIN again</label><input class="input" id="pin_again" name="pin_again" type="password" inputmode="numeric" autocomplete="new-password" required></div>
+    </div>
+    <button class="btn btn-dark btn-block" type="submit" name="action" value="reset">Change PIN and log in {{ m.icon('play', 16) }}</button>
+  </form>
+  <form method="post" class="login-switch">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    No email? <button class="link-btn" type="submit" name="action" value="resend">Send a new code</button>
+    · <button class="link-btn" type="submit" name="action" value="restart">Use a different email</button>
+  </form>
+  {% endif %}
+  <p class="login-switch"><a href="{{ url_for('login') }}">Back to log in</a></p>
+</div>
+{% endblock %}
