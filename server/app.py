@@ -252,6 +252,28 @@ def note_signup(addr, kind="signup"):
     SIGNUP_LOG.setdefault((kind, addr), []).append(datetime.now().timestamp())
 
 
+FAILED_LOGINS = {}   # name (lower case) -> times of recent wrong PINs (kept in memory)
+LOGIN_TRIES, LOGIN_LOCK_MINUTES = 5, 15
+
+
+def _login_key(name):
+    return " ".join((name or "").lower().split())
+
+
+def login_locked(name):
+    """Minutes left if this name has had too many wrong PINs lately, else 0."""
+    now = datetime.now().timestamp()
+    recent = [t for t in FAILED_LOGINS.get(_login_key(name), []) if now - t < LOGIN_LOCK_MINUTES * 60]
+    FAILED_LOGINS[_login_key(name)] = recent
+    if len(recent) < LOGIN_TRIES:
+        return 0
+    return max(1, int((recent[0] + LOGIN_LOCK_MINUTES * 60 - now) // 60) + 1)
+
+
+def note_failed_login(name):
+    FAILED_LOGINS.setdefault(_login_key(name), []).append(datetime.now().timestamp())
+
+
 def admin_only():
     if g.user["role"] != "admin":
         abort(403)
@@ -274,18 +296,24 @@ def add_routes(app):
         if request.method == "POST":
             username = request.form.get("username", "").strip()
             pin = request.form.get("pin", "").strip()
-            user = None
+            user, locked = None, login_locked(username)
+            if locked:
+                flash(f"Too many wrong PINs for that name. Wait {locked} minutes and try again, "
+                      "or use 'Forgot your PIN?'.", "error")
+                return render_template("login.html", username=username)
             if username and pin:
-                if "@" in username:   # people who signed up themselves log in with their email
+                if "@" in username:   # an email works too
                     user = data.authenticate_email(db.get_db(), app.config["SECRET_KEY"], username, pin)
                 else:
-                    user = data.authenticate(db.get_db(), username, pin)
+                    user = data.authenticate_name(db.get_db(), username, pin)
+            if not user and username:
+                note_failed_login(username)
             if user:
                 session.clear()
                 session.permanent = True  # stay signed in on phones
                 session["user_id"] = user["id"]
                 return redirect(url_for("dashboard"))
-            flash("That email or username and PIN don't match. Check them and try again.", "error")
+            flash("That full name and PIN don't match. Check them and try again.", "error")
         return render_template("login.html", username=username)
 
     @app.route("/signup", methods=["GET", "POST"])
@@ -339,7 +367,7 @@ def add_routes(app):
                     session.clear()
                     session.permanent = True
                     session["user_id"] = uid
-                    flash("Welcome to StrideBoard! Next time, log in with your email and PIN.", "ok")
+                    flash("Welcome to StrideBoard! Next time, log in with your full name and PIN.", "ok")
                     return redirect(url_for("dashboard"))
             except ValueError as e:
                 flash(first_upper(str(e)), "error")

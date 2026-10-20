@@ -204,6 +204,32 @@ def _hidden_username(conn, role):
             return name
 
 
+def clean_name(name):
+    """'  amal   K ' -> 'amal K' (spaces tidied), so names compare fairly."""
+    return " ".join((name or "").split())
+
+
+def name_taken(conn, name):
+    return conn.execute("SELECT 1 FROM users WHERE lower(display_name) = lower(?)",
+                        (clean_name(name),)).fetchone() is not None
+
+
+def authenticate_name(conn, name, pin):
+    """Log in with your name (as on the leaderboards) + PIN. Usernames still work too."""
+    name = clean_name(name)
+    if not name:
+        return None
+    user = authenticate(conn, name, pin)          # older accounts made by an admin
+    if user:
+        return user
+    rows = conn.execute("SELECT id, pin_hash FROM users WHERE lower(display_name) = lower(?)",
+                        (name,)).fetchall()
+    for row in rows:                               # normally one; older duplicates are tried in turn
+        if check_password_hash(row["pin_hash"], str(pin or "").strip()):
+            return get_user(conn, row["id"])
+    return None
+
+
 def authenticate_email(conn, secret, email, pin):
     """Log in with email + PIN (for people who signed up themselves). The user, or None."""
     try:
@@ -229,6 +255,12 @@ def start_signup(conn, secret, email, display_name, role, department, age_band, 
     choices = config.SIGNUP_CLASSES if role == "student" else config.SIGNUP_DEPARTMENTS
     if (department or "").strip() not in choices:
         raise ValueError("please choose your " + ("class" if role == "student" else "department"))
+    display_name = clean_name(display_name)
+    if len(display_name.split()) < 2:
+        raise ValueError("please type your full name: first and last name, like Amal Khan")
+    if name_taken(conn, display_name):
+        raise ValueError(f"someone already uses the name {display_name!r}. Add your middle name "
+                         "or another part of your name so you can tell yourselves apart")
     details = _check_new_user(conn, _hidden_username(conn, role), display_name, role, department, age_band)
     pin = clean_pin(pin)
     if pin != str(pin_again or "").strip():
@@ -300,6 +332,8 @@ def finish_signup(conn, pending_id, code, now=None):
     if conn.execute("SELECT 1 FROM users WHERE email_hash = ?", (row["email_hash"],)).fetchone():
         raise ValueError("there's already an account with that email. Log in instead")
     username, display_name, role, department, age_band, pin_hash = json.loads(row["details"])
+    if name_taken(conn, display_name):
+        raise ValueError(f"someone just took the name {display_name!r}. Please start again with a different one")
     if conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
         username = _hidden_username(conn, role)
     uid = _insert_user(conn, username, display_name, role, department, age_band, pin_hash, row["email_hash"])
