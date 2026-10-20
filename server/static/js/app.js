@@ -322,3 +322,8 @@
     });
   });
 })();
+
+// ---- Settings > Appearance: save as soon as a choice is tapped
+document.querySelectorAll("form[data-autosubmit]").forEach(function (form) {
+  form.addEventListener("change", function () { form.submit(); });
+});
