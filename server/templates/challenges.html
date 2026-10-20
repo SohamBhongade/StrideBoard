@@ -2,53 +2,60 @@
 {% block title %}Challenges{% endblock %}
 {% block content %}
 
-{{ m.page_head("School", "challenges", "Every step you take adds to the whole school's total.") }}
+{% call m.page_head("Your", "challenges", "Every step and every rep adds up. Unlock a badge at each level, and beat your own best for the record badges.") %}
+  <a class="btn btn-soft" href="{{ url_for('badges') }}">{{ m.icon('star', 18) }} All badges · {{ summary.earned }}/{{ summary.total }}</a>
+{% endcall %}
 
-{% if challenges %}
-<div class="row row-even" style="margin-top:0; align-items:start">
-  {% for c in challenges %}
-  <section class="card {{ 'card-blue' if c.kind == 'school_distance' else 'card-peri' }}" aria-labelledby="ch-{{ c.id }}">
-    <div class="challenge-head">
-      <span class="icon-circle">{{ m.icon('mountain' if c.kind == 'school_distance' else 'users') }}</span>
-      <div style="flex:1;min-width:0">
-        <h2 id="ch-{{ c.id }}">{{ c.title }}</h2>
-        <p class="small muted">{{ c.start_date|nice_date }} to {{ c.end_date|nice_date }}</p>
-      </div>
-      <span class="chip chip-dark">
-        {% if c.days_left > 1 %}{{ c.days_left }} days left{% elif c.days_left == 1 %}Last day tomorrow{% elif c.days_left == 0 %}Last day!{% else %}Ended{% endif %}
-      </span>
+<p class="note small">{{ m.icon('info', 16) }}<span>Steps come from your phone. Exercises are typed in by you on the <a href="{{ url_for('log') }}#exercise-h">Log</a> page, so they only earn personal badges and never count on the leaderboards.</span></p>
+
+<div class="track-grid">
+  {% for t in tracks %}
+  {% set ic, tone = TRACK_LOOK[t.key] %}
+  <section class="card card-soft track" aria-labelledby="tr-{{ t.key }}">
+    <div class="card-head">
+      {{ m.badge_circle(ic, tone, True, 24) }}
+      <h2 id="tr-{{ t.key }}">{{ t.name }}</h2>
+      <span class="chip chip-dark">Level {{ t.earned_count }} of {{ t.levels|length }}</span>
     </div>
-    {% if c.description %}<p>{{ c.description }}</p>{% endif %}
 
-    {% if c.kind == 'school_distance' %}
-      <div class="km"><strong>{{ c.km }}</strong><span class="muted">km of {{ c.target_km }} km</span></div>
-      {% set pct = c.percent or 0 %}
-      <div class="bar" role="img" aria-label="{{ pct }}% complete"><span style="--w: {{ pct }}%; background: var(--ink)"></span></div>
-      <div class="bar-labels muted"><span>{% if pct >= 100 %}Goal reached!{% else %}{{ pct }}% there{% endif %}</span><span>{{ c.total_steps|num }} steps together</span></div>
+    <div class="track-total">
+      <strong>{{ t.total|amount(t.key) if t.key == 'planks' else '{:,}'.format(t.total) }}</strong>
+      <span class="muted">{{ 'in total' if t.key == 'planks' else t.unit ~ ' in total' }}</span>
+    </div>
+
+    {% if t.next_target %}
+    <div class="bar" role="img" aria-label="{{ t.next_percent }}% of the way to the next badge"><span style="--w: {{ t.next_percent }}%; background: var(--ink)"></span></div>
+    <div class="bar-labels muted small">
+      <span>Next badge: {{ t.next_target|amount(t.key) }}</span>
+      <span>{{ (t.next_target - t.total)|amount(t.key) }} to go</span>
+    </div>
     {% else %}
-      <div class="inner">
-        <p class="label-text" style="margin-bottom:10px">Average steps per member</p>
-        {% if c.standings %}
-        <ol class="rank-list">
-          {% for s in c.standings[:5] %}
-          <li class="rank-row rank-{{ loop.index }}{% if s.department == user.department %} me{% endif %}" style="background:var(--soft)">
-            <span class="rank-num">{{ loop.index }}</span>
-            <span class="rank-who"><strong>{{ s.department }}{% if s.department == user.department %} (yours){% endif %}</strong></span>
-            <span class="rank-val">{{ s.label or (s.value|num) }}</span>
-          </li>
-          {% endfor %}
-        </ol>
-        {% else %}
-          <p class="muted">No steps yet. The first class to move takes the lead!</p>
-        {% endif %}
+    <p class="small"><strong>Every level unlocked.</strong> Amazing.</p>
+    {% endif %}
+
+    <ol class="level-row" aria-label="{{ t.name }} levels">
+      {% for lv in t.levels %}
+      <li class="level{% if lv.earned %} earned tone-{{ tone }}{% endif %}" title="{{ lv.target|amount(t.key) }}{% if lv.earned %}, earned {{ lv.earned_on|nice_date }}{% endif %}">
+        {{ lv.target|amount(t.key, True) }}
+      </li>
+      {% endfor %}
+    </ol>
+
+    <div class="inner record">
+      {{ m.badge_circle('trophy', tone, t.record.level > 0, 20) }}
+      <div class="record-text">
+        <strong>{{ t.record.name }}{% if t.record.level %} · level {{ t.record.level }} of {{ t.record.levels|length }}{% endif %}</strong>
+        <span class="small muted">
+          {% if t.best %}Your best: {{ t.best|amount(t.key) }}{% if t.key == 'steps' %} in a day{% elif t.key != 'planks' %} in one go{% endif %}.{% else %}No record yet.{% endif %}
+          {% if t.record.next_target %} Next at {{ t.record.next_target|amount(t.key) }}.{% endif %}
+        </span>
       </div>
+    </div>
+
+    {% if t.key != 'steps' %}
+    <a class="btn btn-outline btn-sm" href="{{ url_for('log') }}#exercise-h">{{ m.icon('plus', 16) }} Log {{ t.name|lower }}</a>
     {% endif %}
   </section>
   {% endfor %}
 </div>
-{% else %}
-<section class="card card-soft">
-  {{ m.empty("No challenges right now", "Your school will start one soon. Keep moving so you're ready!", "flag") }}
-</section>
-{% endif %}
 {% endblock %}

@@ -2,9 +2,40 @@
 {% block title %}Log{% endblock %}
 {% block content %}
 
-{{ m.page_head("Log your", "day", "Your phone sends your steps automatically. Log your mood, water and activities here.") }}
+{{ m.page_head("Log your", "day", "Your phone sends your steps automatically. Log exercises, mood, water and activities here.") }}
 
-<div class="row" style="margin-top:0">
+<div class="row row-even" style="margin-top:0">
+  <section class="card card-peach" aria-labelledby="exercise-h">
+    <div class="card-head">
+      <span class="icon-circle">{{ m.icon('pushup') }}</span>
+      <h2 id="exercise-h">Exercise</h2>
+    </div>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="exercise">
+      <div class="field">
+        <label for="ex-type">Exercise</label>
+        <select class="input" id="ex-type" name="type">
+          {% for value, label in exercise_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="ex-amount">How many in this set?</label>
+          <input class="input" id="ex-amount" name="amount" inputmode="numeric" pattern="[0-9]*" placeholder="20" required>
+        </div>
+        <div class="field">
+          <label for="ex-date">Day</label>
+          <select class="input" id="ex-date" name="date">
+            {% for day in dates %}<option value="{{ day }}">{{ day|nice_date }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <p class="hint">Reps for push-ups, squats and jumping jacks; seconds for a plank. These earn personal badges on the Challenges page and never count on the leaderboards.</p>
+      <button class="btn btn-dark" type="submit">{{ m.icon('plus', 18) }} Add set</button>
+    </form>
+  </section>
+
   <section class="card card-soft" aria-labelledby="recent-h">
     <h2 id="recent-h" class="card-title">Last 7 days</h2>
     {% if recent %}

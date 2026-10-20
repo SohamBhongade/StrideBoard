@@ -44,6 +44,18 @@ CREATE TABLE IF NOT EXISTS activities (
   minutes INTEGER NOT NULL CHECK (minutes BETWEEN 1 AND 600)
 );
 
+-- Exercises the user types in (one row per set). Personal badges only: never used
+-- for leaderboards, tiers or challenges. Planks are stored in seconds.
+CREATE TABLE IF NOT EXISTS exercises (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('pushups','squats','planks','jumping_jacks')),
+  amount INTEGER NOT NULL CHECK (amount BETWEEN 1 AND 5000),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_exercises_user ON exercises(user_id, type, date);
+
 CREATE TABLE IF NOT EXISTS water (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

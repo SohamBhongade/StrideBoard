@@ -363,6 +363,80 @@ def add_activity(conn, user_id, date, type, minutes):
     return cur.lastrowid
 
 
+def save_exercise(conn, user_id, date, type, amount):
+    """Log one set of an exercise (reps, or seconds for planks). Returns its id.
+
+    Typed in by the user, so it only earns personal progression badges.
+    """
+    day = calc.parse_date(date, local_today())
+    if type not in config.EXERCISE_TYPES:
+        raise ValueError("exercise must be one of: " + ", ".join(config.EXERCISE_TYPES))
+    what = "seconds" if type == "planks" else "reps"
+    amount = calc.parse_int(amount, what, 1, config.EXERCISE_MAX_PER_SET[type])
+    _require_user(conn, user_id)
+    cur = conn.execute(
+        "INSERT INTO exercises (user_id, date, type, amount, created_at) VALUES (?, ?, ?, ?, ?)",
+        (user_id, day, type, amount, local_now_iso()))
+    conn.commit()
+    return cur.lastrowid
+
+
+def _track_rows(conn, user_id, track):
+    """[(date, day_total, best_single), ...] oldest first, for one track."""
+    if track == "steps":
+        sql = ("SELECT date, SUM(steps), MAX(steps) FROM steps "
+               "WHERE user_id = ? AND steps > 0 GROUP BY date ORDER BY date")
+        return conn.execute(sql, (user_id,)).fetchall()
+    sql = ("SELECT date, SUM(amount), MAX(amount) FROM exercises "
+           "WHERE user_id = ? AND type = ? GROUP BY date ORDER BY date")
+    return conn.execute(sql, (user_id, track)).fetchall()
+
+
+def progression(conn, user_id):
+    """The Challenges page: one entry per track (steps, push-ups, squats, planks, jumping jacks).
+
+    Each track: {"key", "name", "unit", "total", "best", "levels": [{"level", "target",
+    "earned", "earned_on"}], "next_target", "next_percent", "record": {"name", "best",
+    "level", "levels": [...same shape...], "next_target"}}.
+    A level is earned on the first day the lifetime total (or best in one go) reaches it.
+    """
+    _require_user(conn, user_id)
+    out = []
+    for key, t in config.TRACKS.items():
+        rows = _track_rows(conn, user_id, key)
+        running, best = 0, 0
+        level_dates = [None] * len(t["levels"])
+        record_dates = [None] * len(t["record_levels"])
+        for day, day_total, day_best in rows:
+            running += day_total
+            best = max(best, day_best)
+            for i, target in enumerate(t["levels"]):
+                if level_dates[i] is None and running >= target:
+                    level_dates[i] = day
+            for i, target in enumerate(t["record_levels"]):
+                if record_dates[i] is None and best >= target:
+                    record_dates[i] = day
+
+        def levels(targets, dates):
+            return [{"level": i + 1, "target": target, "earned": d is not None, "earned_on": d}
+                    for i, (target, d) in enumerate(zip(targets, dates))]
+
+        lv = levels(t["levels"], level_dates)
+        rec = levels(t["record_levels"], record_dates)
+        nxt = next((x["target"] for x in lv if not x["earned"]), None)
+        prev = max([x["target"] for x in lv if x["earned"]], default=0)
+        pct = 100 if nxt is None else round((running - prev) * 100 / (nxt - prev))
+        out.append({
+            "key": key, "name": t["name"], "unit": t["unit"], "total": running, "best": best,
+            "levels": lv, "earned_count": sum(x["earned"] for x in lv),
+            "next_target": nxt, "next_percent": max(0, min(100, pct)),
+            "record": {"name": t["record_name"], "best": best, "levels": rec,
+                       "level": sum(x["earned"] for x in rec),
+                       "next_target": next((x["target"] for x in rec if not x["earned"]), None)},
+        })
+    return out
+
+
 # =====================================================================
 # Views
 # =====================================================================
