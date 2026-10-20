@@ -274,13 +274,18 @@ def add_routes(app):
         if request.method == "POST":
             username = request.form.get("username", "").strip()
             pin = request.form.get("pin", "").strip()
-            user = data.authenticate(db.get_db(), username, pin) if username and pin else None
+            user = None
+            if username and pin:
+                if "@" in username:   # people who signed up themselves log in with their email
+                    user = data.authenticate_email(db.get_db(), app.config["SECRET_KEY"], username, pin)
+                else:
+                    user = data.authenticate(db.get_db(), username, pin)
             if user:
                 session.clear()
                 session.permanent = True  # stay signed in on phones
                 session["user_id"] = user["id"]
                 return redirect(url_for("dashboard"))
-            flash("That username and PIN don't match. Check them and try again.", "error")
+            flash("That email or username and PIN don't match. Check them and try again.", "error")
         return render_template("login.html", username=username)
 
     @app.route("/signup", methods=["GET", "POST"])
@@ -298,7 +303,7 @@ def add_routes(app):
                     raise ValueError("too many sign-ups from here. Try again in an hour")
                 dept = form.get("class") if form.get("role") == "student" else form.get("department")
                 pending, email, code = data.start_signup(
-                    db.get_db(), app.config["SECRET_KEY"], form.get("email"), form.get("username"),
+                    db.get_db(), app.config["SECRET_KEY"], form.get("email"),
                     form.get("display_name"), form.get("role"), dept,
                     form.get("age_band"), form.get("pin"), form.get("pin_again"))
                 app.config["SEND_CODE"](email, code)
@@ -334,7 +339,7 @@ def add_routes(app):
                     session.clear()
                     session.permanent = True
                     session["user_id"] = uid
-                    flash("Welcome to StrideBoard! Next, set up step syncing in Settings.", "ok")
+                    flash("Welcome to StrideBoard! Next time, log in with your email and PIN.", "ok")
                     return redirect(url_for("dashboard"))
             except ValueError as e:
                 flash(first_upper(str(e)), "error")

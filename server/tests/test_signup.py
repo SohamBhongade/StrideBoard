@@ -12,9 +12,9 @@ SECRET = "test-secret"
 T0 = datetime(2026, 10, 14, 10, 0, tzinfo=ZoneInfo("Asia/Dubai"))
 
 
-def start(conn, email="amal.k@gmail.com", username="amal.k", role="student", dept="Grade 10A",
+def start(conn, email="amal.k@gmail.com", role="student", dept="Grade 10A",
           pin="4821", pin2="4821", now=T0):
-    return data.start_signup(conn, SECRET, email, username, "Amal K", role, dept, "teen_13_17",
+    return data.start_signup(conn, SECRET, email, "Amal K", role, dept, "teen_13_17",
                              pin, pin2, now=now)
 
 
@@ -22,13 +22,13 @@ def test_sign_up_with_code_makes_the_account(conn):
     pid, to, code = start(conn)
     assert to == "amal.k@gmail.com" and len(code) == 6
     assert data.finish_signup(conn, pid, code, now=T0 + timedelta(minutes=2))
-    user = data.authenticate(conn, "amal.k", "4821")
+    user = data.authenticate_email(conn, SECRET, "Amal.K@gmail.com", "4821")
     assert user and user["role"] == "student" and user["department"] == "Grade 10A"
     assert data.pending_email(conn, pid) is None          # the address is not kept
 
 
 def test_teacher_sign_up(conn):
-    pid, _, code = start(conn, "mr.ali@school.ae", "mr.ali", role="Teacher", dept="Science")
+    pid, _, code = start(conn, "mr.ali@school.ae", role="Teacher", dept="Science")
     uid = data.finish_signup(conn, pid, code, now=T0)
     assert data.get_user(conn, uid)["role"] == "teacher"
 
@@ -44,7 +44,6 @@ def test_teacher_sign_up(conn):
     ({"pin2": "4822"}, "don't match"),
     ({"pin": "12", "pin2": "12"}, "PIN must be"),
     ({"email": "not-an-email"}, "real email"),
-    ({"username": "x"}, "username must be"),
 ])
 def test_bad_forms_are_refused(conn, kw, message):
     with pytest.raises(ValueError, match=message):
@@ -56,7 +55,7 @@ def test_one_account_per_inbox_even_with_gmail_tricks(conn):
     data.finish_signup(conn, pid, code, now=T0)
     for alias in ("AmalK@gmail.com", "a.m.a.l.k+2@googlemail.com"):
         with pytest.raises(ValueError, match="already an account"):
-            start(conn, alias, "other.name")
+            start(conn, alias)
 
 
 def test_wrong_code_counts_down_then_locks(conn):
@@ -81,10 +80,14 @@ def test_code_expires_and_resend_needs_a_wait(conn):
     assert data.finish_signup(conn, pid, new, now=T0 + timedelta(minutes=21))
 
 
-def test_username_taken(conn):
-    make_user(conn, "sam")
-    with pytest.raises(ValueError, match="already taken"):
-        start(conn, username="SAM")
+def test_no_username_needed_and_email_login(conn):
+    pid, _, code = start(conn)
+    uid = data.finish_signup(conn, pid, code, now=T0)
+    assert data.get_user(conn, uid)["username"].startswith("student")
+    assert data.authenticate_email(conn, SECRET, "amalk+x@googlemail.com", "4821")["id"] == uid
+    assert data.authenticate_email(conn, SECRET, "amal.k@gmail.com", "9999") is None
+    assert data.authenticate_email(conn, SECRET, "nobody@gmail.com", "4821") is None
+    assert data.authenticate_email(conn, SECRET, "not an email", "4821") is None
 
 
 def test_signup_never_offers_admin():
