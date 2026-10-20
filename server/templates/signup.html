@@ -15,7 +15,7 @@
     <p class="small muted" style="margin-top:8px">Ask your teacher or the StrideBoard admin to make your account for you.</p>
   </section>
   {% else %}
-  <form method="post" class="card card-soft form" novalidate>
+  <form method="post" class="card card-soft form signup-form" novalidate>
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
 
     <fieldset class="role-pick">
@@ -35,10 +35,19 @@
       <input class="input" id="display_name" name="display_name" value="{{ form.get('display_name', '') }}" maxlength="50" autocomplete="name" required>
       <span class="hint">Shown on the leaderboards. First name and last initial is fine.</span>
     </div>
-    <div class="field">
-      <label for="department" data-dept-label>{{ 'Department' if form.get('role') == 'teacher' else 'Class' }}</label>
-      <input class="input" id="department" name="department" value="{{ form.get('department', '') }}" maxlength="50"
-             placeholder="{{ 'e.g. Science' if form.get('role') == 'teacher' else 'e.g. Grade 10A' }}" required>
+    <div class="field for-student">
+      <label for="class">Class</label>
+      <select class="input" id="class" name="class">
+        <option value="">Choose your class</option>
+        {% for c in classes %}<option value="{{ c }}" {% if form.get('class') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field for-teacher">
+      <label for="department">Department</label>
+      <select class="input" id="department" name="department">
+        <option value="">Choose your department</option>
+        {% for d in departments %}<option value="{{ d }}" {% if form.get('department') == d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
     </div>
     <div class="field">
       <label for="age_band">Age</label>

@@ -203,8 +203,9 @@ def start_signup(conn, secret, email, username, display_name, role, department, 
     role = (role or "").strip().lower()
     if role not in config.SIGNUP_ROLES:
         raise ValueError("please choose Student or Teacher")
-    if not (department or "").strip():
-        raise ValueError("please enter your " + ("class" if role == "student" else "department"))
+    choices = config.SIGNUP_CLASSES if role == "student" else config.SIGNUP_DEPARTMENTS
+    if (department or "").strip() not in choices:
+        raise ValueError("please choose your " + ("class" if role == "student" else "department"))
     details = _check_new_user(conn, username, display_name, role, department, age_band)
     pin = clean_pin(pin)
     if pin != str(pin_again or "").strip():

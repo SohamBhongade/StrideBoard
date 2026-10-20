@@ -37,7 +37,10 @@ def test_teacher_sign_up(conn):
     ({"role": "admin"}, "Student or Teacher"),
     ({"role": ""}, "Student or Teacher"),
     ({"dept": "  "}, "your class"),
+    ({"dept": "Grade 13Z"}, "your class"),
     ({"role": "teacher", "dept": ""}, "your department"),
+    ({"role": "teacher", "dept": "Grade 10A"}, "your department"),
+    ({"dept": "Science"}, "your class"),
     ({"pin2": "4822"}, "don't match"),
     ({"pin": "12", "pin2": "12"}, "PIN must be"),
     ({"email": "not-an-email"}, "real email"),
@@ -86,3 +89,9 @@ def test_username_taken(conn):
 
 def test_signup_never_offers_admin():
     assert "admin" not in config.SIGNUP_ROLES
+
+
+def test_signup_lists():
+    assert len(config.SIGNUP_CLASSES) == 14
+    assert config.SIGNUP_CLASSES[0] == "Grade 9A" and config.SIGNUP_CLASSES[-1] == "Grade 12C"
+    assert "Computer Science" in config.SIGNUP_DEPARTMENTS
