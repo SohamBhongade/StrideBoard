@@ -93,3 +93,17 @@ def test_find_user_id(conn):
     uid = make_user(conn, "sam.k")
     assert data.find_user_id(conn, "SAM.K") == uid
     assert data.find_user_id(conn, "nobody") is None
+
+
+def test_set_role(conn):
+    admin = make_user(conn, "boss", role="admin")
+    uid = make_user(conn, "mentor", role="admin", department=None)
+    assert data.set_role(conn, uid, "teacher", "Mentors", acting_admin_id=admin) == "admin"
+    u = data.get_user(conn, uid)
+    assert u["role"] == "teacher" and u["department"] == "Mentors"
+    data.set_role(conn, uid, "student")
+    assert data.get_user(conn, uid)["department"] == "Mentors"   # blank keeps the old one
+    with pytest.raises(ValueError, match="your own admin"):
+        data.set_role(conn, admin, "teacher", acting_admin_id=admin)
+    with pytest.raises(ValueError, match="role must be"):
+        data.set_role(conn, uid, "boss")
