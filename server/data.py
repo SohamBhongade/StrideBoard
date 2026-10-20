@@ -10,7 +10,7 @@ import io
 import re
 import secrets
 import sqlite3
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -316,12 +316,49 @@ def save_steps(conn, user_id, date, steps, source, today=None):
     _require_user(conn, user_id)
 
     _write_steps(conn, user_id, day, steps, source)
+    if day == today.isoformat():
+        _record_sample(conn, user_id, day, steps)
     new_badges = award_badges(conn, user_id, day, today)
     conn.commit()
 
     monday, sunday = calc.week_bounds(today)
     total = _sum_steps(conn, user_id, monday, sunday)
     return {"weekly_total": total, "tier": calc.tier_for(total), "new_badges": new_badges}
+
+
+def _record_sample(conn, user_id, day, total, at=None):
+    """Note today's total and when it arrived (for the stand-up reminder). Old notes are removed."""
+    at = at or local_now_iso()
+    conn.execute("INSERT INTO step_samples (user_id, date, total, at) VALUES (?, ?, ?, ?)",
+                 (user_id, day, total, at))
+    oldest = (calc.to_date(day) - timedelta(days=config.SAMPLE_KEEP_DAYS)).isoformat()
+    conn.execute("DELETE FROM step_samples WHERE user_id = ? AND date < ?", (user_id, oldest))
+
+
+def inactivity(conn, user_id, now=None):
+    """Has this person barely moved lately? Used for the stand-up reminder.
+
+    Returns {"inactive": True/False, "minutes": n} when it can tell, or
+    {"inactive": None} when it can't (no recent sync, or no sync 30+ minutes earlier).
+    Steps only go up during a day, so fewer than 50 steps between two syncs that are
+    30+ minutes apart means at least 30 minutes of sitting still, ending at the newer sync.
+    """
+    now = now or datetime.fromisoformat(local_now_iso())
+    rows = conn.execute("SELECT total, at FROM step_samples WHERE user_id = ? AND date = ? ORDER BY at",
+                        (user_id, now.date().isoformat())).fetchall()
+    if not rows:
+        return {"inactive": None}
+    latest_total, latest_at = rows[-1]["total"], datetime.fromisoformat(rows[-1]["at"])
+    if now - latest_at > timedelta(minutes=config.SYNC_FRESH_MINUTES):
+        return {"inactive": None}          # the newest number is too old to say anything
+    window = timedelta(minutes=config.INACTIVE_MINUTES)
+    earlier = [r for r in rows if latest_at - datetime.fromisoformat(r["at"]) >= window]
+    if not earlier:
+        return {"inactive": None}          # no sync far enough back to compare with
+    base = earlier[-1]                     # the newest sync at least 30 minutes earlier
+    gained = latest_total - base["total"]
+    minutes = int((latest_at - datetime.fromisoformat(base["at"])).total_seconds() // 60)
+    return {"inactive": gained < config.INACTIVE_MAX_STEPS, "minutes": minutes, "gained": gained}
 
 
 def save_mood(conn, user_id, date, mood):
