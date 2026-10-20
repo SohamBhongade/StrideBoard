@@ -17,9 +17,9 @@
   <form method="post" class="card card-soft form" novalidate>
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <div class="field">
-      <label for="username">Username</label>
+      <label for="username">Full name</label>
       <input class="input" id="username" name="username" value="{{ username }}" autocomplete="username"
-             autocapitalize="none" autocorrect="off" spellcheck="false" required>
+             autocapitalize="words" autocorrect="off" spellcheck="false" placeholder="e.g. Amal Khan" required>
     </div>
     <div class="field">
       <label for="pin">PIN</label>

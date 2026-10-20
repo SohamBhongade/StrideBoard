@@ -31,9 +31,9 @@
     </fieldset>
 
     <div class="field">
-      <label for="display_name">Your name</label>
-      <input class="input" id="display_name" name="display_name" value="{{ form.get('display_name', '') }}" maxlength="50" autocomplete="name" required>
-      <span class="hint">Shown on the leaderboards. First name and last initial is fine.</span>
+      <label for="display_name">Full name</label>
+      <input class="input" id="display_name" name="display_name" value="{{ form.get('display_name', '') }}" maxlength="50" autocomplete="name" autocapitalize="words" placeholder="e.g. Amal Khan" required>
+      <span class="hint">Your first and last name. You log in with it, and it shows on the leaderboards.</span>
     </div>
     <div class="field for-student">
       <label for="class">Class</label>
@@ -63,12 +63,6 @@
       <input class="input" id="email" name="email" type="email" value="{{ form.get('email', '') }}" autocomplete="email"
              autocapitalize="none" autocorrect="off" spellcheck="false" required>
       <span class="hint">We email you a code to check it's really you.{% if domains %} Use an address ending in @{{ domains|join(' or @') }}.{% endif %} We don't keep your email address.</span>
-    </div>
-    <div class="field">
-      <label for="username">Username</label>
-      <input class="input" id="username" name="username" value="{{ form.get('username', '') }}" autocomplete="username"
-             autocapitalize="none" autocorrect="off" spellcheck="false" required>
-      <span class="hint">3 to 30 letters or numbers (. _ - allowed). You log in with this.</span>
     </div>
     <div class="form-row">
       <div class="field">
