@@ -613,4 +613,9 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .item-tile strong { font-size: 14px; font-weight: 600; line-height: 1.2; }
 .item-price { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .item-tile .btn, .item-tile .chip { margin-top: auto; }
-.item-tile .inline-form { margin-top: auto; }
+.item-tile .inline-form { margin-top: auto; width: 100%; }
+.item-tile .btn { width: 100%; max-width: 100%; min-width: 0; padding-left: 6px; padding-right: 6px;
+  white-space: normal; line-height: 1.15; justify-content: center; }
+.item-tile .btn[disabled] { font-size: 13px; }
+.item-tile .chip { max-width: 100%; min-width: 0; white-space: nowrap; padding: 6px 10px; font-size: 13px; gap: 4px; justify-content: center; }
+.item-tile .chip svg { width: 14px; height: 14px; flex: none; }
