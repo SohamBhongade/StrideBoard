@@ -642,3 +642,21 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .mini-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .mini-actions > * { flex: 1 1 140px; }
 .mini-actions .btn { width: 100%; }
+
+/* ---------- Avatar = Settings button: a cog fades in over it on hover / focus */
+.gear-av { position: relative; isolation: isolate; }
+.gear-cover {
+  position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(23, 24, 28, .5); color: #fff; opacity: 0; transform: scale(.92);
+  transition: opacity .2s ease, transform .2s ease; pointer-events: none;
+}
+.gear-av:hover .gear-cover, .gear-av:focus-visible .gear-cover { opacity: 1; transform: none; }
+.gear-av[aria-current="page"] { box-shadow: 0 0 0 3px var(--ink-2), 0 0 0 5px #fff; }
+.topbar .gear-av[aria-current="page"] { box-shadow: 0 0 0 3px var(--ink); }
+/* Touch screens can't hover: show a small cog badge on the corner instead */
+@media (hover: none) {
+  .gear-cover { inset: auto -2px -2px auto; width: 20px; height: 20px; opacity: 1; transform: none;
+    background: var(--ink); border: 2px solid #fff; }
+  .gear-cover svg { width: 12px; height: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .gear-cover { transition: none; } }
