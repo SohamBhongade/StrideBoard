@@ -238,6 +238,14 @@ def add_security(app):
             g.user = data.get_user(db.get_db(), user_id)
             if g.user is None:
                 session.clear()
+            else:
+                block = data.block_status(db.get_db(), user_id)
+                if block:
+                    session.clear()
+                    g.user = None
+                    flash(block_message(block), "error")
+                    if request.endpoint not in PUBLIC_ENDPOINTS:
+                        return redirect(url_for("login"))
         if g.user is None and request.endpoint not in PUBLIC_ENDPOINTS:
             return redirect(url_for("login"))
         if request.method == "POST":
@@ -308,6 +316,21 @@ def note_failed_login(name):
     FAILED_LOGINS.setdefault(_login_key(name), []).append(datetime.now().timestamp())
 
 
+def is_owner(user):
+    """Only this account gets Moderation (time out, ban, rename, remove steps)."""
+    return bool(user) and user["role"] == "admin" and user["username"] == config.OWNER_USERNAME
+
+
+def block_message(block):
+    """'This account is banned.' / 'This account is timed out until Wed 21 Oct, 14:30.' + reason."""
+    if block["until"] is None:
+        text = "This account is banned."
+    else:
+        when = datetime.fromisoformat(block["until"]).strftime("%a %d %b, %H:%M")
+        text = f"This account is timed out until {when}."
+    return text + (f" Reason: {block['reason']}" if block["reason"] else "")
+
+
 def admin_only():
     if g.user["role"] != "admin":
         abort(403)
@@ -342,6 +365,10 @@ def add_routes(app):
                     user = data.authenticate_name(db.get_db(), username, pin)
             if not user and username:
                 note_failed_login(username)
+            block = data.block_status(db.get_db(), user["id"]) if user else None
+            if block:
+                flash(block_message(block), "error")
+                return render_template("login.html", username=username)
             if user:
                 session.clear()
                 session.permanent = True  # stay signed in on phones
@@ -685,6 +712,31 @@ def add_routes(app):
                     new = data.add_exp(conn, target, request.form.get("amount"),
                                        request.form.get("reason") or "Given by an admin")
                     flash(f"Gave EXP to {who}. Their balance is now {new:,}.", "ok")
+                elif action.startswith("mod_"):
+                    if not is_owner(g.user):
+                        abort(403)
+                    who = (request.form.get("person") or "").strip()
+                    target = data.find_person(conn, who)
+                    if target is None:
+                        raise ValueError(f"no one is called {who or '(blank)'}")
+                    name = data.get_user(conn, target)["display_name"]
+                    if action.startswith("mod_block_"):
+                        length = action.removeprefix("mod_block_")
+                        until = data.block_user(conn, target, length, request.form.get("reason"),
+                                                acting_id=g.user["id"])
+                        flash(f"{name} is banned." if until is None else
+                              f"{name} is timed out until {datetime.fromisoformat(until):%a %d %b, %H:%M}.", "ok")
+                    elif action == "mod_unblock":
+                        data.unblock_user(conn, target)
+                        flash(f"{name} can use StrideBoard again.", "ok")
+                    elif action == "mod_rename":
+                        data.rename_person(conn, target, request.form.get("new_name"), acting_id=g.user["id"])
+                        flash(f"Renamed {name} to {data.get_user(conn, target)['display_name']}.", "ok")
+                    elif action == "mod_steps":
+                        removed = data.remove_steps(conn, target, request.form.get("date"))
+                        flash(f"Removed {removed:,} steps from {name} on {request.form.get('date')}.", "ok")
+                    else:
+                        raise ValueError("unknown moderation action")
                 elif action == "set_role":
                     who = (request.form.get("username") or "").strip()
                     target = data.find_user_id(conn, who) if who else None
@@ -710,7 +762,9 @@ def add_routes(app):
                                suggested=data.suggested_distance_target(conn, 7),
                                start=t.isoformat(), end=(t + timedelta(days=6)).isoformat(),
                                csv_text=request.form.get("csv", "") if result else "",
-                               shortcut_link=data.ios_shortcut_link(conn))
+                               shortcut_link=data.ios_shortcut_link(conn),
+                               owner=is_owner(g.user),
+                               blocked=data.blocked_people(conn) if is_owner(g.user) else [])
 
     # ---------- PWA plumbing
     @app.route("/sw.js")

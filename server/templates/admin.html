@@ -109,6 +109,63 @@
   </form>
 </section>
 
+{# ---- Moderation: only the owner account sees this ---- #}
+{% if owner %}
+<section class="card card-soft" style="margin-top:16px" aria-labelledby="mod-h">
+  <div class="card-head">
+    <span class="icon-circle">{{ m.icon('flag') }}</span>
+    <h2 id="mod-h">Moderation</h2>
+    <span class="chip chip-dark">Only you</span>
+  </div>
+  <p class="small muted">Type someone's full name (or username). Timed-out and banned people can't log in, their phone can't send steps, and they're hidden from the leaderboards until it ends.</p>
+
+  <form method="post" class="form" style="margin-top:12px">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="field"><label for="mod-person">Person</label>
+      <input class="input" id="mod-person" name="person" placeholder="e.g. Amal Khan" autocapitalize="words" required></div>
+    <div class="field"><label for="mod-reason">Reason <span class="muted">(shown to them)</span></label>
+      <input class="input" id="mod-reason" name="reason" maxlength="200" placeholder="e.g. Fake steps"></div>
+    <div class="mini-actions">
+      <button class="btn btn-outline" type="submit" name="action" value="mod_block_1h">Time out 1 hour</button>
+      <button class="btn btn-outline" type="submit" name="action" value="mod_block_1d">Time out 1 day</button>
+      <button class="btn btn-outline" type="submit" name="action" value="mod_block_1w">Time out 1 week</button>
+      <button class="btn btn-dark" type="submit" name="action" value="mod_block_ban">Ban</button>
+      <button class="btn btn-outline" type="submit" name="action" value="mod_unblock">Unban / end time-out</button>
+    </div>
+  </form>
+
+  <div class="row row-even" style="margin-top:16px">
+    <form method="post" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="mod_rename">
+      <div class="field"><label for="ren-person">Rename: person</label><input class="input" id="ren-person" name="person" required></div>
+      <div class="field"><label for="ren-new">New full name</label><input class="input" id="ren-new" name="new_name" maxlength="50" required></div>
+      <button class="btn btn-outline" type="submit">Rename</button>
+    </form>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="mod_steps">
+      <div class="field"><label for="st-person">Remove steps: person</label><input class="input" id="st-person" name="person" required></div>
+      <div class="field"><label for="st-date">Day</label><input class="input" id="st-date" name="date" type="date" value="{{ start }}" required></div>
+      <button class="btn btn-outline" type="submit">Remove that day's steps</button>
+    </form>
+  </div>
+
+  <h3 class="card-title" style="margin-top:18px; font-size:18px">Timed out or banned now</h3>
+  {% if blocked %}
+  <ul class="history" style="margin-top:8px">
+    {% for b in blocked %}
+    <li><span class="h-date"><strong>{{ b.name }}</strong></span>
+        <span class="src">{{ 'Banned' if b.until is none else 'Until ' ~ b.until[:16]|replace('T', ' ') }}</span>
+        <span class="small muted">{{ b.reason }}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted" style="margin-top:6px">No one right now.</p>
+  {% endif %}
+</section>
+{% endif %}
+
 {# ---- Change someone's role ---- #}
 <section class="card card-soft" style="margin-top:16px" aria-labelledby="role-h">
   <div class="card-head">

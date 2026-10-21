@@ -58,6 +58,8 @@ def upload_steps():
     user = data.get_user_by_token(conn, body.get("token"))
     if user is None:
         return _error(401, "invalid token")
+    if data.block_status(conn, user["id"]):
+        return _error(403, "this account is timed out or banned")
 
     # 4. Check and save. data.save_steps raises ValueError with a readable reason.
     try:
