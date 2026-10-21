@@ -51,7 +51,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "19"
+ASSET_VERSION = "20"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -648,6 +648,7 @@ def add_routes(app):
                                shop=data.avatar_shop(conn, uid), slot=slot, slots=config.AVATAR_SLOTS,
                                server_url=request.url_root.rstrip("/"),
                                email_linked=data.has_email(conn, uid), mail_ready=mailer.ready(),
+                               shortcut_link=data.ios_shortcut_link(conn),
                                email_pending=(data.email_code_info(conn, session["email_link_id"], "link")
                                               if session.get("email_link_id") else None))
 
@@ -672,6 +673,10 @@ def add_routes(app):
                                           request.form.get("description", "").strip(), kind, target,
                                           request.form.get("start_date"), request.form.get("end_date"))
                     flash("Challenge created.", "ok")
+                elif action == "shortcut_link":
+                    saved = data.set_ios_shortcut_link(conn, request.form.get("link"))
+                    flash("iPhone Shortcut link saved. Students now see a 'Get the iPhone Shortcut' button "
+                          "in Settings." if saved else "iPhone Shortcut link removed.", "ok")
                 elif action == "give_exp":
                     who = (request.form.get("username") or "").strip()
                     target = data.find_user_id(conn, who) if who else None
@@ -704,7 +709,8 @@ def add_routes(app):
                                per_day=data.suggested_distance_target(conn, 1),
                                suggested=data.suggested_distance_target(conn, 7),
                                start=t.isoformat(), end=(t + timedelta(days=6)).isoformat(),
-                               csv_text=request.form.get("csv", "") if result else "")
+                               csv_text=request.form.get("csv", "") if result else "",
+                               shortcut_link=data.ios_shortcut_link(conn))
 
     # ---------- PWA plumbing
     @app.route("/sw.js")

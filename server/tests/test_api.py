@@ -66,7 +66,6 @@ def test_accepted_step_formats(client, app, token, steps, expected):
     ({"steps": "lots"}, "number"),
     ({"steps": None}, "required"),
     ({"source": "fitbit"}, "source"),
-    ({"source": None}, "source"),
 ])
 def test_bad_input_is_400(client, app, token, body_changes, message):
     body = {"token": token, "date": "2026-10-14", "steps": 8000, "source": "ios_shortcut"}
@@ -144,3 +143,12 @@ def test_first_request_of_week_updates_goals(client, app):
     client.get("/api/steps")                       # any request triggers the weekly check
     with app.app_context():
         assert data._get_meta(db.get_db(), "goals_updated_week") == "2026-10-12"
+
+
+def test_iphone_shortcut_can_send_only_token_and_steps(client, token):
+    """The simple Shortcut sends today's total with no date or source: that means today, iPhone."""
+    r = post(client, {"token": token, "steps": "8,423.0"})
+    assert r.status_code == 200
+    with client.application.app_context():
+        row = db.get_db().execute("SELECT steps, source FROM steps").fetchone()
+    assert (row["steps"], row["source"]) == (8423, "ios_shortcut")

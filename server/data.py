@@ -98,6 +98,28 @@ def _get_meta(conn, key):
     return row["value"] if row else None
 
 
+SHORTCUT_LINK_RE = re.compile(r"https://www\.icloud\.com/shortcuts/[A-Za-z0-9]{16,64}/?")
+
+
+def ios_shortcut_link(conn):
+    """The iCloud link of the StrideBoard Sync Shortcut that students install, or None."""
+    return _get_meta(conn, "ios_shortcut_url")
+
+
+def set_ios_shortcut_link(conn, link):
+    """Save (or clear, with blank) the Shortcut's iCloud share link. Returns the saved link."""
+    link = (link or "").strip()
+    if link and not SHORTCUT_LINK_RE.fullmatch(link):
+        raise ValueError("that isn't a Shortcut share link. It should look like "
+                         "https://www.icloud.com/shortcuts/abc123...")
+    if link:
+        _set_meta(conn, "ios_shortcut_url", link)
+    else:
+        conn.execute("DELETE FROM meta WHERE key = 'ios_shortcut_url'")
+    conn.commit()
+    return link or None
+
+
 # =====================================================================
 # Users
 # =====================================================================

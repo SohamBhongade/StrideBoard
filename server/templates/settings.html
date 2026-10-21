@@ -183,14 +183,18 @@
       <span class="icon-circle">{{ m.icon('phone') }}</span>
       <h2 id="ios-h">iPhone setup</h2>
     </div>
+    <p class="small muted">About a minute, done once. No typing: you copy and paste.</p>
     <ol class="steps-list">
-      <li>Open the <strong>StrideBoard Sync</strong> Shortcut link from your teacher and tap <strong>Get Shortcut</strong>.</li>
-      <li>When it asks, paste your <strong>phone token</strong> (copy it above). For the server address, use <code>{{ server_url }}</code> (no slash at the end).</li>
-      <li>Run it once and tap <strong>Allow</strong> so it can read <strong>Steps</strong> from Health.</li>
-      <li>In Shortcuts, open <strong>Automation</strong> and add two daily automations, at <strong>07:00</strong> and <strong>21:30</strong>, that run StrideBoard Sync. Choose <strong>Run Immediately</strong>.</li>
-      <li>In Safari, open this site, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</li>
-      <li>Any time you want fresh numbers, tap <strong>Sync from Apple Health</strong> on your dashboard. (iPhones lock Health data while the phone is locked, so a timed run can miss; this button always works.)</li>
+      <li><button type="button" class="btn btn-dark btn-sm" data-copy="{{ me.api_token }}">{{ m.icon('copy', 17) }} Copy my token</button></li>
+      <li>{% if shortcut_link %}<a class="btn btn-dark btn-sm" href="{{ shortcut_link }}">{{ m.icon('phone', 17) }} Get the iPhone Shortcut</a>
+          then tap <strong>Add Shortcut</strong>.{% else %}Ask your teacher for the <strong>StrideBoard Sync</strong> Shortcut link, open it and tap <strong>Add Shortcut</strong>.{% endif %}</li>
+      <li>When it asks for your token, <strong>paste</strong> and tap <strong>Done</strong>.</li>
+      <li>Come back here and tap <strong>Sync from Apple Health</strong> on your Home page. The first time, tap <strong>Allow</strong> so it can read <strong>Steps</strong>.</li>
     </ol>
+    <details class="more" style="margin-top:12px">
+      <summary><strong>Optional:</strong> sync by itself every evening</summary>
+      <p class="small">In Shortcuts, open <strong>Automation &rarr; New &rarr; Time of Day</strong>, pick <strong>21:30</strong>, choose <strong>Run Immediately</strong>, and pick <strong>StrideBoard Sync</strong>. (iPhones hide Health data while locked, so the Sync button on your Home page is the sure way.)</p>
+    </details>
   </section>
 
   <section class="card card-soft" aria-labelledby="android-h">
