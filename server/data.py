@@ -270,6 +270,11 @@ def authenticate_email(conn, secret, email, pin):
     return get_user(conn, row["id"])
 
 
+def _refuse_blocked_email(conn, fingerprint):
+    if conn.execute("SELECT 1 FROM blocked_emails WHERE email_hash = ?", (fingerprint,)).fetchone():
+        raise ValueError("this email can't be used on StrideBoard. Talk to your teacher")
+
+
 def start_signup(conn, secret, email, display_name, role, department, age_band, pin, pin_again,
                  now=None):
     """Check a sign-up form and hold it until the email code is entered.
@@ -294,6 +299,7 @@ def start_signup(conn, secret, email, display_name, role, department, age_band, 
     if pin != str(pin_again or "").strip():
         raise ValueError("the two PINs don't match")
     fingerprint = email_fingerprint(email, secret)
+    _refuse_blocked_email(conn, fingerprint)
     if conn.execute("SELECT 1 FROM users WHERE email_hash = ?", (fingerprint,)).fetchone():
         raise ValueError("there's already an account with that email. Log in instead")
     # tidy up: old waiting sign-ups, and any earlier try with this email
@@ -1427,6 +1433,7 @@ def start_email_link(conn, secret, user_id, email, now=None):
     now = _now(now)
     _require_user(conn, user_id)
     fingerprint = email_fingerprint(email, secret)
+    _refuse_blocked_email(conn, fingerprint)
     row = conn.execute("SELECT id FROM users WHERE email_hash = ?", (fingerprint,)).fetchone()
     if row and row["id"] != user_id:
         raise ValueError("that email is already used by another account")
@@ -1619,3 +1626,34 @@ def remove_steps(conn, user_id, date):
     conn.execute("DELETE FROM steps WHERE user_id = ? AND date = ?", (user_id, day))
     conn.commit()
     return row["steps"]
+
+
+def delete_people(conn, user_ids, acting_id=None, block_emails=True):
+    """Erase accounts and everything they had (steps, badges, EXP...). Can't be undone.
+
+    Their email (fingerprint) is blocked from signing up again. Returns the names deleted.
+    """
+    ids = []
+    for uid in user_ids:
+        try:
+            uid = int(uid)
+        except (TypeError, ValueError):
+            continue
+        if uid == acting_id:
+            raise ValueError("you can't delete your own account")
+        if uid not in ids:
+            ids.append(uid)
+    if not ids:
+        raise ValueError("choose at least one person")
+    names = []
+    for uid in ids:
+        row = conn.execute("SELECT display_name, email_hash FROM users WHERE id = ?", (uid,)).fetchone()
+        if row is None:
+            continue
+        if block_emails and row["email_hash"]:
+            conn.execute("INSERT OR IGNORE INTO blocked_emails (email_hash, blocked_at) VALUES (?, ?)",
+                         (row["email_hash"], local_now_iso()))
+        conn.execute("DELETE FROM users WHERE id = ?", (uid,))
+        names.append(row["display_name"])
+    conn.commit()
+    return names

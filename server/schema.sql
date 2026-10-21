@@ -174,3 +174,9 @@ CREATE TABLE IF NOT EXISTS email_codes (
   sent_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+-- Emails of deleted accounts (as fingerprints) that may not sign up or be added again.
+CREATE TABLE IF NOT EXISTS blocked_emails (
+  email_hash TEXT PRIMARY KEY,
+  blocked_at TEXT NOT NULL
+);
