@@ -32,7 +32,7 @@ def stored_steps(app, day="2026-10-14"):
 def test_valid_upload(client, app, token):
     r = post(client, {"token": token, "date": "2026-10-14", "steps": 8423, "source": "ios_shortcut"})
     assert r.status_code == 200
-    assert r.get_json() == {"ok": True, "weekly_total": 8423, "tier": "Bronze"}
+    assert {k: v for k, v in r.get_json().items() if k != "message"} == {"ok": True, "weekly_total": 8423, "tier": "Bronze"}
     assert r.headers["Cache-Control"] == "no-store"
     assert stored_steps(app) == (8423, "ios_shortcut")
 
@@ -40,7 +40,7 @@ def test_valid_upload(client, app, token):
 def test_yesterday_then_today_adds_up(client, token):
     post(client, {"token": token, "date": "2026-10-13", "steps": 30000, "source": "android_app"})
     r = post(client, {"token": token, "date": "2026-10-14", "steps": 6000, "source": "android_app"})
-    assert r.get_json() == {"ok": True, "weekly_total": 36000, "tier": "Silver"}
+    assert {k: v for k, v in r.get_json().items() if k != "message"} == {"ok": True, "weekly_total": 36000, "tier": "Silver"}
 
 
 def test_date_is_optional(client, app, token):
@@ -81,7 +81,7 @@ def test_bad_input_is_400(client, app, token, body_changes, message):
 def test_bad_token_is_401(client, token, token_value):
     r = post(client, {"token": token_value, "steps": 8000, "source": "ios_shortcut"})
     assert r.status_code == 401
-    assert r.get_json() == {"ok": False, "error": "invalid token"}
+    assert {k: v for k, v in r.get_json().items() if k != "message"} == {"ok": False, "error": "invalid token"}
 
 
 def test_missing_token_is_401(client, token):
@@ -152,3 +152,13 @@ def test_iphone_shortcut_can_send_only_token_and_steps(client, token):
     with client.application.app_context():
         row = db.get_db().execute("SELECT steps, source FROM steps").fetchone()
     assert (row["steps"], row["source"]) == (8423, "ios_shortcut")
+
+
+def test_every_reply_has_a_message_for_the_shortcut(client, token):
+    ok = client.post("/api/steps", json={"token": token, "steps": 6350}).get_json()
+    assert ok["message"].startswith("Synced 6,350 steps. This week: 6,350")
+    bad = client.post("/api/steps", json={"token": "nope", "steps": 10}).get_json()
+    assert "tap Sync from Apple Health" in bad["message"] and bad["error"] == "invalid token"
+    big = client.post("/api/steps", json={"token": token, "steps": 100001}).get_json()
+    assert big["message"].startswith("Steps not saved:")
+
