@@ -42,27 +42,17 @@
             android:inputType="textUri"
             android:minHeight="48dp" />
 
-        <!-- 2. Token -->
+        <!-- 2. Account: linked by logging in on the website screen (no token to paste) -->
         <TextView
             style="@style/SetupLabel"
             android:text="@string/step2_label" />
 
         <TextView
+            android:id="@+id/account_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/step2_help"
             android:textColor="@color/text_soft"
             android:textSize="14sp" />
-
-        <EditText
-            android:id="@+id/token_input"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:hint="@string/token_hint"
-            android:importantForAutofill="no"
-            android:inputType="textPassword"
-            android:minHeight="48dp" />
 
         <!-- 3. Step access -->
         <TextView

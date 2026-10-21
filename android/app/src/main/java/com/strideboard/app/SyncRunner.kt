@@ -45,7 +45,7 @@ object SyncRunner {
         Prefs.recordAttempt(c, now)
 
         if (!Prefs.isConfigured(c)) {
-            Prefs.recordResult(c, false, "Add the website address and your token, then tap Sync now.")
+            Prefs.recordResult(c, false, "Log in on the StrideBoard screen to link this phone.")
             return SyncOutcome.NEEDS_ATTENTION
         }
 

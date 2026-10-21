@@ -17,13 +17,13 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
 /**
- * Setup screen (shown first): website address, token, step permission, Sync now,
- * last sync result, Open StrideBoard.
+ * Setup screen: website address, account status (linked by logging in, no token to paste),
+ * step permission, Sync now, last sync result, Open StrideBoard.
  */
 class SetupActivity : ComponentActivity() {
 
     private lateinit var serverInput: EditText
-    private lateinit var tokenInput: EditText
+    private lateinit var accountStatus: TextView
     private lateinit var hcStatus: TextView
     private lateinit var allowButton: Button
     private lateinit var hcSettingsButton: Button
@@ -53,7 +53,7 @@ class SetupActivity : ComponentActivity() {
         findViewById<View>(R.id.root).padForSystemBars()
 
         serverInput = findViewById(R.id.server_input)
-        tokenInput = findViewById(R.id.token_input)
+        accountStatus = findViewById(R.id.account_status)
         hcStatus = findViewById(R.id.hc_status)
         allowButton = findViewById(R.id.allow_button)
         hcSettingsButton = findViewById(R.id.hc_settings_button)
@@ -61,7 +61,6 @@ class SetupActivity : ComponentActivity() {
         lastSync = findViewById(R.id.last_sync)
 
         serverInput.setText(Prefs.serverUrl(this).ifBlank { Prefs.DEFAULT_SERVER })
-        tokenInput.setText(Prefs.token(this))
 
         allowButton.setOnClickListener { onAllowClicked() }
         hcSettingsButton.setOnClickListener { openHealthConnectSettings() }
@@ -100,15 +99,8 @@ class SetupActivity : ComponentActivity() {
             serverInput.requestFocus()
             return false
         }
-        val token = tokenInput.text.toString().filterNot { it.isWhitespace() }
-        if (token.isEmpty()) {
-            tokenInput.error = "Paste your token from Settings on the website"
-            tokenInput.requestFocus()
-            return false
-        }
-        Prefs.saveSetup(this, server, token)
+        Prefs.saveSetup(this, server, Prefs.token(this))
         serverInput.setText(server)
-        tokenInput.setText(token)
         return true
     }
 
@@ -144,7 +136,10 @@ class SetupActivity : ComponentActivity() {
     }
 
     private suspend fun syncNow() {
-        if (!Prefs.isConfigured(this)) return
+        if (!Prefs.isConfigured(this)) {
+            lastSync.text = "Log in first: tap \"Open StrideBoard\" and log in. This phone links itself."
+            return
+        }
         syncButton.isEnabled = false
         lastSync.text = "Syncing…"
         SyncRunner.run(this, inBackground = false, force = true)
@@ -153,6 +148,10 @@ class SetupActivity : ComponentActivity() {
     }
 
     private suspend fun refreshStatus() {
+        accountStatus.text = if (Prefs.isConfigured(this))
+            "Linked ✓ This phone sends steps to the account you logged in with."
+        else
+            "Not linked yet. Tap \"Open StrideBoard\" below and log in: the app links itself."
         val st = StepReader.status(this)
         SyncScheduler.update(this, st.backgroundGranted)
 
