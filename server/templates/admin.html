@@ -189,24 +189,39 @@
   </form>
 </section>
 
-{# ---- Everyone ---- #}
-<section class="card card-soft" style="margin-top:16px" aria-labelledby="users-h">
+{# ---- Everyone: tabs by role + instant search ---- #}
+{% set people_tabs = [('all', 'All'), ('student', 'Students'), ('teacher', 'Teachers'), ('admin', 'Admins')] %}
+<section class="card card-soft" id="people" style="margin-top:16px" aria-labelledby="users-h">
   <div class="card-title-row">
     <h2 id="users-h" class="card-title">People</h2>
-    <span class="right muted">{{ users|length }} total</span>
+    <span class="right muted"><span data-people-count>{{ shown|length }}</span> of {{ users|length }}</span>
   </div>
+  <nav class="pills" aria-label="Show people by role" style="margin-top:12px">
+    {% for key, label in people_tabs %}
+    <a class="pill{% if people_role == key %} active{% endif %}" href="{{ url_for('admin', people=key, q=people_q or None) }}#people"
+       {% if people_role == key %}aria-current="page"{% endif %}>{{ label }} · {{ role_counts[key] }}</a>
+    {% endfor %}
+  </nav>
+  <form method="get" action="{{ url_for('admin') }}#people" class="people-search" role="search">
+    <input type="hidden" name="people" value="{{ people_role }}">
+    <label class="visually-hidden" for="people-q">Search people</label>
+    <input class="input" id="people-q" name="q" value="{{ people_q }}" type="search" autocomplete="off"
+           placeholder="Search by full name, username or class" data-people-search>
+  </form>
   {% if users %}
   <div class="table-wrap">
     <table>
       <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Class / department</th><th>Age band</th><th>Daily goal</th></tr></thead>
-      <tbody>
-        {% for u in users %}
-        <tr><td>{{ u.display_name }}</td><td>{{ u.username }}</td><td>{{ u.role|capitalize }}</td><td>{{ u.department }}</td>
+      <tbody data-people-rows>
+        {% for u in shown %}
+        <tr data-search="{{ (u.display_name ~ ' ' ~ u.username ~ ' ' ~ (u.department or ''))|lower }}">
+            <td>{{ u.display_name }}</td><td>{{ u.username }}</td><td>{{ u.role|capitalize }}</td><td>{{ u.department or '—' }}</td>
             <td>{{ age_labels.get(u.age_band, u.age_band) }}</td><td>{{ u.daily_goal|num }}{% if u.goal_is_custom %} (own){% endif %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+  <p class="small muted" data-people-none {% if shown %}hidden{% endif %} style="margin-top:12px">No one matches that search.</p>
   {% else %}
     {{ m.empty("No one yet", "Paste a CSV above to add your first people.", "users") }}
   {% endif %}

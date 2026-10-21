@@ -51,7 +51,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "21"
+ASSET_VERSION = "22"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -761,7 +761,20 @@ def add_routes(app):
             if result is None:
                 return redirect(url_for("admin"))
         t = datetime.now(TZ).date()
-        return render_template("admin.html", users=data.list_users(conn),
+        users = data.list_users(conn)
+        people_role = request.args.get("people", "all")
+        if people_role not in ("all", "student", "teacher", "admin"):
+            people_role = "all"
+        people_q = " ".join(request.args.get("q", "").split())[:60]
+        role_counts = {"all": len(users)}
+        for r in ("student", "teacher", "admin"):
+            role_counts[r] = sum(1 for u in users if u["role"] == r)
+        needle = people_q.lower()
+        shown = [u for u in users
+                 if (people_role == "all" or u["role"] == people_role)
+                 and (not needle or needle in f"{u['display_name']} {u['username']} {u['department'] or ''}".lower())]
+        return render_template("admin.html", users=users, shown=shown, people_role=people_role,
+                               people_q=people_q, role_counts=role_counts,
                                challenges=data.active_challenges(conn, today()),
                                stats=data.impact_stats(conn), result=result,
                                age_labels=dict(AGE_BANDS),
