@@ -31,6 +31,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   // Only handle our own GET requests; never touch the step API or form posts.
   if (req.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
+  // Downloads (the iPhone Shortcut file) go straight to Safari: if they pass through here,
+  // Safari shows the file as text instead of offering to add it.
+  if (url.pathname === "/iphone-shortcut") return;
 
   if (req.mode === "navigate") {
     // Pages: always try the network (data must be fresh), offline page if it fails.
