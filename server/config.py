@@ -27,6 +27,9 @@ SIGNUP_CLASSES = (
     + [f"Grade 11{c}" for c in "ABC"] + [f"Grade 12{c}" for c in "ABC"]
 )
 SIGNUP_DEPARTMENTS = ["English", "Science", "Social Science", "Maths", "Computer Science", "PE"]
+# The iPhone Shortcut students install (Settings > Get the iPhone Shortcut).
+# An admin can replace it on the Admin page without changing code.
+IOS_SHORTCUT_URL = "https://www.icloud.com/shortcuts/05df17c346754e76940780a7fa048043"
 SIGNUPS_PER_HOUR = 10                   # per network address, to stop spam accounts
 # Email check for sign-ups: a 6-digit code is sent from a Gmail account.
 # STRIDEBOARD_GMAIL_USER / STRIDEBOARD_GMAIL_APP_PASSWORD: that account and its app password.
