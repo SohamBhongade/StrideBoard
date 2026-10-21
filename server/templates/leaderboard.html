@@ -51,7 +51,23 @@
         <span class="rank-val">{{ r.label or (r.value|num) }}</span>
       </li>
       {% endfor %}
+      {% if mine %}
+      <li class="rank-gap" aria-hidden="true">&middot;&middot;&middot;</li>
+      {% for r in mine %}
+      <li class="rank-row rank-{{ r.rank }} me">
+        <span class="rank-num">{{ r.rank }}</span>
+        {% if r.user_id %}{{ m.avatar(r.name, r.avatar, r.avatar_color, 40, r.build) }}{% endif %}
+        <span class="rank-who"><strong>{{ r.name }} ({{ 'yours' if r.user_id is none else 'you' }})</strong><span>{{ r.department }}</span></span>
+        <span class="rank-val">{{ r.label or (r.value|num) }}</span>
+      </li>
+      {% endfor %}
+      {% endif %}
     </ol>
+    {% if trimmed %}
+    <a class="btn btn-soft btn-block board-more" href="{{ url_for('leaderboard', view=view, all=1) }}">Show everyone ({{ total|num }})</a>
+    {% elif show_all and total > 50 %}
+    <a class="btn btn-soft btn-block board-more" href="{{ url_for('leaderboard', view=view) }}">Show top 50</a>
+    {% endif %}
   {% else %}
     {{ m.empty("No steps yet this week", "Once people's phones sync, this board fills up. Be the first!", "trophy") }}
   {% endif %}

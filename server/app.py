@@ -9,7 +9,7 @@ import secrets
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from flask import (Flask, abort, send_file, flash, g, get_flashed_messages, jsonify, redirect,
+from flask import (Flask, abort, current_app, send_file, flash, g, get_flashed_messages, jsonify, redirect,
                    render_template, request, session, url_for)
 
 import api
@@ -30,6 +30,7 @@ LEADERBOARD_VIEWS = [("student", "Students"), ("teacher", "Teachers"),
 AGE_BANDS = [("under_13", "Under 13"), ("teen_13_17", "13 to 17"),
              ("adult_18_39", "18 to 39"), ("adult_40_59", "40 to 59"),
              ("senior_60_plus", "60 and over")]
+LEADERBOARD_TOP = 50       # rows shown before "Show everyone"
 MOODS = [(1, "Low"), (2, "Meh"), (3, "Okay"), (4, "Good"), (5, "Great")]
 # badge key -> (name, icon, colour, how to earn it). Names come from config.BADGES below.
 _BADGE_LOOK = {
@@ -53,7 +54,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "25"
+ASSET_VERSION = "26"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -101,6 +102,28 @@ def create_app():
 
 COMPRESSIBLE = ("text/", "application/javascript", "application/json", "image/svg+xml",
                 "application/manifest+json")
+
+
+_IMPACT_CACHE = {}          # database path -> (time made, numbers)
+IMPACT_CACHE_SECONDS = 60
+
+
+def cached_impact_stats(conn):
+    """The Admin impact numbers, reused for up to a minute.
+
+    They add up every step ever logged (the slowest work on /admin), and they are
+    school-wide totals that barely move in a minute. Any Admin action clears them.
+    """
+    if current_app.testing:
+        return data.impact_stats(conn)
+    key = current_app.config.get("DATABASE") or config.DATABASE
+    hit = _IMPACT_CACHE.get(key)
+    now = datetime.now().timestamp()
+    if hit and now - hit[0] < IMPACT_CACHE_SECONDS:
+        return hit[1]
+    stats = data.impact_stats(conn)
+    _IMPACT_CACHE[key] = (now, stats)
+    return stats
 
 
 def add_speed(app):
@@ -556,8 +579,20 @@ def add_routes(app):
         view = request.args.get("view", default)
         if view not in views:
             view = default
-        rows = with_builds(db.get_db(), data.leaderboard(db.get_db(), view, today(), role=role))
-        return render_template("leaderboard.html", rows=rows, view=view,
+        rows = data.leaderboard(db.get_db(), view, today(), role=role)
+        # Big boards show the top 50 plus your own row; "Show everyone" opens the full list.
+        # Ranks are worked out on the full board first, so they never change.
+        show_all = request.args.get("all") == "1"
+        total = len(rows)
+        mine = []
+        if not show_all and total > LEADERBOARD_TOP:
+            me_id, my_group = g.user["id"], g.user["department"]
+            mine = [r for r in rows[LEADERBOARD_TOP:]
+                    if r.get("user_id") == me_id or (r.get("user_id") is None and r["name"] == my_group)]
+            rows = rows[:LEADERBOARD_TOP]
+        with_builds(db.get_db(), rows + mine)
+        return render_template("leaderboard.html", rows=rows, mine=mine, total=total,
+                               trimmed=total > len(rows), show_all=show_all, view=view,
                                views=allowed, view_name=views[view])
 
     # ---------- Stage 4: Weekly Wrap-Up
@@ -709,6 +744,7 @@ def add_routes(app):
         conn = db.get_db()
         result = None
         if request.method == "POST":
+            _IMPACT_CACHE.clear()      # an Admin change: show fresh impact numbers next
             action = request.form.get("action")
             try:
                 if action == "add_users":
@@ -804,13 +840,13 @@ def add_routes(app):
                  if (people_role == "all" or u["role"] == people_role
                      or (people_role == "blocked" and u["blocked"]))
                  and (not needle or needle in f"{u['display_name']} {u['username']} {u['department'] or ''}".lower())]
+        per_day = data.suggested_distance_target(conn, 1)
         return render_template("admin.html", users=users, shown=shown, people_role=people_role,
                                people_q=people_q, role_counts=role_counts,
                                challenges=data.active_challenges(conn, today()),
-                               stats=data.impact_stats(conn), result=result,
+                               stats=cached_impact_stats(conn), result=result,
                                age_labels=dict(AGE_BANDS),
-                               per_day=data.suggested_distance_target(conn, 1),
-                               suggested=data.suggested_distance_target(conn, 7),
+                               per_day=per_day, suggested=per_day * 7,   # same formula, one query
                                start=t.isoformat(), end=(t + timedelta(days=6)).isoformat(),
                                csv_text=request.form.get("csv", "") if result else "",
                                shortcut_link=data.ios_shortcut_link(conn),

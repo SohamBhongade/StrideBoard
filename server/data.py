@@ -1189,14 +1189,26 @@ def impact_stats(conn, today=None):
 
     joined = ("FROM steps s JOIN users u ON u.id = s.user_id "
               "WHERE u.role IN ('teacher', 'student') ")
-    avg_before = one(f"SELECT AVG(s.steps) {joined} AND s.date < substr(u.created_at, 1, 10)")
-    avg_during = one(f"SELECT AVG(s.steps) {joined} AND s.date >= substr(u.created_at, 1, 10)")
+    # One pass over the steps table gives the before/during averages and the per-source
+    # counts together (it used to take three full passes, the slowest part of /admin).
+    by_source = {source: 0 for source in config.SOURCES}
+    before_sum = before_n = during_sum = during_n = 0
+    for r in conn.execute(
+            f"SELECT s.source, COUNT(*) AS n, "
+            f"SUM(CASE WHEN s.date < substr(u.created_at, 1, 10) THEN s.steps END) AS b_sum, "
+            f"COUNT(CASE WHEN s.date < substr(u.created_at, 1, 10) THEN 1 END) AS b_n, "
+            f"SUM(CASE WHEN s.date >= substr(u.created_at, 1, 10) THEN s.steps END) AS d_sum, "
+            f"COUNT(CASE WHEN s.date >= substr(u.created_at, 1, 10) THEN 1 END) AS d_n "
+            f"{joined} GROUP BY s.source"):
+        by_source[r["source"]] = r["n"]
+        before_sum += r["b_sum"] or 0
+        before_n += r["b_n"]
+        during_sum += r["d_sum"] or 0
+        during_n += r["d_n"]
+    avg_before = before_sum / before_n if before_n else None
+    avg_during = during_sum / during_n if during_n else None
     hitting = one(f"SELECT COUNT(DISTINCT s.user_id) {joined} AND s.steps >= u.daily_goal "
                   f"AND s.date >= ?", ((today - timedelta(days=6)).isoformat(),))
-
-    by_source = {source: 0 for source in config.SOURCES}
-    for r in conn.execute(f"SELECT s.source, COUNT(*) AS n {joined} GROUP BY s.source"):
-        by_source[r["source"]] = r["n"]
 
     mood_sql = ("SELECT AVG(m.mood) FROM moods m "
                 "JOIN steps s ON s.user_id = m.user_id AND s.date = m.date "
