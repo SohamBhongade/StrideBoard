@@ -6,10 +6,13 @@ Request (JSON):
     {"token": "<api_token>", "date": "2026-10-14", "steps": 8423, "source": "ios_shortcut"}
 "date" and "source" may be left out: they mean today (Dubai time) and the iPhone Shortcut.
 Replies:
-    200 {"ok": true, "weekly_total": 41230, "tier": "Silver"}
+    200 {"ok": true, "weekly_total": 41230, "tier": "Silver", "message": "..."}
     400 {"ok": false, "error": "<readable reason>"}
     401 {"ok": false, "error": "invalid token"}
     413 {"ok": false, "error": "request is too large"}   (over 16 KB)
+
+Every reply also has "message": one plain sentence the iPhone Shortcut shows as a
+notification, so people see "Synced 6,350 steps" instead of raw JSON.
 
 The token is a password: this file never logs it or sends it back.
 """
@@ -31,8 +34,17 @@ def _reply(status, **body):
     return response
 
 
+FRIENDLY = {
+    401: "This phone isn't linked to an account. Open StrideBoard, log in, "
+         "and tap Sync from Apple Health.",
+    403: "Your StrideBoard account is timed out or banned, so steps aren't being saved.",
+    413: "Something went wrong sending your steps. Please try again.",
+}
+
+
 def _error(status, message):
-    return _reply(status, ok=False, error=message)
+    friendly = FRIENDLY.get(status) or f"Steps not saved: {message}."
+    return _reply(status, ok=False, error=message, message=friendly)
 
 
 @bp.post("/steps")
@@ -70,4 +82,7 @@ def upload_steps():
     except ValueError as exc:
         return _error(400, str(exc))
 
-    return _reply(200, ok=True, weekly_total=result["weekly_total"], tier=result["tier"])
+    message = (f"Synced {result['steps']:,} steps. "
+               f"This week: {result['weekly_total']:,} ({result['tier']}).")
+    return _reply(200, ok=True, weekly_total=result["weekly_total"], tier=result["tier"],
+                  message=message)

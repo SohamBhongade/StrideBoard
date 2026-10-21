@@ -676,7 +676,7 @@ def award_badges(conn, user_id, day, today):
 def save_steps(conn, user_id, date, steps, source, today=None):
     """Save one day's steps (overwrites that day), give badges, return the week so far.
 
-    Returns {"weekly_total", "tier", "new_badges": [keys]}.
+    Returns {"weekly_total", "tier", "new_badges": [keys], "date", "steps"}.
     `today` is only for tests; normally it is today's date in Dubai.
     """
     today = _today(today)
@@ -696,7 +696,8 @@ def save_steps(conn, user_id, date, steps, source, today=None):
 
     monday, sunday = calc.week_bounds(today)
     total = _sum_steps(conn, user_id, monday, sunday)
-    return {"weekly_total": total, "tier": calc.tier_for(total), "new_badges": new_badges}
+    return {"weekly_total": total, "tier": calc.tier_for(total), "new_badges": new_badges,
+            "date": day, "steps": steps}
 
 
 def _record_sample(conn, user_id, day, total, at=None):

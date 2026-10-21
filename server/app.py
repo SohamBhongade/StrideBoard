@@ -4,11 +4,12 @@ The pages people see. All data comes from data.py (Agent 1); this file never
 writes SQL. Run from the server folder with:  flask run
 """
 import gzip
+import os
 import secrets
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from flask import (Flask, abort, flash, g, get_flashed_messages, jsonify, redirect,
+from flask import (Flask, abort, send_file, flash, g, get_flashed_messages, jsonify, redirect,
                    render_template, request, session, url_for)
 
 import api
@@ -19,6 +20,7 @@ import db
 import mailer
 
 TZ = ZoneInfo("Asia/Dubai")
+SHORTCUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "ios", "Strideboard.shortcut")
 
 # Display settings. The game rules themselves live in data.py / calc.py.
 TIERS = list(config.TIERS)  # from Agent 1's config.py, so the rules live in one place
@@ -682,9 +684,23 @@ def add_routes(app):
                                shop=data.avatar_shop(conn, uid), slot=slot, slots=config.AVATAR_SLOTS,
                                server_url=request.url_root.rstrip("/"),
                                email_linked=data.has_email(conn, uid), mail_ready=mailer.ready(),
-                               shortcut_link=data.ios_shortcut_link(conn),
+                               shortcut_link=iphone_shortcut_link(conn),
                                email_pending=(data.email_code_info(conn, session["email_link_id"], "link")
                                               if session.get("email_link_id") else None))
+
+    # ---------- iPhone Shortcut file (signed on a Mac, so iPhones can add it in one tap)
+    @app.route("/iphone-shortcut")
+    def iphone_shortcut():
+        if not os.path.isfile(SHORTCUT_FILE):
+            abort(404)
+        return send_file(SHORTCUT_FILE, mimetype="application/octet-stream", as_attachment=True,
+                         download_name="Strideboard.shortcut", max_age=0)
+
+    def iphone_shortcut_link(conn):
+        """Our own signed file when it's there; otherwise the iCloud link from Admin/config."""
+        if os.path.isfile(SHORTCUT_FILE):
+            return url_for("iphone_shortcut")
+        return data.ios_shortcut_link(conn)
 
     # ---------- Admin
     @app.route("/admin", methods=["GET", "POST"])
