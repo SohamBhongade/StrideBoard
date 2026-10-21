@@ -9,12 +9,10 @@
 
     <!-- Setup screen -->
     <string name="setup_title">Set up StrideBoard</string>
-    <string name="setup_intro">This app shows the StrideBoard website and sends your daily step totals to it automatically.</string>
+    <string name="setup_intro">This app shows the StrideBoard website and sends your daily step totals to it automatically. Just log in: there is nothing to copy or paste.</string>
     <string name="step1_label">1. Website address</string>
     <string name="server_hint">sohambhongade.pythonanywhere.com</string>
-    <string name="step2_label">2. Your token</string>
-    <string name="step2_help">Log in on the website, open Settings, and copy your token. Tip: tap \"Open StrideBoard\" below to log in, then tap the bar at the top of the website to come back here.</string>
-    <string name="token_hint">Paste your token here</string>
+    <string name="step2_label">2. Your account</string>
     <string name="step3_label">3. Step access</string>
     <string name="allow_steps">Allow step access</string>
     <string name="open_hc">Open Health Connect</string>

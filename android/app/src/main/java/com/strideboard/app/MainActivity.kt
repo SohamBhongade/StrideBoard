@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.text.format.DateUtils
 import android.view.View
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -52,12 +53,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // First run: the setup screen comes first.
-        if (!Prefs.isConfigured(this)) {
-            startActivity(Intent(this, SetupActivity::class.java))
-            finish()
-            return
-        }
+        // No setup screen first: the app opens the school's website, the person logs in there,
+        // and the website hands this app their token (AppBridge below). Nothing to copy or paste.
+        Prefs.ensureServer(this)
 
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
@@ -78,6 +76,7 @@ class MainActivity : ComponentActivity() {
             // Lets the website tell it is running inside the Android app, if it wants to.
             userAgentString = "$userAgentString StrideBoardAndroid/1.0"
         }
+        webView.addJavascriptInterface(AppBridge(), "StrideBoardApp")
         webView.webChromeClient = WebChromeClient()
         webView.webViewClient = SiteClient()
 
@@ -190,6 +189,7 @@ class MainActivity : ComponentActivity() {
         val lastSuccess = Prefs.lastSuccessAt(this)
         val now = System.currentTimeMillis()
         val (text, warning) = when {
+            !Prefs.isConfigured(this) -> "Log in below to link this phone" to false
             syncing -> "Syncing steps…" to false
             stepsGranted == false -> "Step sync is off · tap to set up" to true
             !Prefs.lastOk(this) -> "Step sync needs attention · tap to fix" to true
@@ -215,6 +215,34 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, uri))
         } catch (e: ActivityNotFoundException) {
             // No app can open this link; ignore.
+        }
+    }
+
+    /**
+     * Lets the StrideBoard website (and only it) tell the app who is logged in.
+     * The website's pages call StrideBoardApp.linkAccount(token) after login.
+     */
+    private inner class AppBridge {
+        @JavascriptInterface
+        fun linkAccount(token: String?) {
+            if (token.isNullOrBlank()) return
+            runOnUiThread {
+                // Only accept it from our own website, never from another page.
+                val pageHost = Uri.parse(webView.url ?: "").host
+                val siteHost = Uri.parse(loadedBase ?: "").host
+                if (pageHost.isNullOrBlank() || !pageHost.equals(siteHost, ignoreCase = true)) return@runOnUiThread
+                if (!Prefs.linkToken(this@MainActivity, token)) return@runOnUiThread
+                refreshBanner()
+                lifecycleScope.launch {
+                    val status = StepReader.status(this@MainActivity)
+                    if (status.available && !status.stepsGranted) {
+                        // First time on this phone: go straight to "Allow step access".
+                        startActivity(Intent(this@MainActivity, SetupActivity::class.java))
+                    } else {
+                        startLive()
+                    }
+                }
+            }
         }
     }
 

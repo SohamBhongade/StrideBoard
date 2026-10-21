@@ -27,6 +27,26 @@ object Prefs {
     fun token(c: Context): String = sp(c).getString(KEY_TOKEN, "") ?: ""
     fun isConfigured(c: Context) = serverUrl(c).isNotBlank() && token(c).isNotBlank()
 
+    /** First run: use the school's website without asking. */
+    fun ensureServer(c: Context) {
+        if (serverUrl(c).isBlank()) sp(c).edit { putString(KEY_SERVER, DEFAULT_SERVER) }
+    }
+
+    /** A token looks like letters, digits, - and _ (what the website makes). */
+    private val TOKEN_SHAPE = Regex("^[A-Za-z0-9_-]{16,128}$")
+
+    /**
+     * The website hands over the logged-in person's token (see MainActivity.AppBridge), so
+     * nobody has to copy or paste it. Returns true if this phone is now linked to a different
+     * account than before.
+     */
+    fun linkToken(c: Context, token: String): Boolean {
+        val t = token.trim()
+        if (!TOKEN_SHAPE.matches(t) || t == token(c)) return false
+        saveSetup(c, serverUrl(c).ifBlank { DEFAULT_SERVER }, t)
+        return true
+    }
+
     fun saveSetup(c: Context, server: String, token: String) {
         val changed = server != serverUrl(c) || token != token(c)
         sp(c).edit {
