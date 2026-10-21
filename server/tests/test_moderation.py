@@ -58,3 +58,12 @@ def test_find_rename_and_remove_steps(conn):
     assert data.remove_steps(conn, uid, str(TODAY)) == 99999
     with pytest.raises(ValueError, match="no steps"):
         data.remove_steps(conn, uid, str(TODAY))
+
+
+def test_rename_leaves_a_notice_until_ok(conn):
+    uid = make_user(conn, "kid9", display_name="Silly Name")
+    data.rename_person(conn, uid, "Sam Lee")
+    data.rename_person(conn, uid, "Sam Lee Two")          # renamed twice: still shows the original
+    assert data.get_user(conn, uid)["rename_notice"] == "Silly Name"
+    data.dismiss_rename_notice(conn, uid)
+    assert data.get_user(conn, uid)["rename_notice"] is None

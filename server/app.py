@@ -51,7 +51,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "20"
+ASSET_VERSION = "21"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -243,7 +243,7 @@ def add_security(app):
                 if block:
                     session.clear()
                     g.user = None
-                    flash(block_message(block), "error")
+                    flash(block_message(block), "blocked")
                     if request.endpoint not in PUBLIC_ENDPOINTS:
                         return redirect(url_for("login"))
         if g.user is None and request.endpoint not in PUBLIC_ENDPOINTS:
@@ -367,7 +367,7 @@ def add_routes(app):
                 note_failed_login(username)
             block = data.block_status(db.get_db(), user["id"]) if user else None
             if block:
-                flash(block_message(block), "error")
+                flash(block_message(block), "blocked")
                 return render_template("login.html", username=username)
             if user:
                 session.clear()
@@ -479,6 +479,13 @@ def add_routes(app):
             return redirect(url_for("forgot"))
         return render_template("forgot.html", email=session.get("reset_email"),
                                step2="reset_id" in session, mail_ready=mailer.ready())
+
+    @app.route("/notice/rename", methods=["POST"])
+    def dismiss_rename():
+        """The OK button on the 'your name was changed' box."""
+        data.dismiss_rename_notice(db.get_db(), g.user["id"])
+        back = request.form.get("back", "")
+        return redirect(back if back.startswith("/") and not back.startswith("//") else url_for("dashboard"))
 
     @app.route("/logout", methods=["GET", "POST"])
     def logout():
