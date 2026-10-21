@@ -400,9 +400,19 @@ def list_users(conn):
     """All users for the admin page (no PIN hashes, no tokens)."""
     rows = conn.execute(
         "SELECT id, username, display_name, role, department, age_band, daily_goal, "
-        "goal_is_custom, created_at FROM users ORDER BY role, department, display_name"
+        "goal_is_custom, created_at, blocked_until, block_reason FROM users "
+        "ORDER BY role, department, display_name"
     ).fetchall()
-    return [dict(r) for r in rows]
+    now = local_now_iso()
+    people = []
+    for r in rows:
+        p = dict(r)
+        until = p.pop("blocked_until")
+        p["blocked"] = bool(until and until > now)          # timed out or banned right now
+        p["blocked_until"] = None if (not p["blocked"] or until == FOREVER) else until
+        p["block_reason"] = p["block_reason"] if p["blocked"] else None
+        people.append(p)
+    return people
 
 
 def set_custom_goal(conn, user_id, goal):
