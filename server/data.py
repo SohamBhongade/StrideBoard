@@ -102,8 +102,11 @@ SHORTCUT_LINK_RE = re.compile(r"https://www\.icloud\.com/shortcuts/[A-Za-z0-9]{1
 
 
 def ios_shortcut_link(conn):
-    """The iCloud link of the StrideBoard Sync Shortcut that students install, or None."""
-    return _get_meta(conn, "ios_shortcut_url")
+    """The iCloud link of the Strideboard Shortcut that students install.
+
+    The Admin page's link wins; otherwise the built-in one from config.py.
+    """
+    return _get_meta(conn, "ios_shortcut_url") or config.IOS_SHORTCUT_URL or None
 
 
 def set_ios_shortcut_link(conn, link):

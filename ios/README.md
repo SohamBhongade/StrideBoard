@@ -22,7 +22,7 @@ The Shortcut is already built. You don't need to build anything.
 
 **Steps:**
 1. On your iPhone, open this link and tap **Add Shortcut**:
-   **https://www.icloud.com/shortcuts/d6832f2ea7214b35889bb0c2a999aee5**
+   **https://www.icloud.com/shortcuts/05df17c346754e76940780a7fa048043**
    (It is also the **Get the iPhone Shortcut** button in StrideBoard's Settings.)
 2. Open the StrideBoard website in Safari, log in, and on **Home** tap **Sync from Apple Health**.
 3. The first time, tap **Allow** so the Shortcut can read **Steps** from Apple Health.
