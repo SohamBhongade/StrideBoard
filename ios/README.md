@@ -9,6 +9,31 @@ This takes about 10 minutes to set up once, and then runs by itself.
 
 ---
 
+## Quick setup (students and teachers start here)
+
+The Shortcut is already built. You don't need to build anything.
+
+**You need:**
+- An **iPhone** (an iPad doesn't count steps on its own).
+- The **Apple Health** app (the white app with a red heart). It comes with every iPhone. If you
+  deleted it, download **Health** from the App Store.
+- The **Shortcuts** app. It also comes with every iPhone, or download **Shortcuts** from the App Store.
+- A StrideBoard account.
+
+**Steps:**
+1. On your iPhone, open this link and tap **Add Shortcut**:
+   **https://www.icloud.com/shortcuts/d6832f2ea7214b35889bb0c2a999aee5**
+   (It is also the **Get the iPhone Shortcut** button in StrideBoard's Settings.)
+2. Open the StrideBoard website in Safari, log in, and on **Home** tap **Sync from Apple Health**.
+3. The first time, tap **Allow** so the Shortcut can read **Steps** from Apple Health.
+4. Done. Tap **Sync from Apple Health** any time you want fresh numbers.
+
+Don't rename the Shortcut: the Sync button looks for the name **StrideBoard Sync**.
+
+The rest of this guide explains how the Shortcut was built, for the team.
+
+---
+
 ## Part 1: Build the Shortcut
 
 You only need to do this once if you're the team member building it — after that, you'll share
