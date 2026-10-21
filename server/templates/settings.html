@@ -14,6 +14,11 @@
       <span class="icon-circle" style="background:var(--ink-2);color:#fff">{{ m.icon('phone') }}</span>
       <h2 id="token-h">Phone token</h2>
     </div>
+    <p class="muted">You don't need this: your phone links itself when you log in to the Android app or tap <strong>Sync from Apple Health</strong> on iPhone.</p>
+    <details class="more" style="margin-top:10px">
+      <summary><strong>Advanced:</strong> show my phone token</summary>
+      <div style="margin-top:12px; display:flex; flex-direction:column; gap:12px">
+    <p class="small muted">Treat it like a password: never share it or post it.</p>
     <p class="muted">Your phone uses this to send your steps. Treat it like a password: never share it or post it.</p>
     {% if me.api_token %}
     <div class="token-box" style="color:var(--ink)">
@@ -24,12 +29,14 @@
     {% else %}
     <p>No token yet. Make one below.</p>
     {% endif %}
-    <form method="post" data-confirm="Make a new token? Your phone will stop syncing until you paste the new one into it.">
+    <form method="post" data-confirm="Make a new token? The old one stops working. Open the StrideBoard app (Android) or tap Sync from Apple Health (iPhone) afterwards so your phone picks up the new one.">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
       <input type="hidden" name="action" value="new_token">
       <button class="btn btn-light" type="submit">{{ m.icon('refresh', 18) }} Make new token</button>
     </form>
     <p class="small muted">Make a new one if you think someone else has seen it. The old one stops working straight away.</p>
+      </div>
+    </details>
   </section>
 
   {# ---- Goal and age band ---- #}
