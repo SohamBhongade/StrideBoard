@@ -71,6 +71,26 @@
   </section>
 </div>
 
+{# ---- iPhone Shortcut link: shown to students in Settings ---- #}
+<section class="card card-soft" style="margin-top:16px" aria-labelledby="shortcut-h">
+  <div class="card-head">
+    <span class="icon-circle">{{ m.icon('phone') }}</span>
+    <h2 id="shortcut-h">iPhone Shortcut link</h2>
+    {% if shortcut_link %}<span class="chip chip-dark">{{ m.icon('check', 15) }} Set</span>{% endif %}
+  </div>
+  <p class="small muted">Build the StrideBoard Sync Shortcut once (see the iPhone guide), then in Shortcuts tap
+    <strong>Share &rarr; Copy iCloud Link</strong> and paste it here. Every student then gets a
+    <strong>Get the iPhone Shortcut</strong> button in their Settings.</p>
+  <form method="post" class="form" style="margin-top:12px">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="shortcut_link">
+    <div class="field"><label for="shortcut-link">iCloud link</label>
+      <input class="input" id="shortcut-link" name="link" type="url" value="{{ shortcut_link or '' }}"
+             placeholder="https://www.icloud.com/shortcuts/..." autocapitalize="none" spellcheck="false"></div>
+    <button class="btn btn-dark" type="submit">{{ m.icon('check', 18) }} Save link</button>
+  </form>
+</section>
+
 {# ---- Give EXP (for testing until the earning rules exist) ---- #}
 <section class="card card-soft" style="margin-top:16px" aria-labelledby="exp-h">
   <div class="card-head">

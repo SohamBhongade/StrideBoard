@@ -4,6 +4,7 @@ In app.py:  import api;  app.register_blueprint(api.bp)
 
 Request (JSON):
     {"token": "<api_token>", "date": "2026-10-14", "steps": 8423, "source": "ios_shortcut"}
+"date" and "source" may be left out: they mean today (Dubai time) and the iPhone Shortcut.
 Replies:
     200 {"ok": true, "weekly_total": 41230, "tier": "Silver"}
     400 {"ok": false, "error": "<readable reason>"}
@@ -60,8 +61,10 @@ def upload_steps():
 
     # 4. Check and save. data.save_steps raises ValueError with a readable reason.
     try:
+        # The iPhone Shortcut can leave out "date" (means today) and "source" (means iPhone),
+        # so it only has to send the token and today's steps.
         result = data.save_steps(conn, user["id"], body.get("date"),
-                                 body.get("steps"), body.get("source"))
+                                 body.get("steps"), body.get("source") or "ios_shortcut")
     except ValueError as exc:
         return _error(400, str(exc))
 
