@@ -28,7 +28,7 @@ The Shortcut is already built. You don't need to build anything.
 3. The first time, tap **Allow** so the Shortcut can read **Steps** from Apple Health.
 4. Done. Tap **Sync from Apple Health** any time you want fresh numbers.
 
-Don't rename the Shortcut: the Sync button looks for the name **StrideBoard Sync**.
+Don't rename the Shortcut: the Sync button looks for the name **Strideboard**.
 
 The rest of this guide explains how the Shortcut was built, for the team.
 
@@ -42,7 +42,7 @@ it with everyone else on the team as a link (see Part 2).
 ### Step 1 — Create a new Shortcut
 1. Open the **Shortcuts** app (built into iOS).
 2. Tap **+** (top right) to create a new shortcut.
-3. Tap the name at the top and rename it **StrideBoard Sync**.
+3. Tap the name at the top and rename it **Strideboard**.
 
 ### Step 2 — Add the two variables (Token and Server)
 These hold your personal login token and the server address, so you only have to type them once.
@@ -147,7 +147,7 @@ in their own Token the first time, and the value sticks after that.
 ### Step 9 — Automate it (run without opening the app)
 1. In the Shortcuts app, go to the **Automation** tab → **+** → **Create Personal Automation**.
 2. Choose **Time of Day** → set it to **21:30**, Daily → **Next** → **Add Action** → search for
-   your **StrideBoard Sync** shortcut → add it.
+   your **Strideboard** shortcut → add it.
 3. Turn **off** "Ask Before Running" if you want it fully silent, and make sure
    **Run Immediately** is selected (not "Notify Me," which requires you to tap to confirm).
 4. Repeat for a second automation at **07:00**.
@@ -157,8 +157,8 @@ the day's steps.
 
 ### Step 10 — The "Sync from Apple Health" button on the website
 On an iPhone, the website's dashboard shows a **Sync from Apple Health** button. It runs this
-Shortcut by its name (`shortcuts://run-shortcut?name=StrideBoard%20Sync`), so **keep the name
-exactly `StrideBoard Sync`**. After it runs, tap the back arrow at the top left; the dashboard
+Shortcut by its name (`shortcuts://run-shortcut?name=Strideboard`), so **keep the name
+exactly `Strideboard`**. After it runs, tap the back arrow at the top left; the dashboard
 reloads with the new steps.
 
 Why the button matters: iPhones lock Health data while the phone is locked, so a timed
@@ -169,7 +169,7 @@ pressed while the phone is unlocked, so it always works. The timed runs are the 
 
 ## Part 2: Share the Shortcut with the team
 
-1. Open the finished **StrideBoard Sync** shortcut, tap the **⋯** menu, then the **Share**
+1. Open the finished **Strideboard** shortcut, tap the **⋯** menu, then the **Share**
    icon, then **Add to iCloud Drive / Copy iCloud Link**.
 2. Share that link with teammates (group chat, email, whatever's easiest).
 3. Each person opens the link, taps **Get Shortcut**, and on first run will be asked to paste in
@@ -204,7 +204,7 @@ everyone pastes their own. Never put a token in a screenshot, a chat group or Gi
 | `400` / "steps out of range" | Health returned a number above 100,000 for one day | Check the Health app for that date (usually a duplicate source or a bad import) |
 | `400` / "source" error | The `source` field was typed wrong | It must be exactly `ios_shortcut`, all lowercase |
 | `400` / "invalid date" | Date more than 7 days old or in the future | Shouldn't happen with this setup since we only ever send yesterday/today |
-| Shortcut fails with no Health data | Health permission wasn't granted | Settings app → Privacy & Security → Health → StrideBoard Sync → turn on Steps |
+| Shortcut fails with no Health data | Health permission wasn't granted | Settings app → Privacy & Security → Health → Strideboard → turn on Steps |
 | "Could not connect to server" | Server address wrong, or server is down | Double-check the `Server` value has no typo and no trailing slash |
 
 ---

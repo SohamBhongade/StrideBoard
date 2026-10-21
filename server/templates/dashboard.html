@@ -41,13 +41,13 @@
       <p class="small"><strong>{{ (d.daily_goal - d.today_steps)|num }} to go.</strong> Moving more is linked to better mood and sleep, and a walk between lessons all adds up.</p>
     {% endif %}
     </div>
-    {# iPhone only (shown by app.js): runs the "StrideBoard Sync" Shortcut, which reads
+    {# iPhone only (shown by app.js): runs the "Strideboard" Shortcut, which reads
        Apple Health and sends the steps. The name must match the Shortcut exactly.
        The button hands the Shortcut this person's token as its input, so one shared
        Shortcut works for everyone and nobody has to paste anything. #}
     <div class="ios-sync" data-ios-sync hidden>
-      <a class="btn btn-dark" href="shortcuts://run-shortcut?name=StrideBoard%20Sync&amp;input=text&amp;text={{ user.api_token|urlencode }}">{{ m.icon('refresh', 18) }} Sync from Apple Health</a>
-      <p class="small muted">Runs your StrideBoard Sync Shortcut. When it finishes, tap the back arrow at the top left to come back. Not set up yet? See <a href="{{ url_for('settings') }}">Settings</a>.</p>
+      <a class="btn btn-dark" href="shortcuts://run-shortcut?name=Strideboard&amp;input=text&amp;text={{ user.api_token|urlencode }}">{{ m.icon('refresh', 18) }} Sync from Apple Health</a>
+      <p class="small muted">Runs your Strideboard Shortcut. When it finishes, tap the back arrow at the top left to come back. Not set up yet? See <a href="{{ url_for('settings') }}">Settings</a>.</p>
     </div>
   </section>
 
