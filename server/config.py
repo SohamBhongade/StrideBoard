@@ -20,6 +20,9 @@ DATABASE = os.environ.get(
 # STRIDEBOARD_JOIN_CODE: optional. If set, people need this code to make their own
 # account on the sign-up page (stops strangers joining). Leave unset for no code.
 JOIN_CODE = os.environ.get("STRIDEBOARD_JOIN_CODE", "").strip()
+# The one account that can time out, ban, rename and remove steps (Admin > Moderation).
+# STRIDEBOARD_OWNER can change it on the server without editing code.
+OWNER_USERNAME = os.environ.get("STRIDEBOARD_OWNER", "soham.admin").strip().lower()
 SIGNUP_ROLES = ("student", "teacher")   # admin is never offered on the sign-up page
 # The choices on the sign-up page. Add a class or department by adding it to the list.
 SIGNUP_CLASSES = (

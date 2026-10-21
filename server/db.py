@@ -47,7 +47,8 @@ def connect(path=None):
 
 # Columns added after the first release. CREATE TABLE IF NOT EXISTS does not
 # change a table that already exists, so older databases get them here.
-ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT", "email_hash TEXT"]}
+ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT", "email_hash TEXT",
+                           "blocked_until TEXT", "block_reason TEXT"]}
 
 
 def create_tables(conn):

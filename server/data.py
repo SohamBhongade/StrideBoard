@@ -23,6 +23,9 @@ USERNAME_RE = re.compile(r"^[a-z0-9_.-]{3,30}$")
 USER_FIELDS = ("id, username, display_name, role, department, age_band, api_token, "
                "daily_goal, goal_is_custom, created_at, avatar, avatar_color")
 PLAYER_ROLES = ("teacher", "student")   # admins never appear on boards or in stats
+# Someone timed out or banned (Admin > Moderation) is left off the boards until it ends.
+NOT_BLOCKED = "(u.blocked_until IS NULL OR u.blocked_until <= ?)"
+FOREVER = "9999-12-31T23:59:59+04:00"
 
 
 # =====================================================================
@@ -883,8 +886,8 @@ def _player_totals(conn, start, end, roles=PLAYER_ROLES):
         f"SELECT u.id, u.display_name, u.department, u.daily_goal, u.avatar, u.avatar_color, "
         f"SUM(s.steps) AS total, MAX(s.updated_at) AS last_update "
         f"FROM users u JOIN steps s ON s.user_id = u.id AND s.date BETWEEN ? AND ? "
-        f"WHERE u.role IN ({marks}) GROUP BY u.id HAVING total > 0",
-        (_day(start), _day(end), *roles),
+        f"WHERE u.role IN ({marks}) AND {NOT_BLOCKED} GROUP BY u.id HAVING total > 0",
+        (_day(start), _day(end), *roles, local_now_iso()),
     ).fetchall()
     return {r["id"]: dict(r) for r in rows}
 
@@ -915,8 +918,8 @@ def _department_rows(conn, start, end, roles=PLAYER_ROLES):
         "  FROM steps WHERE date BETWEEN ? AND ? GROUP BY user_id"
         ") w ON w.user_id = u.id "
         f"WHERE u.role IN ({marks}) AND u.department IS NOT NULL "
-        "AND u.department <> '' GROUP BY u.department",
-        (_day(start), _day(end), *roles),
+        f"AND u.department <> '' AND {NOT_BLOCKED} GROUP BY u.department",
+        (_day(start), _day(end), *roles, local_now_iso()),
     ).fetchall()
     items = []
     for r in rows:
@@ -1506,3 +1509,95 @@ def finish_pin_reset(conn, code_id, code, pin, pin_again, now=None):
     conn.execute("DELETE FROM email_codes WHERE id = ?", (code_id,))
     conn.commit()
     return row["user_id"]
+
+
+# ------------------------------------------------------------------ moderation (owner only)
+
+TIMEOUTS = {"1h": timedelta(hours=1), "1d": timedelta(days=1), "1w": timedelta(weeks=1)}
+
+
+def find_person(conn, text):
+    """A user's id from a username or full name (case and extra spaces ignored), or None."""
+    text = " ".join((text or "").split())
+    if not text:
+        return None
+    row = conn.execute("SELECT id FROM users WHERE username = ?", (text.lower(),)).fetchone()
+    if row is None:
+        row = conn.execute("SELECT id FROM users WHERE lower(display_name) = lower(?) ORDER BY id",
+                           (text,)).fetchone()
+    return row["id"] if row else None
+
+
+def block_status(conn, user_id, now=None):
+    """None if the person may use StrideBoard, else {"until": iso or None (forever), "reason"}."""
+    now = (now or local_now_iso())
+    row = conn.execute("SELECT blocked_until, block_reason FROM users WHERE id = ?", (user_id,)).fetchone()
+    if row is None or not row["blocked_until"] or row["blocked_until"] <= now:
+        return None
+    until = None if row["blocked_until"] == FOREVER else row["blocked_until"]
+    return {"until": until, "reason": row["block_reason"] or ""}
+
+
+def _check_target(conn, user_id, acting_id):
+    user = _require_user(conn, user_id)
+    if user_id == acting_id:
+        raise ValueError("you can't do that to your own account")
+    return user
+
+
+def block_user(conn, user_id, length, reason, acting_id=None, now=None):
+    """Time someone out ("1h", "1d", "1w") or ban them ("ban"). Returns the end time or None (ban)."""
+    user = _check_target(conn, user_id, acting_id)
+    reason = " ".join((reason or "").split())[:200]
+    if length == "ban":
+        until = FOREVER
+    elif length in TIMEOUTS:
+        start = datetime.fromisoformat(now or local_now_iso())
+        until = (start + TIMEOUTS[length]).isoformat(timespec="seconds")
+    else:
+        raise ValueError("choose 1 hour, 1 day, 1 week or ban")
+    conn.execute("UPDATE users SET blocked_until = ?, block_reason = ? WHERE id = ?",
+                 (until, reason or None, user["id"]))
+    conn.commit()
+    return None if until == FOREVER else until
+
+
+def unblock_user(conn, user_id):
+    _require_user(conn, user_id)
+    conn.execute("UPDATE users SET blocked_until = NULL, block_reason = NULL WHERE id = ?", (user_id,))
+    conn.commit()
+
+
+def blocked_people(conn, now=None):
+    """Everyone timed out or banned right now: [{"id", "name", "username", "until", "reason"}]."""
+    rows = conn.execute("SELECT id, display_name, username, blocked_until, block_reason FROM users "
+                        "WHERE blocked_until > ? ORDER BY blocked_until", (now or local_now_iso(),)).fetchall()
+    return [{"id": r["id"], "name": r["display_name"], "username": r["username"],
+             "until": None if r["blocked_until"] == FOREVER else r["blocked_until"],
+             "reason": r["block_reason"] or ""} for r in rows]
+
+
+def rename_person(conn, user_id, new_name, acting_id=None):
+    """Change someone's full name (e.g. to fix a rude one). Names stay unique."""
+    _require_user(conn, user_id)
+    new_name = clean_name(new_name)
+    if not 1 <= len(new_name) <= 50:
+        raise ValueError("the new name must be 1-50 characters")
+    taken = conn.execute("SELECT id FROM users WHERE lower(display_name) = lower(?) AND id != ?",
+                         (new_name, user_id)).fetchone()
+    if taken:
+        raise ValueError(f"someone already uses the name {new_name!r}")
+    conn.execute("UPDATE users SET display_name = ? WHERE id = ?", (new_name, user_id))
+    conn.commit()
+
+
+def remove_steps(conn, user_id, date):
+    """Delete one day's steps for someone (e.g. obviously fake numbers). Returns the steps removed."""
+    _require_user(conn, user_id)
+    day = calc.parse_date(date, local_today(), max_days_back=None)
+    row = conn.execute("SELECT steps FROM steps WHERE user_id = ? AND date = ?", (user_id, day)).fetchone()
+    if row is None:
+        raise ValueError(f"there are no steps on {day} for that person")
+    conn.execute("DELETE FROM steps WHERE user_id = ? AND date = ?", (user_id, day))
+    conn.commit()
+    return row["steps"]
