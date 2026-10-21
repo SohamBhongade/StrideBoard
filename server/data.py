@@ -21,7 +21,7 @@ from db import local_now_iso, local_today
 USERNAME_RE = re.compile(r"^[a-z0-9_.-]{3,30}$")
 # pin_hash is never selected for anything that leaves this file.
 USER_FIELDS = ("id, username, display_name, role, department, age_band, api_token, "
-               "daily_goal, goal_is_custom, created_at, avatar, avatar_color")
+               "daily_goal, goal_is_custom, created_at, avatar, avatar_color, rename_notice")
 PLAYER_ROLES = ("teacher", "student")   # admins never appear on boards or in stats
 # Someone timed out or banned (Admin > Moderation) is left off the boards until it ends.
 NOT_BLOCKED = "(u.blocked_until IS NULL OR u.blocked_until <= ?)"
@@ -1587,7 +1587,15 @@ def rename_person(conn, user_id, new_name, acting_id=None):
                          (new_name, user_id)).fetchone()
     if taken:
         raise ValueError(f"someone already uses the name {new_name!r}")
-    conn.execute("UPDATE users SET display_name = ? WHERE id = ?", (new_name, user_id))
+    # Remember the old name so they see a warning box until they tap OK
+    # (if renamed twice before seeing it, the box still shows their original name).
+    conn.execute("UPDATE users SET rename_notice = COALESCE(rename_notice, display_name), display_name = ? "
+                 "WHERE id = ?", (new_name, user_id))
+    conn.commit()
+
+
+def dismiss_rename_notice(conn, user_id):
+    conn.execute("UPDATE users SET rename_notice = NULL WHERE id = ?", (user_id,))
     conn.commit()
 
 

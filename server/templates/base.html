@@ -87,11 +87,36 @@
       {% if messages %}
       <div class="flashes" role="status">
         {% for cat, msg in messages %}
+        {% if cat == 'blocked' %}
+        <div class="warn-box warn-red" role="alert">
+          <span class="icon-circle">{{ m.icon('info') }}</span>
+          <div class="warn-text"><strong>{{ 'Account banned' if 'banned' in msg else 'Account timed out' }}</strong><span>{{ msg }}</span>
+            <span class="small">If you think this is a mistake, talk to your teacher.</span></div>
+        </div>
+        {% else %}
         <p class="flash flash-{{ cat }}">{{ m.icon('star' if cat == 'badge' else ('info' if cat == 'error' else 'check'), 20) }}<span>{{ msg }}</span></p>
+        {% endif %}
         {% endfor %}
       </div>
       {% endif %}
     {% endwith %}
+
+    {% if user and user.rename_notice %}
+    {# A moderator changed this person's name: tell them until they tap OK. #}
+    <div class="warn-box" role="alert">
+      <span class="icon-circle">{{ m.icon('info') }}</span>
+      <div class="warn-text">
+        <strong>Your name was changed</strong>
+        <span>A StrideBoard moderator changed your name from <b>{{ user.rename_notice }}</b> to <b>{{ user.display_name }}</b>.
+          Use your real name on StrideBoard. You log in with the new name now.</span>
+      </div>
+      <form method="post" action="{{ url_for('dismiss_rename') }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="back" value="{{ request.path }}">
+        <button class="btn btn-dark btn-sm" type="submit">OK</button>
+      </form>
+    </div>
+    {% endif %}
 
     {% if user %}
     {# In-site reminders, shown by app.js. Hidden until due. #}
