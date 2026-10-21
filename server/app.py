@@ -51,7 +51,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "22"
+ASSET_VERSION = "23"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -759,19 +759,23 @@ def add_routes(app):
             except ValueError as e:
                 flash(first_upper(str(e)), "error")
             if result is None:
+                if request.form.get("back") == "people-blocked":
+                    return redirect(url_for("admin", people="blocked") + "#people")
                 return redirect(url_for("admin"))
         t = datetime.now(TZ).date()
         users = data.list_users(conn)
         people_role = request.args.get("people", "all")
-        if people_role not in ("all", "student", "teacher", "admin"):
+        if people_role not in ("all", "student", "teacher", "admin", "blocked"):
             people_role = "all"
         people_q = " ".join(request.args.get("q", "").split())[:60]
         role_counts = {"all": len(users)}
         for r in ("student", "teacher", "admin"):
             role_counts[r] = sum(1 for u in users if u["role"] == r)
+        role_counts["blocked"] = sum(1 for u in users if u["blocked"])
         needle = people_q.lower()
         shown = [u for u in users
-                 if (people_role == "all" or u["role"] == people_role)
+                 if (people_role == "all" or u["role"] == people_role
+                     or (people_role == "blocked" and u["blocked"]))
                  and (not needle or needle in f"{u['display_name']} {u['username']} {u['department'] or ''}".lower())]
         return render_template("admin.html", users=users, shown=shown, people_role=people_role,
                                people_q=people_q, role_counts=role_counts,

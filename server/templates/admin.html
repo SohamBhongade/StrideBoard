@@ -190,7 +190,7 @@
 </section>
 
 {# ---- Everyone: tabs by role + instant search ---- #}
-{% set people_tabs = [('all', 'All'), ('student', 'Students'), ('teacher', 'Teachers'), ('admin', 'Admins')] %}
+{% set people_tabs = [('all', 'All'), ('student', 'Students'), ('teacher', 'Teachers'), ('admin', 'Admins'), ('blocked', 'Banned / timed out')] %}
 <section class="card card-soft" id="people" style="margin-top:16px" aria-labelledby="users-h">
   <div class="card-title-row">
     <h2 id="users-h" class="card-title">People</h2>
@@ -211,17 +211,29 @@
   {% if users %}
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Class / department</th><th>Age band</th><th>Daily goal</th></tr></thead>
+      <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Class / department</th>
+        {% if people_role == 'blocked' %}<th>Status</th><th>Reason</th>{% if owner %}<th></th>{% endif %}
+        {% else %}<th>Age band</th><th>Daily goal</th>{% endif %}</tr></thead>
       <tbody data-people-rows>
         {% for u in shown %}
         <tr data-search="{{ (u.display_name ~ ' ' ~ u.username ~ ' ' ~ (u.department or ''))|lower }}">
-            <td>{{ u.display_name }}</td><td>{{ u.username }}</td><td>{{ u.role|capitalize }}</td><td>{{ u.department or '—' }}</td>
-            <td>{{ age_labels.get(u.age_band, u.age_band) }}</td><td>{{ u.daily_goal|num }}{% if u.goal_is_custom %} (own){% endif %}</td></tr>
+            <td>{{ u.display_name }}{% if u.blocked and people_role != 'blocked' %} <span class="chip chip-stop">{{ 'Banned' if u.blocked_until is none else 'Timed out' }}</span>{% endif %}</td>
+            <td>{{ u.username }}</td><td>{{ u.role|capitalize }}</td><td>{{ u.department or '—' }}</td>
+            {% if people_role == 'blocked' %}
+            <td>{{ 'Banned' if u.blocked_until is none else 'Timed out until ' ~ u.blocked_until[:16]|replace('T', ' ') }}</td>
+            <td>{{ u.block_reason or '—' }}</td>
+            {% if owner %}<td><form method="post" class="inline-form">
+              <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="person" value="{{ u.username }}">
+              <input type="hidden" name="back" value="people-blocked">
+              <button class="btn btn-outline btn-sm" type="submit" name="action" value="mod_unblock">Unban</button></form></td>{% endif %}
+            {% else %}
+            <td>{{ age_labels.get(u.age_band, u.age_band) }}</td><td>{{ u.daily_goal|num }}{% if u.goal_is_custom %} (own){% endif %}</td>
+            {% endif %}</tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  <p class="small muted" data-people-none {% if shown %}hidden{% endif %} style="margin-top:12px">No one matches that search.</p>
+  <p class="small muted" data-people-none {% if shown %}hidden{% endif %} style="margin-top:12px">{{ 'No one is banned or timed out right now.' if people_role == 'blocked' and not people_q else 'No one matches that search.' }}</p>
   {% else %}
     {{ m.empty("No one yet", "Paste a CSV above to add your first people.", "users") }}
   {% endif %}

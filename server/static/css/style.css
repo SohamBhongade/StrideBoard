@@ -800,3 +800,5 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 
 /* Admin > People: role tabs + search */
 .people-search { margin: 12px 0; }
+.chip-stop { background: var(--stop-bg); color: var(--stop-text); border: 1px solid var(--stop-line); padding: 2px 8px; font-size: 12px; }
+#people .pills { flex-wrap: wrap; }
