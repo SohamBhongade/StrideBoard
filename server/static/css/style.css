@@ -797,3 +797,6 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .warn-text span { font-size: 15px; }
 .warn-box.warn-red { background: var(--stop-bg); border-color: var(--stop-line); color: var(--stop-text); }
 .warn-box.warn-red .icon-circle { background: var(--stop-line); color: #fff; }
+
+/* Admin > People: role tabs + search */
+.people-search { margin: 12px 0; }

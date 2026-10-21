@@ -327,3 +327,26 @@
 document.querySelectorAll("form[data-autosubmit]").forEach(function (form) {
   form.addEventListener("change", function () { form.submit(); });
 });
+
+// ---- Admin > People: filter the list as you type (the tabs and Enter also work without this)
+(function () {
+  var box = document.querySelector("[data-people-search]");
+  var rows = document.querySelector("[data-people-rows]");
+  if (!box || !rows) return;
+  var count = document.querySelector("[data-people-count]");
+  var none = document.querySelector("[data-people-none]");
+  var all = Array.prototype.slice.call(rows.querySelectorAll("tr"));
+  box.form.addEventListener("submit", function (e) { e.preventDefault(); });
+  box.addEventListener("input", function () {
+    var words = box.value.toLowerCase().split(/\s+/).filter(Boolean);
+    var n = 0;
+    all.forEach(function (tr) {
+      var text = tr.getAttribute("data-search");
+      var ok = words.every(function (w) { return text.indexOf(w) !== -1; });
+      tr.hidden = !ok;
+      if (ok) n++;
+    });
+    if (count) count.textContent = n;
+    if (none) none.hidden = n !== 0;
+  });
+})();
