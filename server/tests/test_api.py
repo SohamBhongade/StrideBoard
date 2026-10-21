@@ -161,3 +161,4 @@ def test_every_reply_has_a_message_for_the_shortcut(client, token):
     assert "tap Sync from Apple Health" in bad["message"] and bad["error"] == "invalid token"
     big = client.post("/api/steps", json={"token": token, "steps": 100001}).get_json()
     assert big["message"].startswith("Steps not saved:")
+

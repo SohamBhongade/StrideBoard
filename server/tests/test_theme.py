@@ -38,3 +38,11 @@ def test_bad_choice_is_ignored(client):
     assert b"Light, Dark or Automatic" in r.data
     client.set_cookie("theme", "neon")
     assert b'data-theme="light"' in client.get("/").data
+
+
+def test_iphone_shortcut_is_offered_and_downloads(client):
+    page = client.get("/settings").data
+    assert b'href="/iphone-shortcut"' in page
+    r = client.get("/iphone-shortcut")
+    assert r.status_code == 200 and r.data[:4] == b"AEA1"          # Apple-signed file
+    assert "Strideboard.shortcut" in r.headers["Content-Disposition"]

@@ -21,14 +21,22 @@ The Shortcut is already built. You don't need to build anything.
 - A StrideBoard account.
 
 **Steps:**
-1. On your iPhone, open this link and tap **Add Shortcut**:
-   **https://www.icloud.com/shortcuts/05df17c346754e76940780a7fa048043**
-   (It is also the **Get the iPhone Shortcut** button in StrideBoard's Settings.)
+1. Log in to StrideBoard in Safari, open **Settings**, tap **Get the iPhone Shortcut**, then
+   **Add Shortcut**. (The file is `server/static/ios/Strideboard.shortcut`, signed on a Mac so
+   iPhones accept it.) If you already have an old **Strideboard** Shortcut, delete it first.
 2. Open the StrideBoard website in Safari, log in, and on **Home** tap **Sync from Apple Health**.
 3. The first time, tap **Allow** so the Shortcut can read **Steps** from Apple Health.
 4. Done. Tap **Sync from Apple Health** any time you want fresh numbers.
 
 Don't rename the Shortcut: the Sync button looks for the name **Strideboard**.
+
+**What the Shortcut does (5 actions, nothing to type):** finds today's Steps in Apple Health,
+adds them up, sends them to `POST /api/steps` with the token the Sync button passes in, reads the
+server's `message`, and shows it as a notification (for example "Synced 6,350 steps. This week:
+22,950 (Bronze)."). It never opens the website, so it can't log you out.
+
+**To change it later:** the team rebuilds the file with a script, then signs it on a Mac:
+`shortcuts sign -m anyone -i Strideboard-unsigned.shortcut -o Strideboard.shortcut`.
 
 The rest of this guide explains how the Shortcut was built, for the team.
 
