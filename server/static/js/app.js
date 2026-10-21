@@ -350,3 +350,26 @@ document.querySelectorAll("form[data-autosubmit]").forEach(function (form) {
     if (none) none.hidden = n !== 0;
   });
 })();
+
+// ---- Buttons that ask "are you sure?" (e.g. Delete forever)
+document.querySelectorAll("button[data-confirm]").forEach(function (btn) {
+  btn.addEventListener("click", function (e) {
+    if (!window.confirm(btn.getAttribute("data-confirm"))) e.preventDefault();
+  });
+});
+
+// ---- Admin > People: tick people, then "Delete forever" appears with the count
+(function () {
+  var bar = document.querySelector("[data-delete-bar]");
+  if (!bar) return;
+  var count = bar.querySelector("[data-pick-count]");
+  var picks = document.querySelectorAll("[data-pick]");
+  function update() {
+    var n = 0;
+    picks.forEach(function (p) { if (p.checked) n++; });
+    count.textContent = n;
+    bar.hidden = n === 0;
+  }
+  picks.forEach(function (p) { p.addEventListener("change", update); });
+  update();
+})();

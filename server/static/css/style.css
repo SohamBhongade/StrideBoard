@@ -802,3 +802,10 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .people-search { margin: 12px 0; }
 .chip-stop { background: var(--stop-bg); color: var(--stop-text); border: 1px solid var(--stop-line); padding: 2px 8px; font-size: 12px; }
 #people .pills { flex-wrap: wrap; }
+.pick { width: 20px; height: 20px; accent-color: var(--ink); }
+.delete-bar {
+  position: sticky; bottom: 96px; z-index: 5; margin-top: 12px; display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: 18px;
+  background: var(--stop-bg); color: var(--stop-text); border: 2px solid var(--stop-line);
+}
+@media (min-width: 900px) { .delete-bar { bottom: 16px; } }

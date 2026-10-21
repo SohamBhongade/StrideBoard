@@ -51,7 +51,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "23"
+ASSET_VERSION = "24"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -719,6 +719,11 @@ def add_routes(app):
                     new = data.add_exp(conn, target, request.form.get("amount"),
                                        request.form.get("reason") or "Given by an admin")
                     flash(f"Gave EXP to {who}. Their balance is now {new:,}.", "ok")
+                elif action == "mod_delete_selected":
+                    if not is_owner(g.user):
+                        abort(403)
+                    gone = data.delete_people(conn, request.form.getlist("ids"), acting_id=g.user["id"])
+                    flash(f"Deleted {len(gone)} account{'s' if len(gone) != 1 else ''} forever: {', '.join(gone)}.", "ok")
                 elif action.startswith("mod_"):
                     if not is_owner(g.user):
                         abort(403)
@@ -733,6 +738,9 @@ def add_routes(app):
                                                 acting_id=g.user["id"])
                         flash(f"{name} is banned." if until is None else
                               f"{name} is timed out until {datetime.fromisoformat(until):%a %d %b, %H:%M}.", "ok")
+                    elif action == "mod_delete":
+                        gone = data.delete_people(conn, [target], acting_id=g.user["id"])
+                        flash(f"Deleted {gone[0]} forever.", "ok")
                     elif action == "mod_unblock":
                         data.unblock_user(conn, target)
                         flash(f"{name} can use StrideBoard again.", "ok")
@@ -759,6 +767,9 @@ def add_routes(app):
             except ValueError as e:
                 flash(first_upper(str(e)), "error")
             if result is None:
+                if request.form.get("back", "").startswith("people-"):
+                    tab = request.form["back"].removeprefix("people-")
+                    return redirect(url_for("admin", people=tab if tab in ("all", "student", "teacher", "admin", "blocked") else "all") + "#people")
                 if request.form.get("back") == "people-blocked":
                     return redirect(url_for("admin", people="blocked") + "#people")
                 return redirect(url_for("admin"))

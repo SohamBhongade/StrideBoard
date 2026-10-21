@@ -67,3 +67,20 @@ def test_rename_leaves_a_notice_until_ok(conn):
     assert data.get_user(conn, uid)["rename_notice"] == "Silly Name"
     data.dismiss_rename_notice(conn, uid)
     assert data.get_user(conn, uid)["rename_notice"] is None
+
+
+def test_delete_people_erases_everything_and_blocks_their_email(conn):
+    secret = "s"
+    boss = make_user(conn, "boss", role="admin", department=None)
+    a, b = make_user(conn, "alt1", display_name="Alt One"), make_user(conn, "alt2", display_name="Alt Two")
+    conn.execute("UPDATE users SET email_hash = ? WHERE id = ?", (data.email_fingerprint("alt@gmail.com", secret), a))
+    put_steps(conn, a, TODAY, 5000)
+    conn.commit()
+    assert data.delete_people(conn, [a, b, str(b)], acting_id=boss) == ["Alt One", "Alt Two"]
+    assert data.get_user(conn, a) is None and data.get_user(conn, b) is None
+    assert conn.execute("SELECT COUNT(*) FROM steps WHERE user_id = ?", (a,)).fetchone()[0] == 0
+    with pytest.raises(ValueError, match="can't be used"):
+        data.start_signup(conn, secret, "a.l.t+2@googlemail.com", "Alt Again", "student", "Grade 9A",
+                          "teen_13_17", "1234", "1234")
+    with pytest.raises(ValueError, match="your own"):
+        data.delete_people(conn, [boss], acting_id=boss)

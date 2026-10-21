@@ -131,6 +131,8 @@
       <button class="btn btn-outline" type="submit" name="action" value="mod_block_1w">Time out 1 week</button>
       <button class="btn btn-dark" type="submit" name="action" value="mod_block_ban">Ban</button>
       <button class="btn btn-outline" type="submit" name="action" value="mod_unblock">Unban / end time-out</button>
+      <button class="btn btn-danger" type="submit" name="action" value="mod_delete"
+              data-confirm="Delete this account forever? Their steps, badges, EXP and everything else are erased, and their email can't sign up again. This can't be undone.">Delete forever</button>
     </div>
   </form>
 
@@ -211,12 +213,13 @@
   {% if users %}
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Class / department</th>
+      <thead><tr>{% if owner %}<th><span class="visually-hidden">Select</span></th>{% endif %}<th>Name</th><th>Username</th><th>Role</th><th>Class / department</th>
         {% if people_role == 'blocked' %}<th>Status</th><th>Reason</th>{% if owner %}<th></th>{% endif %}
         {% else %}<th>Age band</th><th>Daily goal</th>{% endif %}</tr></thead>
       <tbody data-people-rows>
         {% for u in shown %}
         <tr data-search="{{ (u.display_name ~ ' ' ~ u.username ~ ' ' ~ (u.department or ''))|lower }}">
+            {% if owner %}<td>{% if u.id != user.id %}<input type="checkbox" name="ids" value="{{ u.id }}" form="delete-form" class="pick" aria-label="Select {{ u.display_name }}" data-pick>{% endif %}</td>{% endif %}
             <td>{{ u.display_name }}{% if u.blocked and people_role != 'blocked' %} <span class="chip chip-stop">{{ 'Banned' if u.blocked_until is none else 'Timed out' }}</span>{% endif %}</td>
             <td>{{ u.username }}</td><td>{{ u.role|capitalize }}</td><td>{{ u.department or '—' }}</td>
             {% if people_role == 'blocked' %}
@@ -233,6 +236,16 @@
       </tbody>
     </table>
   </div>
+  {% if owner %}
+  <form method="post" id="delete-form" class="delete-bar" data-delete-bar hidden
+        data-confirm="Delete the selected accounts forever? Their steps, badges, EXP and everything else are erased, and their emails can't sign up again. This can't be undone.">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="mod_delete_selected">
+    <input type="hidden" name="back" value="people-{{ people_role }}">
+    <span><strong data-pick-count>0</strong> selected</span>
+    <button class="btn btn-danger btn-sm" type="submit">Delete forever</button>
+  </form>
+  {% endif %}
   <p class="small muted" data-people-none {% if shown %}hidden{% endif %} style="margin-top:12px">{{ 'No one is banned or timed out right now.' if people_role == 'blocked' and not people_q else 'No one matches that search.' }}</p>
   {% else %}
     {{ m.empty("No one yet", "Paste a CSV above to add your first people.", "users") }}
