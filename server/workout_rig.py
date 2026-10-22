@@ -111,13 +111,16 @@ def plank(phase):
             "elbow": elbow, "hand": hand, "far_elbow": (elbow[0] - 2, elbow[1]), "far_hand": (hand[0] - 2, hand[1])}
 
 
-def _front(open_t, lift, arms_up):
-    """Front view: legs spread by open_t (0..1), body lifted by `lift`, arms at angle arms_up (deg from down)."""
+def _front(open_t, lift, arms_up, crouch=0.0):
+    """Front view. open_t (0..1) spreads the feet, `lift` raises the whole body off the ground,
+    `crouch` lowers the hips with the knees bending outward, arms_up is the arm angle (deg from down)."""
     spread = _mix(2, 13, open_t)
-    hip_y = GROUND - 2 - math.sqrt((THIGH + SHIN) ** 2 - spread ** 2) - lift
+    foot_y = GROUND - 2 - lift
+    hip_y = foot_y - math.sqrt((THIGH + SHIN) ** 2 - spread ** 2) + crouch
     hips = {"l": (46, hip_y), "r": (54, hip_y)}
-    ankles = {"l": (46 - spread, GROUND - 2 - lift), "r": (54 + spread, GROUND - 2 - lift)}
-    knees = {s: ((hips[s][0] + ankles[s][0]) / 2, (hips[s][1] + ankles[s][1]) / 2) for s in "lr"}
+    ankles = {"l": (46 - spread, foot_y), "r": (54 + spread, foot_y)}
+    knees = {"l": _ik(hips["l"], ankles["l"], THIGH, SHIN, outward_left),
+             "r": _ik(hips["r"], ankles["r"], THIGH, SHIN, outward_right)}
     shoulders = {"l": (42.5, hip_y - TORSO + 2), "r": (57.5, hip_y - TORSO + 2)}
     arm = {}
     for s, sign in (("l", -1), ("r", 1)):
@@ -129,19 +132,32 @@ def _front(open_t, lift, arms_up):
             "hips": hips, "knees": knees, "ankles": ankles, "shoulders": shoulders, "arms": arm, "lift": lift}
 
 
+def _smooth(a, b, x):
+    """0 before a, 1 after b, an S-curve between."""
+    t = max(0.0, min(1.0, (x - a) / (b - a)))
+    return t * t * (3 - 2 * t)
+
+
 def jacks(phase):
+    """Hop out (feet wide, arms overhead), hop in. Knees soak up every landing and load every take-off."""
     t = _ease(phase)
-    lift = 7 * abs(math.sin(2 * math.pi * phase))
-    return _front(t, lift, _mix(14, 160, t))
+    air = abs(math.sin(2 * math.pi * phase))           # 0 on the ground, 1 at the top of each hop
+    lift = 6 * air
+    crouch = 4.5 * (1 - air) ** 2                      # bend on the ground, straight in the air
+    return _front(t, lift, _mix(12, 160, t), crouch)
 
 
 def cheer(phase):
-    lift = 9 * _ease(phase)
-    return _front(.35, lift, 148 + 10 * math.sin(4 * math.pi * phase))
+    """Dip with the arms down, leap with the arms swinging up overhead, land softly, again."""
+    dip = _smooth(0, .22, phase) * (1 - _smooth(.22, .4, phase))          # crouch before the jump
+    land = _smooth(.78, .86, phase) * (1 - _smooth(.86, 1, phase))        # bend on landing
+    rise = _smooth(.3, .5, phase) * (1 - _smooth(.55, .82, phase))        # up in the air
+    arms = _mix(150, 18, dip) if phase < .3 else _mix(18, 158, _smooth(.3, .52, phase))
+    return _front(.3, 13 * rise, arms, 7.5 * dip + 5 * land)
 
 
 EXERCISES = {"squat": (squat, 2.6), "pushup": (pushup, 2.0), "plank": (plank, 3.2),
-             "jacks": (jacks, 1.2), "cheer": (cheer, .8)}
+             "jacks": (jacks, 1.3), "cheer": (cheer, 1.4)}
 
 
 # ------------------------------------------------------------------ drawing
@@ -220,7 +236,14 @@ def figure(build, exercise):
     for k, (key, p, q, width, colour) in enumerate(first):
         length = math.hypot(q[0] - p[0], q[1] - p[1])
         moves = ";".join(f"{_fmt(f[k][1][0])} {_fmt(f[k][1][1])}" for f in frames)
-        turns = ";".join(_fmt(_angle(f[k][1], f[k][2])) for f in frames)
+        raw, turned = [_angle(f[k][1], f[k][2]) for f in frames], []
+        for a in raw:
+            while turned and a - turned[-1] > 180:
+                a -= 360
+            while turned and turned[-1] - a > 180:
+                a += 360
+            turned.append(a)
+        turns = ";".join(_fmt(a) for a in turned)
         line = (f'<line y2="{_fmt(length)}" stroke="{INK}" stroke-width="{width + 2.6}" stroke-linecap="round"/>'
                 f'<line y2="{_fmt(length)}" stroke="{colour}" stroke-width="{width}" stroke-linecap="round"/>')
         if key == "torso":
