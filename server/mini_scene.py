@@ -107,7 +107,8 @@ def celebration(build):
                     for i, a in enumerate(range(0, 360, 45)))
     colours = ("#F7DB6F", "#F49A8F", "#9EDCC6", "#A9CCF2", "#C9B8F2", "#fff")
     confetti = "".join(f'<rect class="g-confetti" x="{x}" y="-10" width="5" height="9" rx="1.5" '
-                       f'fill="{colours[i % len(colours)]}" style="--d:{(i * 137) % 900}ms; --s:{0.9 + (i % 5) * .15:.2f}"/>'
+                       f'fill="{colours[i % len(colours)]}" style="--d:{(i * 137) % 900}ms; --s:{0.9 + (i % 5) * .15:.2f}; '
+                       f'--y:{24 + (i * 53) % 120}px"/>'
                        for i, x in enumerate(range(8, 320, 19)))
     # A fountain of confetti shooting up from behind the athlete each time they leap.
     shapes = ('<rect x="-2.5" y="-4" width="5" height="8" rx="1.4"/>', '<circle r="2.6"/>',

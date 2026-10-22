@@ -139,12 +139,10 @@ def _smooth(a, b, x):
 
 
 def jacks(phase):
-    """Hop out (feet wide, arms overhead), hop in. Knees soak up every landing and load every take-off."""
+    """Hop out (feet wide, arms overhead), hop in."""
     t = _ease(phase)
-    air = abs(math.sin(2 * math.pi * phase))           # 0 on the ground, 1 at the top of each hop
-    lift = 6 * air
-    crouch = 4.5 * (1 - air) ** 2                      # bend on the ground, straight in the air
-    return _front(t, lift, _mix(12, 160, t), crouch)
+    lift = 7 * abs(math.sin(2 * math.pi * phase))     # straight legs: a light, quick hop
+    return _front(t, lift, _mix(12, 160, t))
 
 
 def cheer(phase):
