@@ -47,7 +47,7 @@
 
 {# The logo: three slanted bars, like strides. #}
 {% macro logo(size=40) -%}
-<svg width="{{ size }}" height="{{ (size * 0.85)|round|int }}" viewBox="0 0 40 34" aria-hidden="true"><rect x="5" y="9" width="7" height="23" rx="3.5" transform="skewX(-18)" fill="currentColor"/><rect x="17" y="2" width="7" height="30" rx="3.5" transform="skewX(-18)" fill="#A9B4F7"/><rect x="29" y="13" width="7" height="19" rx="3.5" transform="skewX(-18)" fill="currentColor"/></svg>
+<svg width="{{ size }}" height="{{ (size * 0.85)|round|int }}" viewBox="0 0 40 34" aria-hidden="true"><g transform="translate(6.8 0)"><rect x="5" y="9" width="7" height="23" rx="3.5" transform="skewX(-18)" fill="currentColor"/><rect x="17" y="2" width="7" height="30" rx="3.5" transform="skewX(-18)" fill="#A9B4F7"/><rect x="29" y="13" width="7" height="19" rx="3.5" transform="skewX(-18)" fill="currentColor"/></g></svg>
 {%- endmacro %}
 
 {# Big two-weight page title: light first word(s), bold last. #}
