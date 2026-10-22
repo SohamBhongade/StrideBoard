@@ -73,14 +73,16 @@ def _sky(uid):
             '<circle cx="196" cy="40" r="13" fill="var(--g-sun)"/></g>')
 
 
-def _hud(label, exp):
+def _hud(label, exp, right=None):
+    if right is None:   # the timer
+        right = ('<rect x="226" y="10" width="84" height="30" rx="9" fill="#1D2140" stroke="#fff" stroke-width="2"/>'
+                 '<g transform="translate(240 25)" fill="none" stroke="#FFE36E" stroke-width="1.8">'
+                 '<circle r="6.5"/><path d="M0 -3.5V0l2.5 2" stroke-linecap="round"/></g>'
+                 '<text x="300" y="31" text-anchor="end" class="g-hud-clock" data-mini-clock>0:00</text>')
     return ('<g class="g-hud">'
             f'<text x="12" y="25" class="g-hud-name">{escape(label.upper())}</text>'
             f'{_gem(19, 40, "g-hud-gem")}<text x="30" y="45" class="g-hud-exp">+{int(exp)} EXP</text>'
-            '<rect x="226" y="10" width="84" height="30" rx="9" fill="#1D2140" stroke="#fff" stroke-width="2"/>'
-            '<g transform="translate(240 25)" fill="none" stroke="#FFE36E" stroke-width="1.8">'
-            '<circle r="6.5"/><path d="M0 -3.5V0l2.5 2" stroke-linecap="round"/></g>'
-            '<text x="300" y="31" text-anchor="end" class="g-hud-clock" data-mini-clock>0:00</text></g>')
+            f'{right}</g>')
 
 
 def _world(uid, middle, top=""):
@@ -124,3 +126,62 @@ def celebration(build):
     middle = (f'<g transform="translate(160 96)">{burst}</g>'
               f'<g transform="translate(160 112)">{fountain}</g>{player}{confetti}')
     return Markup(f'<div class="game game-cheer">{_world(uid, middle)}</div>')
+
+
+# ------------------------------------------------------------------ walks: a course with checkpoints
+
+COURSE_X = [34 + i * 50.4 for i in range(6)]   # start, four checkpoints, the finish flag
+# Where the walker stands: just before each post, so its number stays in view.
+STAND_X = [COURSE_X[0]] + [x - 11 for x in COURSE_X[1:]]
+
+
+def _course(amount):
+    step = amount // 5
+    posts = ""
+    for i in range(1, 5):
+        x = COURSE_X[i]
+        posts += (f'<g class="g-cp" data-cp="{i}"><line x1="{x:.1f}" y1="150" x2="{x:.1f}" y2="129" stroke="#5B4636" '
+                  f'stroke-width="2" stroke-linecap="round"/><path d="M{x:.1f} 129l12 4-12 4z" fill="#F7DB6F" '
+                  f'stroke="#1D2140" stroke-width="1"/><text x="{x:.1f}" y="125" text-anchor="middle" '
+                  f'class="g-cp-num">{step * i:,}</text></g>')
+    fx = COURSE_X[5]
+    squares = "".join(f'<rect x="{fx + 1 + c * 4.5:.1f}" y="{106 + r * 4.5:.1f}" width="4.5" height="4.5" '
+                      f'fill="{"#1D2140" if (r + c) % 2 else "#fff"}"/>' for r in range(3) for c in range(4))
+    flag = (f'<line x1="{fx:.1f}" y1="150" x2="{fx:.1f}" y2="104" stroke="#5B4636" stroke-width="2.4" '
+            f'stroke-linecap="round"/><g class="g-flag">{squares}<rect x="{fx + 1:.1f}" y="106" width="18" '
+            f'height="13.5" fill="none" stroke="#1D2140" stroke-width="1"/></g>')
+    start = (f'<rect x="{COURSE_X[0] - 1.5:.1f}" y="144" width="3" height="10" fill="#fff" opacity=".9"/>'
+             f'<text x="{COURSE_X[0]:.1f}" y="164" text-anchor="middle" class="g-cp-num g-start">START</text>')
+    trail = (f'<line x1="{COURSE_X[0]:.1f}" y1="157" x2="{fx:.1f}" y2="157" stroke="#fff" stroke-width="2" '
+             'stroke-dasharray="2 5" stroke-linecap="round" opacity=".55"/>')
+    return f'<g class="g-course">{trail}{start}{posts}{flag}</g>'
+
+
+def _walker(build, x, finish=False):
+    """The athlete on the course: standing at a checkpoint, or walking between them."""
+    size = 92
+    box = f'x="{-size / 2:g}" y="{150 - .97 * size:g}" width="{size}" height="{size}" viewBox="0 0 100 100" overflow="visible"'
+    still = "" if finish else f'<svg class="w-stand" {box}>{workout_rig.figure(build, "stand")}</svg>'
+    moving = f'<svg class="w-walk" {box}>{workout_rig.figure(build, "walk")}</svg>'
+    return f'<g class="walker{" walking" if finish else ""}" style="transform: translateX({x:.1f}px)">{still}{moving}</g>'
+
+
+def walk_scene(build, label, exp, walked, amount):
+    """The live walk: the athlete waits at the last checkpoint reached and walks on as steps arrive."""
+    uid = next(_ids)
+    reached = min(5, walked * 5 // amount)
+    steps = (f'<rect x="206" y="10" width="104" height="30" rx="9" fill="#1D2140" stroke="#fff" stroke-width="2"/>'
+             '<g transform="translate(220 25)" fill="#FFE36E"><ellipse cx="-2.6" cy="-2" rx="2.4" ry="3.6"/>'
+             '<ellipse cx="2.8" cy="2.6" rx="2.4" ry="3.6"/></g>'
+             f'<text x="300" y="30" text-anchor="end" class="g-hud-steps"><tspan data-walk-done>{walked:,}</tspan>'
+             f'<tspan class="g-hud-of"> / {amount:,}</tspan></text>')
+    middle = _course(amount) + _walker(build, STAND_X[reached])
+    return Markup(f'<div class="game game-walk" data-course="{",".join(f"{x:.1f}" for x in STAND_X)}" '
+                  f'data-reached="{reached}">{_world(uid, middle, _hud(label, exp, steps))}</div>')
+
+
+def walk_finish(build, amount):
+    """Over the finish line: from the last checkpoint, past the checkered flag and off the screen."""
+    uid = next(_ids)
+    middle = _course(amount) + _walker(build, STAND_X[4], finish=True)
+    return Markup(f'<div class="game game-walk game-finish">{_world(uid, middle)}</div>')

@@ -154,8 +154,42 @@ def cheer(phase):
     return _front(.3, 13 * rise, arms, 7.5 * dip + 5 * land)
 
 
+def _side(hip, lean, near_ankle, far_ankle, arm_swing, bend=22):
+    """A side-view body from a hip, a lean, two planted/lifted ankles and an arm swing (degrees)."""
+    shoulder = _along(hip, lean, TORSO)
+    pose = {"view": "side", "hip": hip, "shoulder": shoulder, "head": _along(shoulder, lean * .6, 10.5)}
+    for prefix, ankle, swing in (("", near_ankle, arm_swing), ("far_", far_ankle, -arm_swing)):
+        pose[prefix + "knee"] = _ik(hip, ankle, THIGH, SHIN, forward)
+        pose[prefix + "ankle"] = ankle
+        pose[prefix + "toe"] = (ankle[0] + 6.5, min(GROUND - 1.5, ankle[1] + 1.5))
+        a = 180 + swing                                       # clockwise from up; 180 = hanging down
+        elbow = _along(shoulder, a, UPPER)
+        pose[prefix + "elbow"] = elbow
+        pose[prefix + "hand"] = _along(elbow, a - bend, FORE)
+    return pose
+
+
+def walk(phase):
+    """A walking step cycle: feet swap, the swinging foot lifts, arms swing against the legs."""
+    w = 2 * math.pi * phase
+    hip = (50, GROUND - 31.2 - .9 * math.cos(2 * w))
+    ankles = []
+    for shift in (0, math.pi):
+        x = 50 + 9 * math.cos(w + shift)
+        lift = 4.5 * max(0.0, -math.sin(w + shift))          # lifted while swinging forward
+        ankles.append((x, GROUND - 2 - lift))
+    return _side(hip, 7, ankles[0], ankles[1], 26 * math.cos(w))
+
+
+def stand(phase):
+    """Waiting at a checkpoint: standing tall, breathing."""
+    breathe = .5 * math.sin(2 * math.pi * phase)
+    return _side((50, GROUND - 32.4 + breathe * .4), 3 + breathe, (52, GROUND - 2), (48, GROUND - 2), 6, 8)
+
+
 EXERCISES = {"squat": (squat, 2.6), "pushup": (pushup, 2.0), "plank": (plank, 3.2),
-             "jacks": (jacks, 1.3), "cheer": (cheer, 1.4)}
+             "jacks": (jacks, 1.3), "cheer": (cheer, 1.4),
+             "walk": (walk, .9), "stand": (stand, 3.0)}
 
 
 # ------------------------------------------------------------------ drawing

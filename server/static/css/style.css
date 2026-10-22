@@ -893,3 +893,29 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
   .g-fountain { opacity: 1; transform: translate(var(--dx), var(--dy)) rotate(35deg); }
   .g-confetti { transform: translateY(var(--y)) rotate(25deg); }
 }
+
+/* ---------- Walk challenges: a course with checkpoints and a checkered finish flag */
+.g-cp-num { font: 800 8.5px var(--font); fill: #fff; stroke: #1D2140; stroke-width: 2.6px; paint-order: stroke; }
+.g-start { font-size: 7px; }
+.g-cp path { transition: fill .4s ease; }
+.g-cp.passed path { fill: #6FD39A; }
+.g-flag { transform-box: fill-box; transform-origin: left center; animation: g-wave 1.4s ease-in-out infinite; }
+@keyframes g-wave { 50% { transform: skewY(-6deg) scaleX(.92); } }
+.g-hud-steps { font: 800 15px var(--font); fill: #FFE36E; font-variant-numeric: tabular-nums; }
+.g-hud-of { fill: #fff; font-size: 11px; }
+.walker .w-walk { display: none; }
+.walker.walking .w-walk { display: inline; }
+.walker.walking .w-stand { display: none; }
+/* Over the finish line: walk on past the flag and off the screen */
+.game-finish .walker { animation: w-exit 3.3s linear forwards; }
+@keyframes w-exit { from { transform: translateX(224.6px); } to { transform: translateX(372px); } }
+/* A finished walk: the finish line first, then the celebration */
+.win-walk .win-stage2 { position: absolute; top: 0; left: 0; right: 0; opacity: 0; pointer-events: none;
+  animation: win-in .45s ease 3.4s forwards; }
+.win-walk .win-stage1 { animation: win-fade .35s ease 3.3s forwards; }
+@keyframes win-in { to { opacity: 1; } }
+@keyframes win-fade { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .win-walk .win-stage1 { display: none; }
+  .win-walk .win-stage2 { position: static; opacity: 1; }
+}
