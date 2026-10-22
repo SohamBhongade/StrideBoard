@@ -268,7 +268,7 @@
   var wait = parseInt(box.getAttribute("data-wait"), 10) || 0;
   var unlockAt = Date.now() + wait * 1000;
   var plank = parseInt(box.getAttribute("data-plank"), 10) || 0;
-  var clock = box.querySelector("[data-mini-clock]");
+  var clocks = box.querySelectorAll("[data-mini-clock]");
   var done = box.querySelector("[data-mini-done]");
   var label = box.querySelector("[data-done-label]");
   function mmss(s) {
@@ -278,7 +278,8 @@
   }
   function tick() {
     var secs = (Date.now() - started) / 1000;
-    if (clock) clock.textContent = plank ? (secs >= plank ? "Time!" : mmss(plank - secs)) : mmss(secs);
+    var shown = plank ? (secs >= plank ? "Time!" : mmss(plank - secs)) : mmss(secs);
+    clocks.forEach(function (c) { c.textContent = shown; });
     if (done && done.disabled) {
       var left = Math.ceil((unlockAt - Date.now()) / 1000);
       if (left <= 0) { done.disabled = false; if (label) label.textContent = "Done"; }
@@ -372,4 +373,30 @@ document.querySelectorAll("button[data-confirm]").forEach(function (btn) {
   }
   picks.forEach(function (p) { p.addEventListener("change", update); });
   update();
+})();
+
+// ---- Mini challenge complete: count the EXP up, then let them close the celebration
+(function () {
+  var win = document.querySelector("[data-win]");
+  if (!win) return;
+  var target = parseInt(win.getAttribute("data-exp"), 10) || 0;
+  var out = win.querySelector("[data-win-count]");
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (out && !still && target > 0) {
+    var start = null;
+    out.textContent = "0";
+    var step = function (t) {
+      if (start === null) start = t + 250;            // wait for the number to pop in
+      var p = Math.max(0, Math.min(1, (t - start) / 900));
+      out.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  var close = function () {
+    win.classList.add("closing");
+    setTimeout(function () { win.remove(); }, still ? 0 : 300);
+  };
+  var btn = win.querySelector("[data-win-close]");
+  if (btn) btn.addEventListener("click", close);
 })();
