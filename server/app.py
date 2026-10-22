@@ -18,7 +18,6 @@ import config
 import data
 import db
 import mailer
-import mini_scene
 
 TZ = ZoneInfo("Asia/Dubai")
 SHORTCUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "ios", "Strideboard.shortcut")
@@ -55,7 +54,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "27"
+ASSET_VERSION = "26"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -649,13 +648,8 @@ def add_routes(app):
             flash(f"{walk['label']}: done! +{walk['exp']} EXP. You have {walk['balance']:,} EXP.", "badge")
         tracks = data.progression(conn, uid)
         badges = all_badges(conn, uid, data.earned_badges(conn, uid), tracks)
-        mini = data.mini_state(conn, uid)
-        a = mini["active"]
-        game = mini_scene.scene(my_build(), a["track"], a["label"], a["exp"]) if a else ""
-        won = session.pop("mini_won", None)
-        return render_template("challenges.html", tracks=tracks, summary=badge_summary(badges),
-                               mini=mini, game=game, won=won,
-                               cheer=mini_scene.celebration(my_build()) if won else "")
+        return render_template("challenges.html", tracks=tracks,
+                               summary=badge_summary(badges), mini=data.mini_state(conn, uid))
 
     # ---------- Badges: everything still to earn on top, earned at the bottom
     @app.route("/badges")
@@ -940,8 +934,6 @@ def handle_mini(conn, uid):
         after = {t["key"]: t for t in data.progression(conn, uid)}[won["track"]]
         old = before[won["track"]]
         flash(f"{won['label']}: done! +{won['exp']} EXP. You have {won['balance']:,} EXP.", "ok")
-        if won["track"] in mini_scene.POSES:     # walks finish by themselves, without the show
-            session["mini_won"] = {"label": won["label"], "exp": won["exp"], "balance": won["balance"]}
         new = [1 for lv, o in zip(after["levels"], old["levels"]) if lv["earned"] and not o["earned"]]
         new += [1 for lv, o in zip(after["record"]["levels"], old["record"]["levels"])
                 if lv["earned"] and not o["earned"]]
