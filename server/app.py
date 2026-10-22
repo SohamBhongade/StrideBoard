@@ -818,6 +818,10 @@ def add_routes(app):
                     elif action == "mod_delete":
                         gone = data.delete_people(conn, [target], acting_id=g.user["id"])
                         flash(f"Deleted {gone[0]} forever.", "ok")
+                    elif action == "mod_reset":
+                        data.reset_person(conn, target)
+                        flash(f"Reset {name}: same account and log-in, but all their steps, badges, "
+                              "EXP and avatar are gone.", "ok")
                     elif action == "mod_unblock":
                         data.unblock_user(conn, target)
                         flash(f"{name} can use StrideBoard again.", "ok")

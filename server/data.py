@@ -1670,3 +1670,28 @@ def delete_people(conn, user_ids, acting_id=None, block_emails=True):
         names.append(row["display_name"])
     conn.commit()
     return names
+
+
+# Everything a person has done, table by table. A reset empties these for one person.
+PERSONAL_TABLES = ("steps", "step_samples", "moods", "water", "activities", "exercises",
+                   "badges", "exp_ledger", "avatar_owned", "avatar_equipped", "mini_runs")
+
+
+def reset_person(conn, user_id):
+    """Owner only: make an account brand new again. Can't be undone.
+
+    Keeps: name, username, PIN, role, class/department, age band, phone link and recovery email.
+    Erases: steps, moods, water, exercises, badges, EXP, avatar items and the avatar, mini
+    challenges, a custom goal. The goal goes back to the age-band start and the 'joined' date
+    becomes now, so their before/after numbers start fresh too. Returns the person's name.
+    """
+    row = conn.execute("SELECT display_name, age_band FROM users WHERE id = ?", (user_id,)).fetchone()
+    if row is None:
+        raise ValueError("that person doesn't exist")
+    for table in PERSONAL_TABLES:   # fixed names above, never user input
+        conn.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
+    conn.execute("UPDATE users SET avatar = NULL, avatar_color = NULL, daily_goal = ?, "
+                 "goal_is_custom = 0, created_at = ? WHERE id = ?",
+                 (config.AGE_BAND_GOALS[row["age_band"]], local_now_iso(), user_id))
+    conn.commit()
+    return row["display_name"]
