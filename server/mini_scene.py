@@ -7,6 +7,7 @@ movement itself is CSS (style.css, "Mini challenge scenes"), so it costs no Java
 stops for people who ask their phone for less motion.
 """
 import itertools
+import math
 
 from markupsafe import Markup, escape
 
@@ -108,6 +109,17 @@ def celebration(build):
     confetti = "".join(f'<rect class="g-confetti" x="{x}" y="-10" width="5" height="9" rx="1.5" '
                        f'fill="{colours[i % len(colours)]}" style="--d:{(i * 137) % 900}ms; --s:{0.9 + (i % 5) * .15:.2f}"/>'
                        for i, x in enumerate(range(8, 320, 19)))
+    # A fountain of confetti shooting up from behind the athlete each time they leap.
+    shapes = ('<rect x="-2.5" y="-4" width="5" height="8" rx="1.4"/>', '<circle r="2.6"/>',
+              '<path d="M0 -4 3.5 3H-3.5Z"/>')
+    fountain = ""
+    for i in range(26):
+        angle = math.radians(-78 + (i * 61) % 157)          # spread across the sky above
+        speed = 52 + (i * 37) % 34
+        dx, dy = math.sin(angle) * speed, -math.cos(angle) * speed
+        fountain += (f'<g class="g-fountain" style="--dx:{dx:.0f}px; --dy:{dy:.0f}px; --d:{380 + (i * 23) % 160}ms" '
+                     f'fill="{colours[i % len(colours)]}">{shapes[i % 3]}</g>')
     player = _player(build, "cheer", 96)
-    middle = f'<g transform="translate(160 96)">{burst}</g>{player}{confetti}'
+    middle = (f'<g transform="translate(160 96)">{burst}</g>'
+              f'<g transform="translate(160 112)">{fountain}</g>{player}{confetti}')
     return Markup(f'<div class="game game-cheer">{_world(uid, middle)}</div>')
