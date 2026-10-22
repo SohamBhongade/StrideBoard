@@ -84,3 +84,29 @@ def test_delete_people_erases_everything_and_blocks_their_email(conn):
                           "teen_13_17", "1234", "1234")
     with pytest.raises(ValueError, match="your own"):
         data.delete_people(conn, [boss], acting_id=boss)
+
+
+def test_reset_person_keeps_the_account_but_erases_its_history(conn):
+    uid = make_user(conn, "sam", display_name="Sam Lee", pin="2468")
+    token = data.get_user(conn, uid)["api_token"]
+    other = make_user(conn, "kim", display_name="Kim Ali")
+    data.save_steps(conn, uid, str(TODAY), 12000, "manual", today=TODAY)
+    data.save_steps(conn, other, str(TODAY), 9000, "manual", today=TODAY)
+    data.save_mood(conn, uid, str(TODAY), 4)
+    data.save_water(conn, uid, str(TODAY), 3)
+    data.set_custom_goal(conn, uid, 12345)
+    data.add_exp(conn, uid, 50, "test")
+    conn.execute("UPDATE users SET avatar = 'cat', avatar_color = 'pink' WHERE id = ?", (uid,))
+    conn.commit()
+    assert conn.execute("SELECT COUNT(*) FROM badges WHERE user_id = ?", (uid,)).fetchone()[0] > 0
+
+    assert data.reset_person(conn, uid) == "Sam Lee"
+    for table in data.PERSONAL_TABLES:
+        assert conn.execute(f"SELECT COUNT(*) FROM {table} WHERE user_id = ?", (uid,)).fetchone()[0] == 0, table
+    me = data.get_user(conn, uid)
+    assert me["display_name"] == "Sam Lee" and me["api_token"] == token and me["department"] == "Grade 10A"
+    assert me["avatar"] is None and me["daily_goal"] == 10000 and me["goal_is_custom"] == 0
+    assert data.authenticate_name(conn, "Sam Lee", "2468")["id"] == uid          # still logs in
+    assert conn.execute("SELECT steps FROM steps WHERE user_id = ?", (other,)).fetchone()[0] == 9000
+    with pytest.raises(ValueError, match="doesn't exist"):
+        data.reset_person(conn, 99999)
