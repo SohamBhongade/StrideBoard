@@ -60,8 +60,8 @@ These hold your personal login token and the server address, so you only have to
 2. Tap the **⋯** menu on that Text action → **Rename** → call it `Token`.
    (Under the hood this uses Shortcuts' "Ask for Input"/Import Question setup — see Step 8.)
 3. Repeat: add a second **Text** action, rename it `Server`. This holds the server's web
-   address with **no trailing slash**: type exactly `https://sohambhongade.pythonanywhere.com`
-   (not `https://sohambhongade.pythonanywhere.com/`).
+   address with **no trailing slash**: type exactly `https://strideboard.pythonanywhere.com`
+   (not `https://strideboard.pythonanywhere.com/`).
 
 > You'll come back and wire these up properly as "Import Questions" in Step 8, so that when you
 > share this Shortcut with teammates, each person is prompted to paste in their *own* token the
@@ -147,7 +147,7 @@ their own token without editing the Shortcut itself:
 3. Add a question for `Token`: prompt text like "Paste your StrideBoard token" → set as the
    default value for the `Token` text action from Step 2.
 4. Repeat for `Server`, with a prompt like "StrideBoard server address" and
-   `https://sohambhongade.pythonanywhere.com` as the default (so most people can just tap through).
+   `https://strideboard.pythonanywhere.com` as the default (so most people can just tap through).
 
 Now when someone imports this Shortcut via your shared link, Shortcuts will prompt them to fill
 in their own Token the first time, and the value sticks after that.

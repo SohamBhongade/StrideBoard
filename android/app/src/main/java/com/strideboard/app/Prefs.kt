@@ -11,7 +11,10 @@ import androidx.core.content.edit
  */
 object Prefs {
     /** The live StrideBoard server (Agent 1). Pre-filled on the setup screen; can be changed there. */
-    const val DEFAULT_SERVER = "https://sohambhongade.pythonanywhere.com"
+    const val DEFAULT_SERVER = "https://strideboard.pythonanywhere.com"
+
+    /** Where StrideBoard used to live. Phones still set to these move to DEFAULT_SERVER by themselves. */
+    private val OLD_SERVERS = setOf("https://sohambhongade.pythonanywhere.com")
 
     private const val FILE = "strideboard"
     private const val KEY_SERVER = "server_url"
@@ -27,9 +30,13 @@ object Prefs {
     fun token(c: Context): String = sp(c).getString(KEY_TOKEN, "") ?: ""
     fun isConfigured(c: Context) = serverUrl(c).isNotBlank() && token(c).isNotBlank()
 
-    /** First run: use the school's website without asking. */
+    /** First run: use the school's website without asking. A phone set to an old address moves
+     *  to the new one; its token still works because the accounts moved with the website. */
     fun ensureServer(c: Context) {
-        if (serverUrl(c).isBlank()) sp(c).edit { putString(KEY_SERVER, DEFAULT_SERVER) }
+        val now = serverUrl(c)
+        if (now.isBlank() || now.trimEnd('/').lowercase() in OLD_SERVERS) {
+            sp(c).edit { putString(KEY_SERVER, DEFAULT_SERVER) }
+        }
     }
 
     /** A token looks like letters, digits, - and _ (what the website makes). */
