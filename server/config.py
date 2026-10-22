@@ -22,6 +22,9 @@ DATABASE = os.environ.get(
 JOIN_CODE = os.environ.get("STRIDEBOARD_JOIN_CODE", "").strip()
 # The one account that can time out, ban, rename and remove steps (Admin > Moderation).
 # STRIDEBOARD_OWNER can change it on the server without editing code.
+# STRIDEBOARD_MOVED_TO: set ONLY on an old copy of the site after moving it, e.g.
+# "https://strideboard.pythonanywhere.com". Pages then redirect there and phones are told.
+MOVED_TO = os.environ.get("STRIDEBOARD_MOVED_TO", "").strip()
 OWNER_USERNAME = os.environ.get("STRIDEBOARD_OWNER", "soham.admin").strip().lower()
 SIGNUP_ROLES = ("student", "teacher")   # admin is never offered on the sign-up page
 # The choices on the sign-up page. Add a class or department by adding it to the list.

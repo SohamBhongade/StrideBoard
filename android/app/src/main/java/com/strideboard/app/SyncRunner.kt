@@ -92,6 +92,7 @@ object SyncRunner {
         }
         val keepDates = days.map { it.date.toString() }.toSet()
 
+        Prefs.ensureServer(c)   // moves an old website address to the new one
         val server = Prefs.serverUrl(c)
         val token = Prefs.token(c)
         val sent = mutableListOf<String>()

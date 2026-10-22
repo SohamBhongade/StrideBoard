@@ -89,6 +89,11 @@ def create_app():
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
                       SEND_CODE=mailer.send_code)   # tests swap this out
 
+    moved_to = config.MOVED_TO
+    if moved_to:
+        add_moved(app, moved_to)   # this copy is the old address: send everyone to the new one
+        return app
+
     db.init_app(app)
     app.register_blueprint(api.bp)
     add_speed(app)
@@ -96,6 +101,26 @@ def create_app():
     add_security(app)
     add_routes(app)
     return app
+
+
+# -------------------------------------------------------------------- moved
+
+def add_moved(app, new_base):
+    """The old address after a move: pages redirect to the same page on the new address, and
+    phones get a clear message instead of their steps vanishing into an empty database."""
+    new_base = new_base.rstrip("/")
+
+    @app.route("/", defaults={"path": ""}, methods=["GET", "POST"])
+    @app.route("/<path:path>", methods=["GET", "POST"])
+    def moved(path):
+        if path.startswith("api/"):
+            return jsonify(ok=False, error="moved", moved_to=new_base,
+                           message=f"StrideBoard has moved to {new_base.split('//')[-1]}. "
+                                   "Get the new iPhone Shortcut or Android app from Settings there."), 410
+        target = f"{new_base}/{path}"
+        if request.query_string:
+            target += "?" + request.query_string.decode("latin-1")
+        return redirect(target, code=301)
 
 
 # -------------------------------------------------------------------- speed

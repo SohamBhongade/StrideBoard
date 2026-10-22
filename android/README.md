@@ -118,7 +118,7 @@ or have Agent 3 host it on the website.
    - **Other step apps** (Google Fit, Fitbit, Xiaomi/Mi Fitness, Huawei Health): turn on their
      Health Connect sharing too, if the phone has one of them.
 3. Open **StrideBoard**. The setup screen appears first:
-   1. **Website address** — already filled in: `https://sohambhongade.pythonanywhere.com`.
+   1. **Website address** — already filled in: `https://strideboard.pythonanywhere.com`.
    2. **Token** — log in on the website → Settings → copy the token → paste it here.
    3. **Allow step access** → turn on **Steps**. If the phone offers **"Access data in the
       background"** (or similar), allow that too. Background sync needs it.
@@ -149,7 +149,7 @@ If the phone can't connect, the laptop's firewall is usually blocking port 5050.
 Python through the firewall, or use a phone hotspot.
 
 ### B. On a real phone with the real server
-The live server is `https://sohambhongade.pythonanywhere.com`. Until Agent 3 uploads the
+The live server is `https://strideboard.pythonanywhere.com`. Until Agent 3 uploads the
 website, its home page only says "StrideBoard API is running", so the app shows that line
 instead of the website. Uploads already work.
 

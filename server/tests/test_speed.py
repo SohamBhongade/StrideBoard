@@ -51,3 +51,15 @@ def test_in_top_50_no_extra_row(site):
     login(ids[3])
     page = c.get("/leaderboard?view=student").get_data(as_text=True)
     assert page.count("(you)") == 1 and "rank-gap" not in page
+
+
+def test_old_address_sends_everyone_to_the_new_one(monkeypatch):
+    import config
+    monkeypatch.setattr(config, "MOVED_TO", "https://strideboard.pythonanywhere.com")
+    c = A.create_app().test_client()
+    r = c.get("/leaderboard?view=effort")
+    assert r.status_code == 301
+    assert r.headers["Location"] == "https://strideboard.pythonanywhere.com/leaderboard?view=effort"
+    assert c.get("/").headers["Location"] == "https://strideboard.pythonanywhere.com/"
+    api = c.post("/api/steps", json={"token": "x", "steps": 1})
+    assert api.status_code == 410 and "moved to strideboard.pythonanywhere.com" in api.get_json()["message"]

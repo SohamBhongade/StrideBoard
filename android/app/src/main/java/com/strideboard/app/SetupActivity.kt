@@ -90,7 +90,7 @@ class SetupActivity : ComponentActivity() {
     private fun saveInputs(): Boolean {
         val server = Prefs.normalizeServer(serverInput.text.toString())
         if (server == null) {
-            serverInput.error = "Type the website address, for example sohambhongade.pythonanywhere.com"
+            serverInput.error = "Type the website address, for example strideboard.pythonanywhere.com"
             serverInput.requestFocus()
             return false
         }
