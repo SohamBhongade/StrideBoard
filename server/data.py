@@ -1340,6 +1340,18 @@ def check_walks(conn, user_id, now=None):
     return None
 
 
+def last_finished_walk(conn, user_id, now=None):
+    """Today's most recently finished walk challenge (for its finish-line celebration), or None."""
+    now = _now(now)
+    for row in conn.execute("SELECT id, key FROM mini_runs WHERE user_id = ? AND date = ? AND status = 'done' "
+                            "ORDER BY finished_at DESC, id DESC", (user_id, now.date().isoformat())):
+        c = config.MINI_CHALLENGES.get(row["key"])
+        if c and c["track"] == "steps":
+            return {"id": row["id"], "label": mini_label(row["key"]), "exp": c["exp"],
+                    "amount": c["amount"], "balance": exp_balance(conn, user_id)}
+    return None
+
+
 def mini_state(conn, user_id, now=None):
     """Everything the mini challenge panel needs.
 

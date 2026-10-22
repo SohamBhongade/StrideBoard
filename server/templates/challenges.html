@@ -14,11 +14,15 @@
   </div>
 
   {% if won %}
-  <div class="win" role="status" data-win data-exp="{{ won.exp }}">
-    {{ cheer }}
-    <div class="win-text">
-      <strong class="win-title">Challenge complete!</strong>
-      <span class="win-exp">+<span data-win-count>{{ won.exp }}</span> EXP</span>
+  <div class="win{% if won.walk %} win-walk{% endif %}" role="status" data-win data-exp="{{ won.exp }}"
+       {% if won.walk %}data-delay="3600"{% endif %}>
+    {% if won.walk %}<div class="win-stage1" aria-hidden="true">{{ finish }}</div>{% endif %}
+    <div class="win-stage2">
+      {{ cheer }}
+      <div class="win-text">
+        <strong class="win-title">Challenge complete!</strong>
+        <span class="win-exp">+<span data-win-count>{{ won.exp }}</span> EXP</span>
+      </div>
     </div>
     <span class="win-sub">{{ won.label }} done · you have {{ won.balance|num }} EXP</span>
     <button class="btn btn-dark btn-sm win-close" type="button" data-win-close>Continue</button>
@@ -28,23 +32,14 @@
   {% set a = mini.active %}
   {% if a %}
   {% set ic, tone = TRACK_LOOK[a.track] %}
-  <div class="mini-live" data-mini-live data-elapsed="{{ a.elapsed }}" data-wait="{{ a.wait }}"
+  <div class="mini-live" data-mini-live data-elapsed="{{ a.elapsed }}" data-wait="{{ a.wait }}" data-run="{{ a.started_at }}"
        {% if a.track == 'planks' %}data-plank="{{ a.amount }}"{% endif %}
        {% if a.track == 'steps' %}data-walk-base="{{ a.base_steps }}" data-walk-amount="{{ a.amount }}"{% endif %}>
-    {% if a.track == 'steps' %}
-    <div class="mini-live-head">
-      {{ m.badge_circle(ic, tone, True, 26) }}
-      <div>
-        <span class="small muted">Doing now · +{{ a.exp }} EXP</span>
-        <strong class="mini-live-title">{{ a.label }}</strong>
-      </div>
-    </div>
-    {% endif %}
 
     {% if a.track == 'steps' %}
-      <div class="bar" role="img" aria-label="{{ a.percent }}% walked"><span data-walk-bar style="--w: {{ a.percent }}%; background: var(--ink)"></span></div>
-      <div class="bar-labels muted small"><span><span data-walk-done>{{ a.walked|num }}</span> of {{ a.amount|num }} steps</span><span data-mini-clock>0:00</span></div>
-      <p class="small muted">Steps come from your phone, so this finishes by itself once they sync. No need to tap anything.</p>
+      {{ game }}
+      <div class="bar-labels muted small mini-hint"><span><span data-walk-done>{{ a.walked|num }}</span> of {{ a.amount|num }} steps walked</span><span data-mini-clock>0:00</span></div>
+      <p class="small muted mini-hint">Steps come from your phone. Your walker moves on at every checkpoint ({{ (a.amount // 5)|num }} steps) and finishes by itself at the flag. No need to tap anything.</p>
       <div class="mini-actions">
         <a class="btn btn-dark" href="{{ url_for('challenges') }}#mini">{{ m.icon('refresh', 18) }} Check progress</a>
     {% else %}

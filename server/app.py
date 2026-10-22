@@ -55,7 +55,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "30"
+ASSET_VERSION = "31"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
 
@@ -650,12 +650,24 @@ def add_routes(app):
         tracks = data.progression(conn, uid)
         badges = all_badges(conn, uid, data.earned_badges(conn, uid), tracks)
         mini = data.mini_state(conn, uid)
-        a = mini["active"]
-        game = mini_scene.scene(my_build(), a["track"], a["label"], a["exp"]) if a else ""
-        won = session.pop("mini_won", None)
+        a, build = mini["active"], my_build()
+        game = ""
+        if a and a["track"] == "steps":
+            game = mini_scene.walk_scene(build, a["label"], a["exp"], a["walked"], a["amount"])
+        elif a:
+            game = mini_scene.scene(build, a["track"], a["label"], a["exp"])
+        won, finish = session.pop("mini_won", None), ""
+        # A walk can finish while the page is closed (the phone syncs), so remember which finished
+        # walk this browser has already celebrated, and show the finish line for a new one.
+        last_walk = data.last_finished_walk(conn, uid)
+        if last_walk and session.get("walk_seen") != last_walk["id"]:
+            session["walk_seen"] = last_walk["id"]
+            won = {"label": last_walk["label"], "exp": last_walk["exp"],
+                   "balance": last_walk["balance"], "walk": True}
+            finish = mini_scene.walk_finish(build, last_walk["amount"])
         return render_template("challenges.html", tracks=tracks, summary=badge_summary(badges),
-                               mini=mini, game=game, won=won,
-                               cheer=mini_scene.celebration(my_build()) if won else "")
+                               mini=mini, game=game, won=won, finish=finish,
+                               cheer=mini_scene.celebration(build) if won else "")
 
     # ---------- Badges: everything still to earn on top, earned at the bottom
     @app.route("/badges")

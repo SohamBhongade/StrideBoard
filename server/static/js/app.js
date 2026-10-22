@@ -302,11 +302,14 @@
     steps = parseInt(steps, 10);
     if (isNaN(steps)) return;
     var walked = Math.max(0, Math.min(goal, steps - base));
-    var n = box.querySelector("[data-walk-done]");
-    if (n) n.textContent = walked.toLocaleString("en-US");
-    var bar = box.querySelector("[data-walk-bar]");
-    if (bar) bar.style.setProperty("--w", Math.floor(walked * 100 / goal) + "%");
-    if (walked >= goal && !reloading) { reloading = true; setTimeout(function () { location.reload(); }, 1200); }
+    box.querySelectorAll("[data-walk-done]").forEach(function (n) { n.textContent = walked.toLocaleString("en-US"); });
+    var course = window.StrideBoardWalk;
+    if (course) course.update(walked, goal);
+    if (walked >= goal && !reloading) {
+      reloading = true;   // walk to the flag first, then the page shows the finish line and celebration
+      if (course) course.atFlag(function () { location.reload(); });
+      else setTimeout(function () { location.reload(); }, 1200);
+    }
   };
 })();
 
@@ -386,7 +389,7 @@ document.querySelectorAll("button[data-confirm]").forEach(function (btn) {
     var start = null;
     out.textContent = "0";
     var step = function (t) {
-      if (start === null) start = t + 250;            // wait for the number to pop in
+      if (start === null) start = t + 250 + (parseInt(win.getAttribute("data-delay"), 10) || 0);  // after the finish line
       var p = Math.max(0, Math.min(1, (t - start) / 900));
       out.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
       if (p < 1) requestAnimationFrame(step);
@@ -409,3 +412,52 @@ if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").m
     a.parentNode.removeChild(a);
   });
 }
+
+// ---- Walk challenges: the athlete waits at the last checkpoint reached and walks to the next
+// one only when the steps get there (every fifth of the walk). Remembers where it was shown, so
+// after an iPhone sync the walker walks on from where you last saw it.
+(function () {
+  var game = document.querySelector(".game-walk[data-reached]");
+  var box = document.querySelector("[data-mini-live]");
+  if (!game || !box) return;
+  var xs = game.getAttribute("data-course").split(",").map(Number);
+  var walker = game.querySelector(".walker");
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var key = "sb_walk_" + (box.getAttribute("data-run") || "");
+  var get = function () { try { return parseInt(localStorage.getItem(key), 10); } catch (e) { return NaN; } };
+  var put = function (k) { try { localStorage.setItem(key, String(k)); } catch (e) { /* fine */ } };
+  var at = get(), target = parseInt(game.getAttribute("data-reached"), 10) || 0, busy = false, done = null;
+  if (isNaN(at) || at > target) at = 0;
+
+  function mark() {
+    game.querySelectorAll(".g-cp").forEach(function (cp) {
+      cp.classList.toggle("passed", parseInt(cp.getAttribute("data-cp"), 10) <= at);
+    });
+  }
+  function place(k, ms) {
+    walker.style.transition = ms ? "transform " + ms + "ms linear" : "none";
+    walker.style.transform = "translateX(" + xs[k] + "px)";
+  }
+  function step() {
+    if (at >= target) {
+      busy = false; walker.classList.remove("walking"); put(at); mark();
+      if (done && at >= 5) { var cb = done; done = null; setTimeout(cb, 500); }
+      return;
+    }
+    busy = true; at += 1;
+    if (still) { place(at, 0); step(); return; }
+    walker.classList.add("walking");
+    place(at, 1900);
+    setTimeout(function () { mark(); step(); }, 1950);
+  }
+  place(at, 0); mark();
+  requestAnimationFrame(function () { setTimeout(step, 600); });
+
+  window.StrideBoardWalk = {
+    update: function (walked, goal) {
+      var k = Math.min(5, Math.floor(walked * 5 / goal));
+      if (k > target) { target = k; if (!busy) step(); }
+    },
+    atFlag: function (cb) { done = cb; target = 5; if (!busy) step(); }
+  };
+})();
