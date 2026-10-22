@@ -13,12 +13,25 @@
     <span class="chip chip-dark">+{{ mini.exp_today }} EXP today</span>
   </div>
 
+  {% if won %}
+  <div class="win" role="status" data-win data-exp="{{ won.exp }}">
+    {{ cheer }}
+    <div class="win-text">
+      <strong class="win-title">Challenge complete!</strong>
+      <span class="win-exp">+<span data-win-count>{{ won.exp }}</span> EXP</span>
+    </div>
+    <span class="win-sub">{{ won.label }} done · you have {{ won.balance|num }} EXP</span>
+    <button class="btn btn-dark btn-sm win-close" type="button" data-win-close>Continue</button>
+  </div>
+  {% endif %}
+
   {% set a = mini.active %}
   {% if a %}
   {% set ic, tone = TRACK_LOOK[a.track] %}
   <div class="mini-live" data-mini-live data-elapsed="{{ a.elapsed }}" data-wait="{{ a.wait }}"
        {% if a.track == 'planks' %}data-plank="{{ a.amount }}"{% endif %}
        {% if a.track == 'steps' %}data-walk-base="{{ a.base_steps }}" data-walk-amount="{{ a.amount }}"{% endif %}>
+    {% if a.track == 'steps' %}
     <div class="mini-live-head">
       {{ m.badge_circle(ic, tone, True, 26) }}
       <div>
@@ -26,6 +39,7 @@
         <strong class="mini-live-title">{{ a.label }}</strong>
       </div>
     </div>
+    {% endif %}
 
     {% if a.track == 'steps' %}
       <div class="bar" role="img" aria-label="{{ a.percent }}% walked"><span data-walk-bar style="--w: {{ a.percent }}%; background: var(--ink)"></span></div>
@@ -34,7 +48,8 @@
       <div class="mini-actions">
         <a class="btn btn-dark" href="{{ url_for('challenges') }}#mini">{{ m.icon('refresh', 18) }} Check progress</a>
     {% else %}
-      <div class="mini-clock" data-mini-clock aria-live="off">0:00</div>
+      {{ game }}
+      <span class="visually-hidden">Doing now: {{ a.label }}, +{{ a.exp }} EXP.</span>
       <p class="small muted mini-hint">
         {% if a.track == 'planks' %}Hold your plank until the timer reaches {{ a.amount }} seconds, then tap Done.
         {% else %}Take your time and keep good form. Tap Done when you've finished.{% endif %}
