@@ -403,7 +403,8 @@ document.querySelectorAll("button[data-confirm]").forEach(function (btn) {
 
 // ---- Workout scenes: the athlete is SVG animation, so pause it when the phone asks for less motion
 if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  document.querySelectorAll(".game-svg").forEach(function (svg) {
-    if (svg.pauseAnimations) { svg.pauseAnimations(); svg.setCurrentTime(0); }
+  // Remove the movement instead of pausing it: every part then rests in its clean first pose.
+  document.querySelectorAll(".game-svg animate, .game-svg animateTransform").forEach(function (a) {
+    a.parentNode.removeChild(a);
   });
 }
