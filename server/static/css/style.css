@@ -883,6 +883,9 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .win.closing { animation: win-out .3s ease both; }
 @keyframes win-out { to { opacity: 0; transform: scale(.97); } }
 .mini-live .game { margin-bottom: 2px; }
+/* Phone-sized on big screens: the scene and celebration stay a comfortable size, centred */
+.mini-live .game, .win { width: 100%; max-width: 520px; margin-left: auto; margin-right: auto; }
+.mini-live .mini-actions, .mini-live .mini-hint { width: 100%; max-width: 520px; margin-left: auto; margin-right: auto; }
 
 /* Phones and computers set to "Reduce motion": nothing moves, but the celebration still shows its
    confetti and gems, scattered and still around the athlete. */
