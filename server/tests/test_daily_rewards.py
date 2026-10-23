@@ -116,3 +116,11 @@ def test_moving_up_after_claiming_today_shows_silver_now(conn):
     put_steps(conn, uid, DAY1 + timedelta(days=1), 36_000)
     s = data.reward_status(conn, uid, DAY1 + timedelta(days=1))
     assert s["tier"] == "Silver" and s["claimed_today"] and s["next"]["label"] == "+8 EXP"
+
+
+def test_moving_up_on_day_1_after_claiming_shows_silver(conn):
+    uid = make_user(conn)
+    data.claim_daily_reward(conn, uid, DAY1)                     # claimed day 1 as Bronze
+    put_steps(conn, uid, DAY1, 36_000)                           # then reached Silver
+    s = data.reward_status(conn, uid, DAY1)
+    assert s["tier"] == "Silver" and s["day"] == 1 and s["claimed_today"]
