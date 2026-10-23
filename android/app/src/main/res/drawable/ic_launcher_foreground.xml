@@ -1,20 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Two footprints, kept inside the adaptive-icon safe zone. -->
+<!-- The StrideBoard logo: three slanted stripes, the middle one periwinkle. Same as the
+     website and iPhone icon. Kept inside the adaptive-icon safe zone (the middle 66dp). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M36,60 a9,13 0 1,0 18,0 a9,13 0 1,0 -18,0 Z" />
+        android:pathData="M40.86,47.25 L33.06,71.25"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="10.5"
+        android:strokeLineCap="round" />
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M39.5,80 a5.5,5.5 0 1,0 11,0 a5.5,5.5 0 1,0 -11,0 Z" />
+        android:pathData="M62.27,36.75 L51.06,71.25"
+        android:strokeColor="#A9B4F7"
+        android:strokeWidth="10.5"
+        android:strokeLineCap="round" />
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M56,44 a9,13 0 1,0 18,0 a9,13 0 1,0 -18,0 Z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M59.5,64 a5.5,5.5 0 1,0 11,0 a5.5,5.5 0 1,0 -11,0 Z" />
+        android:pathData="M74.91,53.25 L69.06,71.25"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="10.5"
+        android:strokeLineCap="round" />
 </vector>
