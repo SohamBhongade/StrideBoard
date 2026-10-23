@@ -150,7 +150,7 @@
 
   <nav class="pills studio-tabs" aria-label="Avatar parts">
     {% for key, label in slots %}
-    <a class="pill{% if key == slot %} active{% endif %}{% if key == 'glass' %} glass-only{% endif %}" href="{{ url_for('settings', slot=key) }}#studio"
+    <a class="pill{% if key == slot %} active{% endif %}{% if key == 'glass' %} glass-only{% elif key == 'material' %} material-only{% endif %}" href="{{ url_for('settings', slot=key) }}#studio"
        {% if key == slot %}aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
   </nav>
@@ -159,10 +159,16 @@
   <p class="small muted glass-note">The colours behind the frosted glass look on iPhone, iPad and Mac. Each one has a light and a dark version, and Stock is always free.</p>
   <p class="small muted no-glass-note">{{ m.icon('info', 14) }} The glass look shows on iPhone, iPad and Mac only, so these colours won't show on this device.</p>
   {% endif %}
+  {% if slot == 'material' %}
+  <p class="small muted">{% if android %}Your Android colour theme: buttons, cards and the tab bar all take on its colours, in light and dark. Stock is always free.{% else %}{{ m.icon('info', 14) }} Colour themes are for the Android look, so they won't show on this device.{% endif %}</p>
+  {% endif %}
   <div class="item-grid">
     {% for it in shop['items'] if it.slot == slot %}
     <div class="item-tile{% if it.worn %} worn{% endif %}{% if not it.owned %} locked{% endif %}">
-      {% if slot == 'glass' %}
+      {% if slot == 'material' %}
+      {% set sw = material_swatch(MATERIAL_THEMES[it.key][2]) %}
+      <span class="mat-swatch" aria-hidden="true" style="--a: {{ sw[0] }}; --b: {{ sw[1] }}; --c: {{ sw[2] }}"></span>
+      {% elif slot == 'glass' %}
       {% set gl = GLASS_GRADIENTS[it.key] %}
       <span class="glass-swatch" aria-hidden="true"><span style="background: {{ glass_bg(gl[2], '%') }}"></span><span style="background: {{ glass_bg(gl[3], '%') }}"></span></span>
       {% else %}
@@ -171,14 +177,14 @@
       <strong>{{ it.name }}</strong>
       <span class="item-price">{% if it.price == 0 %}Free{% elif it.owned %}Owned{% else %}{{ it.price|num }} EXP{% endif %}</span>
       {% if it.worn %}
-        <span class="chip chip-dark">{{ m.icon('check', 14) }} {{ 'In use' if slot == 'glass' else 'Wearing' }}</span>
+        <span class="chip chip-dark">{{ m.icon('check', 14) }} {{ 'In use' if slot in ('glass', 'material') else 'Wearing' }}</span>
       {% else %}
       <form method="post" class="inline-form">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="item" value="{{ it.key }}">
         <input type="hidden" name="slot" value="{{ slot }}">
         {% if it.owned %}
-          <button class="btn btn-outline btn-sm" type="submit" name="action" value="avatar_wear">{{ 'Use' if slot == 'glass' else 'Wear' }}</button>
+          <button class="btn btn-outline btn-sm" type="submit" name="action" value="avatar_wear">{{ 'Use' if slot in ('glass', 'material') else 'Wear' }}</button>
         {% elif shop.balance >= it.price %}
           <button class="btn btn-dark btn-sm" type="submit" name="action" value="avatar_buy">Buy</button>
         {% else %}

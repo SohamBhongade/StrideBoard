@@ -14,6 +14,7 @@ from flask import (Flask, abort, current_app, send_file, flash, g, get_flashed_m
 
 import api
 import avatar_art
+import material
 import config
 import data
 import db
@@ -57,7 +58,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "37"
+ASSET_VERSION = "38"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -237,7 +238,8 @@ def add_template_helpers(app):
                 "theme": current_theme(), "THEMES": THEMES,
                 "try_on": lambda build, slot, key: {**build, slot: key},
                 "my_glass": my_glass(), "GLASS_GRADIENTS": config.GLASS_GRADIENTS,
-                "glass_bg": glass_bg,
+                "glass_bg": glass_bg, "android": is_android(), "my_material": my_material,
+                "MATERIAL_THEMES": config.MATERIAL_THEMES, "material_swatch": material.swatch,
                 "AVATARS": config.AVATARS, "AVATAR_COLORS": config.AVATAR_COLORS}
 
 
@@ -280,6 +282,20 @@ def my_glass():
         key = data.glass_choice(db.get_db(), g.user["id"])
     _, _, light, dark = config.GLASS_GRADIENTS[key]
     return {"key": key, "light": light, "dark": dark}
+
+
+def is_android():
+    """Android phones and tablets get the Material You look (Apple devices get glass)."""
+    return "Android" in request.headers.get("User-Agent", "")
+
+
+def my_material():
+    """CSS for the logged-in person's Material You colours, light and dark."""
+    key = config.MATERIAL_DEFAULT
+    if g.get("user") and request.blueprint != api.bp.name:
+        key = data.material_choice(db.get_db(), g.user["id"])
+    seed = config.MATERIAL_THEMES[key][2]
+    return {"light": material.css_vars(seed), "dark": material.css_vars(seed, dark=True)}
 
 
 def glass_bg(colours, unit="vmax"):
@@ -784,7 +800,7 @@ def add_routes(app):
                         flash(f"Bought {name}! You have {left:,} EXP left.", "badge")
                     else:
                         data.wear_avatar_item(conn, uid, key)
-                        flash(f"Now using {name}." if key in config.GLASS_GRADIENTS
+                        flash(f"Now using {name}." if key in config.GLASS_GRADIENTS or key in config.MATERIAL_THEMES
                               else f"Now wearing {name}.", "ok")
             except ValueError as e:
                 flash(first_upper(str(e)), "error")

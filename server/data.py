@@ -573,7 +573,7 @@ def avatar_shop(conn, user_id):
     """
     _require_user(conn, user_id)
     build = avatar_build(conn, user_id)
-    worn = {**build, "glass": glass_choice(conn, user_id)}
+    worn = {**build, "glass": glass_choice(conn, user_id), "material": material_choice(conn, user_id)}
     bought = {r[0] for r in conn.execute("SELECT item_key FROM avatar_owned WHERE user_id = ?", (user_id,))}
     items = [{"key": k, "slot": slot, "name": name, "price": price,
               "owned": price == 0 or k in bought, "worn": worn.get(slot) == k}
@@ -581,11 +581,20 @@ def avatar_shop(conn, user_id):
     return {"balance": exp_balance(conn, user_id), "build": build, "items": items}
 
 
+def _look_choice(conn, user_id, slot, choices, default):
+    row = conn.execute("SELECT item_key FROM avatar_equipped WHERE user_id = ? AND slot = ?",
+                       (user_id, slot)).fetchone()
+    return row[0] if row and row[0] in choices else default
+
+
 def glass_choice(conn, user_id):
     """Which glass gradient someone picked in the studio (Stock until they pick another)."""
-    row = conn.execute("SELECT item_key FROM avatar_equipped WHERE user_id = ? AND slot = 'glass'",
-                       (user_id,)).fetchone()
-    return row[0] if row and row[0] in config.GLASS_GRADIENTS else config.GLASS_DEFAULT
+    return _look_choice(conn, user_id, "glass", config.GLASS_GRADIENTS, config.GLASS_DEFAULT)
+
+
+def material_choice(conn, user_id):
+    """Which Material You colour theme someone picked in the studio (Stock until they pick another)."""
+    return _look_choice(conn, user_id, "material", config.MATERIAL_THEMES, config.MATERIAL_DEFAULT)
 
 
 def _item(key):
