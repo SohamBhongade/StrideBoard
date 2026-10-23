@@ -428,3 +428,25 @@ Built with AI coding assistants, as the competition category intends. The team p
 ---
 
 <p align="center"><i>This app is for fun and motivation. Goals are general suggestions, not medical advice.</i></p>
+
+## Backups and restoring
+
+`server/backup.py` copies the database safely (SQLite's own backup, so it's consistent even
+while phones are syncing) and compresses it.
+
+- **Daily:** on PythonAnywhere, Tasks tab, add a daily task:
+  `python3 /home/strideboard/strideboard/server/backup.py`
+  It saves into `strideboard-data/backups/` next to the database and keeps the last 14 days.
+  On Mondays it also emails the copy to the site's Gmail (an off-site copy).
+- **Any time:** the owner can click **Admin → Backups → Download a backup**.
+
+**To restore** (Bash console on PythonAnywhere):
+
+```
+cd ~/strideboard-data
+cp strideboard.sqlite3 strideboard-before-restore.sqlite3     # keep the current one, just in case
+gunzip -c backups/strideboard-backup-YYYY-MM-DD.sqlite3.gz > strideboard.sqlite3
+touch /var/www/strideboard_pythonanywhere_com_wsgi.py
+```
+
+(For a downloaded or emailed backup, upload the `.gz` file first, then use its name instead.)
