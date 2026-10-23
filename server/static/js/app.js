@@ -482,3 +482,16 @@ if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").m
   }, { passive: true });
   btn.addEventListener("click", function () { mini(false); });
 })();
+
+// Android app "Update" notice on Home: newer apps download and install the update themselves
+// (Android then asks "Update StrideBoard?"). Older apps just follow the download link.
+(function () {
+  var btn = document.querySelector("[data-app-update-button]");
+  if (!btn || !(window.StrideBoardApp && window.StrideBoardApp.installUpdate)) return;
+  btn.addEventListener("click", function (e) {
+    e.preventDefault();
+    btn.textContent = "Downloading…";
+    window.StrideBoardApp.installUpdate();
+    setTimeout(function () { btn.textContent = "Update"; }, 15000);
+  });
+})();

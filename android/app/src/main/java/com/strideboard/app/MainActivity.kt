@@ -75,7 +75,8 @@ class MainActivity : ComponentActivity() {
             javaScriptEnabled = true
             domStorageEnabled = true
             // Lets the website tell it is running inside the Android app, if it wants to.
-            userAgentString = "$userAgentString StrideBoardAndroid/1.0"
+            // StrideBoardApp/<version> lets the website offer an update when a newer app is out.
+            userAgentString = "$userAgentString StrideBoardAndroid/1.0 StrideBoardApp/${Updater.versionCode(this@MainActivity)}"
         }
         webView.addJavascriptInterface(AppBridge(), "StrideBoardApp")
         webView.webChromeClient = WebChromeClient()
@@ -224,6 +225,22 @@ class MainActivity : ComponentActivity() {
      * The website's pages call StrideBoardApp.linkAccount(token) after login.
      */
     private inner class AppBridge {
+        /** The website's "Update" button: download the newest app and let Android install it. */
+        @JavascriptInterface
+        fun installUpdate() {
+            runOnUiThread {
+                val pageHost = Uri.parse(webView.url ?: "").host
+                val siteHost = Uri.parse(loadedBase ?: "").host
+                if (pageHost.isNullOrBlank() || !pageHost.equals(siteHost, ignoreCase = true)) return@runOnUiThread
+                android.widget.Toast.makeText(this@MainActivity, "Downloading the update…", android.widget.Toast.LENGTH_SHORT).show()
+                lifecycleScope.launch {
+                    Updater.downloadAndInstall(this@MainActivity)?.let {
+                        android.widget.Toast.makeText(this@MainActivity, it, android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+
         @JavascriptInterface
         fun linkAccount(token: String?) {
             if (token.isNullOrBlank()) return

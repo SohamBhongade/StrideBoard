@@ -3,6 +3,8 @@
 
     <!-- Talk to the StrideBoard server -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Install updates downloaded from the Releases page (Android still asks the person first) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Health Connect: read step counts only (nothing else) -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
@@ -66,6 +68,11 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+
+        <!-- Hears back from Android's installer during an in-app update -->
+        <receiver
+            android:name=".UpdateResultReceiver"
+            android:exported="false" />
 
     </application>
 </manifest>
