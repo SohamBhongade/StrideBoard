@@ -175,7 +175,7 @@
       <span class="av av-creature" style="--av: 76px">{{ creature(try_on(shop.build, slot, it.key), 76) }}</span>
       {% endif %}
       <strong>{{ it.name }}</strong>
-      <span class="item-price">{% if it.price == 0 %}Free{% elif it.owned %}Owned{% else %}{{ it.price|num }} EXP{% endif %}</span>
+      <span class="item-price">{% if it.price == 0 %}Free{% elif it.owned %}Owned{% elif it.exclusive %}{{ it.exclusive }} reward only{% else %}{{ it.price|num }} EXP{% endif %}</span>
       {% if it.worn %}
         <span class="chip chip-dark">{{ m.icon('check', 14) }} {{ 'In use' if slot in ('glass', 'material') else 'Wearing' }}</span>
       {% else %}
@@ -185,6 +185,8 @@
         <input type="hidden" name="slot" value="{{ slot }}">
         {% if it.owned %}
           <button class="btn btn-outline btn-sm" type="submit" name="action" value="avatar_wear">{{ 'Use' if slot in ('glass', 'material') else 'Wear' }}</button>
+        {% elif it.exclusive %}
+          <button class="btn btn-outline btn-sm" type="button" disabled title="Only from the {{ it.exclusive }} daily reward calendar">{{ m.icon('lock', 14) }} {{ it.exclusive }} tier</button>
         {% elif shop.balance >= it.price %}
           <button class="btn btn-dark btn-sm" type="submit" name="action" value="avatar_buy">Buy</button>
         {% else %}

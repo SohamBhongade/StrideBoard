@@ -60,7 +60,7 @@ def test_after_28_days_a_new_calendar_uses_last_weeks_tier(conn):
         put_steps(conn, uid, later - timedelta(days=back), 10_000)
     s = data.reward_status(conn, uid, later)
     assert s["cycle"] == 2 and s["day"] == 1
-    assert s["tier"] == "Bronze"                  # Gold has no calendar yet, so Bronze's is used
+    assert s["tier"] == "Silver"                  # Gold has no calendar yet: the best one below it
 
 
 def test_reset_clears_the_calendar(conn):
@@ -68,3 +68,51 @@ def test_reset_clears_the_calendar(conn):
     data.claim_daily_reward(conn, uid, DAY1)
     data.reset_person(conn, uid)
     assert data.reward_status(conn, uid, DAY1)["day"] == 1
+
+
+def test_moving_up_switches_to_silver_straight_away(conn):
+    uid = make_user(conn)
+    for i in range(3):
+        data.claim_daily_reward(conn, uid, DAY1 + timedelta(days=i))
+    assert data.reward_status(conn, uid, DAY1 + timedelta(days=3))["tier"] == "Bronze"
+    put_steps(conn, uid, DAY1 + timedelta(days=3), 36_000)              # Silver this week
+    s = data.reward_status(conn, uid, DAY1 + timedelta(days=3))
+    assert s["tier"] == "Silver" and s["day"] == 4 and s["today"]["label"] == "+8 EXP"
+    data.claim_daily_reward(conn, uid, DAY1 + timedelta(days=3))
+    # next Monday this week's steps reset, but last week's Silver still counts
+    assert data.reward_status(conn, uid, DAY1 + timedelta(days=7))["tier"] == "Silver"
+
+
+def test_dropping_down_waits_for_a_new_calendar(conn):
+    uid = make_user(conn)
+    put_steps(conn, uid, DAY1, 36_000)
+    data.claim_daily_reward(conn, uid, DAY1)
+    two_weeks = DAY1 + timedelta(days=14)          # no steps for a fortnight: back to Bronze
+    assert data.reward_status(conn, uid, two_weeks)["tier"] == "Silver"
+
+
+def test_silver_items_are_reward_only(conn):
+    uid = make_user(conn)
+    data.add_exp(conn, uid, 5000, "gift")
+    with pytest.raises(ValueError, match="can't be bought: it's a Silver daily reward"):
+        data.buy_avatar_item(conn, uid, "hat_silver_visor")
+    item = next(i for i in data.avatar_shop(conn, uid)["items"] if i["key"] == "extra_silver_wings")
+    assert item["exclusive"] == "Silver" and not item["owned"]
+    track = config.REWARD_TRACKS["Silver"]
+    assert track[13] == ("item", "hat_silver_visor") and track[27] == ("item", "extra_silver_wings")
+    assert sum(v for k, v in track if k == "exp") > sum(v for k, v in config.REWARD_TRACKS["Bronze"] if k == "exp")
+
+
+def test_new_items_draw():
+    import avatar_art
+    svg = avatar_art.render({"color": "color_sky", "hat": "hat_silver_visor", "extra": "extra_silver_wings"}, 80)
+    assert svg.count(avatar_art.SILVER) >= 3
+
+
+def test_moving_up_after_claiming_today_shows_silver_now(conn):
+    uid = make_user(conn)
+    data.claim_daily_reward(conn, uid, DAY1)
+    data.claim_daily_reward(conn, uid, DAY1 + timedelta(days=1))
+    put_steps(conn, uid, DAY1 + timedelta(days=1), 36_000)
+    s = data.reward_status(conn, uid, DAY1 + timedelta(days=1))
+    assert s["tier"] == "Silver" and s["claimed_today"] and s["next"]["label"] == "+8 EXP"
