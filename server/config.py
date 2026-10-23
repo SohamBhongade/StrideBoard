@@ -165,7 +165,7 @@ AVATAR_COLORS = ("peri", "blue", "pink", "mint", "peach", "violet", "gold", "sag
 # Price tiers: 0 = free starter, 50 common, 150 rare, 400 epic, 1000 legendary.
 AVATAR_SLOTS = [   # (slot key, name shown) in display order
     ("color", "Colour"), ("eyes", "Eyes"), ("mouth", "Mouth"), ("hat", "Headwear"),
-    ("extra", "Extras"), ("shoes", "Shoes"), ("bg", "Background"), ("glass", "Glass"),
+    ("extra", "Extras"), ("shoes", "Shoes"), ("bg", "Background"), ("glass", "Glass"), ("material", "Theme"),
 ]
 # item key -> (slot, name, price in EXP). Order = display order within a slot.
 AVATAR_ITEMS = {
@@ -222,8 +222,18 @@ GLASS_GRADIENTS = {
                    ("#120D04", "#6A4F12", "#5A3410", "#4A3A10", "#3A2A0A")),
 }
 GLASS_DEFAULT = "glass_stock"
-# Everything the studio sells: avatar parts plus glass gradients.
-SHOP_ITEMS = {**AVATAR_ITEMS, **{k: ("glass", v[0], v[1]) for k, v in GLASS_GRADIENTS.items()}}
+# The "Theme" tab: Android phones get the Material You look, with the whole colour scheme
+# grown from one seed colour (see material.py). Stock is free. key -> (name, price, seed colour)
+MATERIAL_THEMES = {
+    "mat_stock": ("Stock", 0, "#5B67D8"), "mat_ocean": ("Ocean", 50, "#1E88C8"),
+    "mat_forest": ("Forest", 150, "#3E8E4F"), "mat_berry": ("Berry", 150, "#C2185B"),
+    "mat_sunset": ("Sunset", 400, "#E8743B"), "mat_grape": ("Grape", 400, "#7E57C2"),
+    "mat_gold": ("Gold", 1000, "#C9A227"),
+}
+MATERIAL_DEFAULT = "mat_stock"
+# Everything the studio sells: avatar parts, glass gradients and Material You themes.
+SHOP_ITEMS = {**AVATAR_ITEMS, **{k: ("glass", v[0], v[1]) for k, v in GLASS_GRADIENTS.items()},
+              **{k: ("material", v[0], v[1]) for k, v in MATERIAL_THEMES.items()}}
 
 # What everyone starts with. The colour varies by person so the leaderboards aren't all one colour.
 AVATAR_DEFAULTS = {"eyes": "eyes_dots", "mouth": "mouth_smile", "hat": "hat_none",

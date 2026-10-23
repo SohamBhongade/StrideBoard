@@ -1091,3 +1091,52 @@ html.glass { background: radial-gradient(60vmax 60vmax at 8% 10%, #B9E6C9 0%, tr
   border: 1px solid var(--line); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
 }
 .glass-swatch span { flex: 1; }
+
+/* ------------------------------------------------------------ Material You (Android)
+   Android phones get html.material: the colours come from the person's colour theme
+   (Avatar studio > Theme, set in base.html) and the shapes follow Google's Material 3:
+   tonal surfaces, rounder cards, filled pill buttons, and a tab bar whose current page
+   sits in a coloured pill. */
+.material-only { display: none !important; }
+.material .material-only { display: inline-flex !important; }
+.material .main { background-image: none; }
+.material .card { border-radius: 28px; border: 0; }
+.material .btn-dark, .material .round-btn.active, .material .icon-btn.dark { background: var(--m-primary); color: var(--m-on-primary); border-color: transparent; }
+.material .btn-dark:hover { background: var(--btn-dark-hover); }
+.material .btn-outline { background: transparent; border-color: var(--input-line); color: var(--m-primary); }
+.material .btn-soft { background: var(--m-secondary-container); color: var(--m-on-secondary-container); }
+.material .pill { border-radius: 10px; }
+.material .pill.active, .material .chip-dark {
+  background: var(--m-secondary-container); color: var(--m-on-secondary-container);
+}
+.material .card-dark { background: var(--m-primary-container); color: var(--m-on-primary-container); }
+.material .card-dark .muted, .material .card-dark .big-num span { color: var(--m-on-primary-container); opacity: .78; }
+.material .card-dark .btn-light, .material .card-dark .btn { background: var(--m-primary); color: var(--m-on-primary); }
+.material .round-btn { background: var(--chrome); border-color: transparent; }
+.material .exp-pill { background: var(--m-primary); color: var(--m-on-primary); }
+
+/* Tab bar: surface colour, the current page's icon in a pill */
+.material .bottom-nav { background: var(--chrome); box-shadow: 0 6px 18px rgba(0, 0, 0, .14); }
+.material .bottom-nav a { color: var(--m-on-chrome); font-weight: 500; }
+.material .bottom-nav a.active { background: none; color: var(--ink); font-weight: 700; }
+.material .bottom-nav a .icon { box-sizing: content-box; padding: 4px 18px; border-radius: 16px; transition: background .25s; }
+.material .bottom-nav a.active .icon { background: var(--m-secondary-container); color: var(--m-on-secondary-container); }
+/* Shrunk tab bar = a Material floating action button */
+.material .bottom-nav.nav-mini { background: var(--m-primary-container); border-radius: 20px; }
+.material .bottom-nav.nav-mini .nav-toggle { color: var(--m-on-primary-container); }
+
+/* Android tablets: the sidebar */
+@media (min-width: 900px) {
+  .material .side { background: var(--chrome); }
+  .material .side-logo, .material .side-link { color: var(--m-on-chrome); }
+  .material .side-link { border-radius: 18px; }
+  .material .side-link:hover { background: var(--chrome-hover); }
+  .material .side-link.active { background: var(--m-secondary-container); color: var(--m-on-secondary-container); }
+}
+
+/* Colour theme choices look like Android's own: a circle in the theme's three colours */
+.mat-swatch {
+  width: 76px; height: 76px; border-radius: 50%; flex: none;
+  background: conic-gradient(from -90deg, var(--a) 0 180deg, var(--c) 180deg 270deg, var(--b) 270deg 360deg);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+}
