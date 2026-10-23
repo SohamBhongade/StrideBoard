@@ -10,8 +10,8 @@ android {
         applicationId = "com.strideboard.app"
         minSdk = 26          // Health Connect library minimum
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     buildTypes {

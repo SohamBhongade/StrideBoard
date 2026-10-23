@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 enum class SyncOutcome {
@@ -64,7 +65,7 @@ object SyncRunner {
         }
 
         val days = try {
-            StepReader.readYesterdayAndToday(c)
+            StepReader.readRecentDays(c)
         } catch (e: SecurityException) {
             Prefs.recordResult(c, false, "Health Connect blocked the step read. Open the app and tap Sync now.")
             return SyncOutcome.NEEDS_ATTENTION
@@ -87,7 +88,7 @@ object SyncRunner {
         if (toSend.isEmpty()) {
             val anySteps = days.any { it.steps > 0 }
             Prefs.recordResult(c, true, if (anySteps) "Up to date." else
-                "No steps recorded yet for yesterday or today, so nothing was sent.")
+                "No steps recorded in the last week yet, so nothing was sent.")
             return SyncOutcome.NOTHING_TO_SEND
         }
         val keepDates = days.map { it.date.toString() }.toSet()
@@ -141,8 +142,14 @@ object SyncRunner {
         }
     }
 
-    private fun dayLabel(date: LocalDate): String =
-        if (date == LocalDate.now(StepReader.DUBAI)) "Today" else "Yesterday"
+    private fun dayLabel(date: LocalDate): String {
+        val today = LocalDate.now(StepReader.DUBAI)
+        return when (date) {
+            today -> "Today"
+            today.minusDays(1) -> "Yesterday"
+            else -> date.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.US))   // e.g. "Mon 19 Oct"
+        }
+    }
 
     private fun fmt(n: Long): String = NumberFormat.getIntegerInstance(Locale.US).format(n)
 
