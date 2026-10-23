@@ -1009,3 +1009,74 @@ th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .board-spot-3 .board-block { height: 72px; }
   .board-row { padding: 7px 12px; }
 }
+
+/* ------------------------------------------------------------ glass (Apple devices)
+   On iPhone, iPad and Mac (any browser) the <html> gets class="glass": see-through frosted
+   surfaces over a soft colour field, in the spirit of Apple's Liquid Glass. Everyone else
+   keeps the standard look. */
+:root.glass { --glass: rgba(255, 255, 255, .34); --glass-strong: rgba(255, 255, 255, .55); --glass-line: rgba(255, 255, 255, .7); --glass-shadow: 0 10px 30px rgba(30, 40, 80, .12), 0 1px 2px rgba(30, 40, 80, .08); --glass-hi: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .25); --ink: #12131A; --muted: #3F4656; }
+:root.glass[data-theme="dark"] { --glass: rgba(30, 40, 72, .38); --glass-strong: rgba(40, 52, 92, .55); --glass-line: rgba(255, 255, 255, .18); --glass-shadow: 0 12px 34px rgba(0, 0, 0, .35); --glass-hi: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(255, 255, 255, .05); --ink: #F2F4FA; --muted: #B7C0DA; }
+.glass body, .glass .main { background: transparent !important; background-image: none !important; }
+html.glass { background: radial-gradient(60vmax 60vmax at 8% 10%, #B9E6C9 0%, transparent 60%), radial-gradient(55vmax 55vmax at 95% 20%, #C7CBFF 0%, transparent 60%), radial-gradient(60vmax 60vmax at 85% 95%, #FFD3C2 0%, transparent 60%), radial-gradient(50vmax 50vmax at 10% 90%, #BFE3F7 0%, transparent 60%), #EEF1F6; background-attachment: fixed; min-height: 100%; }
+:root.glass[data-theme="dark"] { background: radial-gradient(60vmax 60vmax at 8% 10%, #1E4F48 0%, transparent 60%), radial-gradient(55vmax 55vmax at 95% 20%, #2C2F7A 0%, transparent 60%), radial-gradient(60vmax 60vmax at 85% 95%, #5A2E4A 0%, transparent 60%), radial-gradient(50vmax 50vmax at 10% 90%, #183A66 0%, transparent 60%), #0A1020; background-attachment: fixed; }
+.glass .app { background: transparent !important; box-shadow: none !important; }
+.glass .card, .glass .card-soft, .glass .card-white, .glass .card-peri, .glass .card-blue, .glass .card-pink, .glass .card-peach, .glass .nudge, .glass .warn-box, .glass .flash, .glass .inner, .glass .stat, .glass .rank-list, .glass .history, .glass .table-wrap, .glass .mini-tile, .glass .badge-tile, .glass .badge-mini, .glass .item-tile, .glass .token-box { background: var(--glass) !important; -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%); border: 1px solid var(--glass-line) !important; box-shadow: var(--glass-shadow), var(--glass-hi) !important; color: var(--ink); }
+.glass .inner, .glass .stat, .glass .mini-tile, .glass .badge-tile, .glass .badge-mini, .glass .item-tile, .glass .token-box, .glass .rank-list, .glass .history, .glass .table-wrap { background: rgba(255, 255, 255, .22) !important; box-shadow: var(--glass-hi) !important; }
+:root.glass[data-theme="dark"] .inner, :root.glass[data-theme="dark"] .stat, :root.glass[data-theme="dark"] .mini-tile, :root.glass[data-theme="dark"] .rank-list, :root.glass[data-theme="dark"] .badge-tile, :root.glass[data-theme="dark"] .item-tile { background: rgba(255, 255, 255, .06) !important; }
+.glass .card-dark { background: rgba(18, 20, 32, .72) !important; color: #fff; -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); border: 1px solid rgba(255, 255, 255, .16) !important; box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, .2) !important; }
+.glass .rank-row { background: transparent !important; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .45); border-radius: 0 !important; }
+.glass .rank-row:last-child { box-shadow: none; }
+.glass .rank-row.me { background: rgba(255, 255, 255, .45) !important; outline: 0 !important; }
+.glass .rank-list { gap: 0 !important; overflow: hidden; border-radius: 22px; }
+.glass .btn-dark { background: rgba(18, 19, 26, .86) !important; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 6px 18px rgba(20, 20, 40, .18); }
+.glass .btn-soft, .glass .btn-light, .glass .btn-outline, .glass .pill, .glass .chip, .glass .icon-circle, .glass .round-btn, .glass .mood-btn { background: var(--glass-strong) !important; border: 1px solid var(--glass-line) !important; -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%); box-shadow: var(--glass-hi); }
+.glass .pill.active, .glass .chip-dark { background: rgba(18, 19, 26, .86) !important; color: #fff !important; }
+:root.glass[data-theme="dark"] .pill.active, :root.glass[data-theme="dark"] .chip-dark { background: rgba(255, 255, 255, .9) !important; color: #111 !important; }
+.glass .input { background: rgba(255, 255, 255, .5) !important; border: 1px solid var(--glass-line) !important; }
+.glass .bottom-nav { background: rgba(255, 255, 255, .42) !important; -webkit-backdrop-filter: blur(26px) saturate(190%); backdrop-filter: blur(26px) saturate(190%); border: 1px solid rgba(255, 255, 255, .75); box-shadow: 0 14px 36px rgba(30, 40, 80, .2), inset 0 1px 0 rgba(255, 255, 255, .9) !important; border-radius: 30px !important; }
+.glass .bottom-nav a { color: #2A2F3D !important; }
+.glass .bottom-nav a.active { background: rgba(255, 255, 255, .75) !important; color: #111 !important; box-shadow: 0 2px 8px rgba(30, 40, 80, .12), inset 0 1px 0 #fff; }
+:root.glass[data-theme="dark"] .bottom-nav { background: rgba(28, 34, 60, .5) !important; border-color: rgba(255, 255, 255, .16); box-shadow: 0 14px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .18) !important; }
+:root.glass[data-theme="dark"] .bottom-nav a { color: #DCE2F2 !important; }
+:root.glass[data-theme="dark"] .bottom-nav a.active { background: rgba(255, 255, 255, .16) !important; color: #fff !important; }
+.glass .side { background: rgba(255, 255, 255, .32) !important; -webkit-backdrop-filter: blur(26px); backdrop-filter: blur(26px); border-right: 1px solid rgba(255, 255, 255, .6); }
+.glass .block { border-color: rgba(18, 19, 26, .18) !important; background: rgba(255, 255, 255, .25); }
+.glass .week-track { background: rgba(255, 255, 255, .3) !important; }
+.glass .footer { border-top-color: rgba(255, 255, 255, .5) !important; }
+.glass .bottom-nav.nav-mini { border-radius: 34px !important; }
+.glass .bottom-nav .nav-toggle { color: #12131A !important; }
+:root.glass[data-theme="dark"] .bottom-nav .nav-toggle { color: #fff !important; }
+@media (min-width: 900px) {
+  .glass .side { margin: 14px 0 14px 14px; border-radius: 30px; flex-basis: 84px !important; background: rgba(255, 255, 255, .4) !important; -webkit-backdrop-filter: blur(26px) saturate(190%); backdrop-filter: blur(26px) saturate(190%); border: 1px solid rgba(255, 255, 255, .75) !important; box-shadow: 0 14px 36px rgba(30, 40, 80, .14), inset 0 1px 0 rgba(255, 255, 255, .9); }
+  .glass .side-logo { color: #12131A !important; }
+  .glass .side-link { color: #2A2F3D !important; }
+  .glass .side-link:hover { background: rgba(255, 255, 255, .5) !important; }
+  .glass .side-link.active { background: rgba(18, 19, 26, .86) !important; color: #fff !important; box-shadow: 0 4px 12px rgba(20, 20, 40, .2), inset 0 1px 0 rgba(255, 255, 255, .25); }
+  :root.glass[data-theme="dark"] .side { background: rgba(28, 34, 60, .5) !important; border-color: rgba(255, 255, 255, .16) !important; box-shadow: 0 14px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .18); }
+  :root.glass[data-theme="dark"] .side-logo, :root.glass[data-theme="dark"] .side-link { color: #E6EAF5 !important; }
+  :root.glass[data-theme="dark"] .side-link:hover { background: rgba(255, 255, 255, .1) !important; }
+  :root.glass[data-theme="dark"] .side-link.active { background: rgba(255, 255, 255, .9) !important; color: #111 !important; }
+}
+:root.glass[data-theme="dark"] .btn-dark { background: rgba(255, 255, 255, .88) !important; color: #111 !important; box-shadow: inset 0 1px 0 #fff, 0 6px 18px rgba(0, 0, 0, .3); }
+@media (prefers-color-scheme: dark) {
+  :root.glass[data-theme="auto"] { --glass: rgba(30, 40, 72, .38); --glass-strong: rgba(40, 52, 92, .55); --glass-line: rgba(255, 255, 255, .18); --glass-shadow: 0 12px 34px rgba(0, 0, 0, .35); --glass-hi: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(255, 255, 255, .05); --ink: #F2F4FA; --muted: #B7C0DA; }
+  :root.glass[data-theme="auto"] { background: radial-gradient(60vmax 60vmax at 8% 10%, #1E4F48 0%, transparent 60%), radial-gradient(55vmax 55vmax at 95% 20%, #2C2F7A 0%, transparent 60%), radial-gradient(60vmax 60vmax at 85% 95%, #5A2E4A 0%, transparent 60%), radial-gradient(50vmax 50vmax at 10% 90%, #183A66 0%, transparent 60%), #0A1020; background-attachment: fixed; }
+  :root.glass[data-theme="auto"] .inner, :root.glass[data-theme="auto"] .stat, :root.glass[data-theme="auto"] .mini-tile, :root.glass[data-theme="auto"] .rank-list, :root.glass[data-theme="auto"] .badge-tile, :root.glass[data-theme="auto"] .item-tile { background: rgba(255, 255, 255, .06) !important; }
+  :root.glass[data-theme="auto"] .pill.active, :root.glass[data-theme="auto"] .chip-dark { background: rgba(255, 255, 255, .9) !important; color: #111 !important; }
+  :root.glass[data-theme="auto"] .bottom-nav { background: rgba(28, 34, 60, .5) !important; border-color: rgba(255, 255, 255, .16); box-shadow: 0 14px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .18) !important; }
+  :root.glass[data-theme="auto"] .bottom-nav a { color: #DCE2F2 !important; }
+  :root.glass[data-theme="auto"] .bottom-nav a.active { background: rgba(255, 255, 255, .16) !important; color: #fff !important; }
+  :root.glass[data-theme="auto"] .bottom-nav .nav-toggle { color: #fff !important; }
+  @media (min-width: 900px) {
+    :root.glass[data-theme="auto"] .side { background: rgba(28, 34, 60, .5) !important; border-color: rgba(255, 255, 255, .16) !important; box-shadow: 0 14px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .18); }
+    :root.glass[data-theme="auto"] .side-logo, :root.glass[data-theme="auto"] .side-link { color: #E6EAF5 !important; }
+    :root.glass[data-theme="auto"] .side-link:hover { background: rgba(255, 255, 255, .1) !important; }
+    :root.glass[data-theme="auto"] .side-link.active { background: rgba(255, 255, 255, .9) !important; color: #111 !important; }
+  }
+  :root.glass[data-theme="auto"] .btn-dark { background: rgba(255, 255, 255, .88) !important; color: #111 !important; box-shadow: inset 0 1px 0 #fff, 0 6px 18px rgba(0, 0, 0, .3); }
+}
+/* People who ask their device for less see-through surfaces get solid ones */
+@media (prefers-reduced-transparency: reduce) {
+  :root.glass { --glass: rgba(255, 255, 255, .9); --glass-strong: rgba(255, 255, 255, .95); }
+  :root.glass[data-theme="dark"] { --glass: rgba(24, 30, 54, .95); --glass-strong: rgba(36, 44, 76, .95); }
+}

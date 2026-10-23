@@ -30,6 +30,8 @@
       src: url("{{ font_url }}") format("woff2");
     }
   </style>
+  {# Apple devices (iPhone, iPad, Mac; any browser) get the frosted "glass" look #}
+  <script>if (/Mac|iPhone|iPad|iPod/.test(navigator.userAgent)) document.documentElement.classList.add("glass");</script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ ASSET_VERSION }}">
   <script>
     // Intro animations (counting numbers, filling bars) play only the first time
