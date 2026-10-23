@@ -61,7 +61,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "42"
+ASSET_VERSION = "43"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -650,7 +650,22 @@ def add_routes(app):
                                badge_summary=badge_summary(all_badges(conn, uid, d["badges"])),
                                water_target=WATER_TARGET,
                                water_due=water_due(d["water_today"]),
-                               app_update=android_app_update())
+                               app_update=android_app_update(),
+                               reward=data.reward_status(conn, uid, t))
+
+    @app.route("/reward", methods=["POST"])
+    def claim_reward():
+        """The Claim button on Home's tier card: today's login reward."""
+        try:
+            got = data.claim_daily_reward(db.get_db(), g.user["id"], today())
+            if got.get("swapped"):
+                flash(f"Day {got['day']} reward: you already had {got['label']}, so here's {got['exp']} EXP instead!", "badge")
+            else:
+                flash(f"Day {got['day']} reward: {got['label']}!" +
+                      (" It's in your Avatar studio." if got["kind"] == "item" else ""), "badge")
+        except ValueError as e:
+            flash(first_upper(str(e)), "error")
+        return redirect(url_for("dashboard", _anchor="tier-h"))
 
     # ---------- Logging steps, mood, water, activity
     @app.route("/log", methods=["GET", "POST"])

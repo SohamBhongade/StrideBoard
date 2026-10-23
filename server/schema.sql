@@ -180,3 +180,16 @@ CREATE TABLE IF NOT EXISTS blocked_emails (
   email_hash TEXT PRIMARY KEY,
   blocked_at TEXT NOT NULL
 );
+
+-- Daily login rewards: one claim per person per Dubai day. `day` is the place on that tier's
+-- 28-day reward calendar; `cycle` counts how many times they have started the calendar.
+CREATE TABLE IF NOT EXISTS daily_rewards (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  cycle INTEGER NOT NULL,
+  day INTEGER NOT NULL,
+  tier TEXT NOT NULL,
+  reward TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, date)
+);

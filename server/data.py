@@ -1735,7 +1735,8 @@ def delete_people(conn, user_ids, acting_id=None, block_emails=True):
 
 # Everything a person has done, table by table. A reset empties these for one person.
 PERSONAL_TABLES = ("steps", "step_samples", "moods", "water", "activities", "exercises",
-                   "badges", "exp_ledger", "avatar_owned", "avatar_equipped", "mini_runs")
+                   "badges", "exp_ledger", "avatar_owned", "avatar_equipped", "mini_runs",
+                   "daily_rewards")
 
 
 def reset_person(conn, user_id):
@@ -1756,3 +1757,85 @@ def reset_person(conn, user_id):
                  (config.AGE_BAND_GOALS[row["age_band"]], local_now_iso(), user_id))
     conn.commit()
     return row["display_name"]
+
+
+# ---------- Daily login rewards (config.REWARD_TRACKS)
+
+def _track_for(tier):
+    """(tier name, 28-day calendar): tiers without their own calendar yet use Bronze's."""
+    if tier in config.REWARD_TRACKS:
+        return tier, config.REWARD_TRACKS[tier]
+    return "Bronze", config.REWARD_TRACKS["Bronze"]
+
+
+def _last_week_tier(conn, user_id, today):
+    monday = calc.week_bounds(today)[0]
+    start, end = monday - timedelta(days=7), monday - timedelta(days=1)
+    return calc.tier_for(_sum_steps(conn, user_id, start, end))
+
+
+def _reward_label(reward):
+    kind, value = reward
+    if kind == "exp":
+        return {"kind": "exp", "label": f"+{value} EXP", "short": f"+{value}", "big": value >= 25}
+    name = config.AVATAR_ITEMS[value][1]
+    return {"kind": "item", "label": name, "short": name, "big": True, "item": value}
+
+
+def reward_status(conn, user_id, today=None):
+    """Where someone is on their reward calendar.
+
+    Returns {"tier", "cycle", "day", "length", "claimed_today", "today": label,
+    "next": label of tomorrow's reward, "days": [{"day", "state": claimed/today/later, ...label}]}.
+    """
+    today = _today(today)
+    last = conn.execute("SELECT date, cycle, day, tier FROM daily_rewards WHERE user_id = ? "
+                        "ORDER BY date DESC LIMIT 1", (user_id,)).fetchone()
+    claimed_today = bool(last and last["date"] == today.isoformat())
+    if last is None:
+        cycle, day, tier = 1, 1, _last_week_tier(conn, user_id, today)
+    elif claimed_today:
+        cycle, day, tier = last["cycle"], last["day"], last["tier"]
+    elif last["day"] >= len(_track_for(last["tier"])[1]):
+        cycle, day, tier = last["cycle"] + 1, 1, _last_week_tier(conn, user_id, today)   # new month
+    else:
+        cycle, day, tier = last["cycle"], last["day"] + 1, last["tier"]
+    tier, track = _track_for(tier)
+    days = []
+    for n, reward in enumerate(track, start=1):
+        state = "claimed" if n < day or (n == day and claimed_today) else ("today" if n == day else "later")
+        days.append({"day": n, "state": state, **_reward_label(reward)})
+    nxt = days[day] if day < len(track) else {"label": "a new calendar"}
+    return {"tier": tier, "cycle": cycle, "day": day, "length": len(track),
+            "claimed_today": claimed_today, "today": days[day - 1], "next": nxt, "days": days}
+
+
+def claim_daily_reward(conn, user_id, today=None):
+    """Claim today's login reward. Returns its label dict. Once a day (Dubai time)."""
+    today = _today(today)
+    _require_user(conn, user_id)
+    s = reward_status(conn, user_id, today)
+    if s["claimed_today"]:
+        raise ValueError("you've already claimed today's reward. Come back tomorrow")
+    kind, value = _track_for(s["tier"])[1][s["day"] - 1]
+    try:   # the primary key stops a double tap claiming twice
+        conn.execute("INSERT INTO daily_rewards (user_id, date, cycle, day, tier, reward, created_at) "
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                     (user_id, today.isoformat(), s["cycle"], s["day"], s["tier"], f"{kind}:{value}",
+                      local_now_iso()))
+    except sqlite3.IntegrityError:
+        raise ValueError("you've already claimed today's reward. Come back tomorrow") from None
+    reason = f"Daily reward, day {s['day']}"
+    if kind == "item":
+        owned = conn.execute("SELECT 1 FROM avatar_owned WHERE user_id = ? AND item_key = ?",
+                             (user_id, value)).fetchone()
+        if owned:   # already have it: its price in EXP instead
+            add_exp(conn, user_id, config.AVATAR_ITEMS[value][2], reason + f" ({config.AVATAR_ITEMS[value][1]})")
+            conn.commit()
+            return {**s["today"], "swapped": True, "exp": config.AVATAR_ITEMS[value][2]}
+        conn.execute("INSERT INTO avatar_owned (user_id, item_key, bought_at) VALUES (?, ?, ?)",
+                     (user_id, value, local_now_iso()))
+        conn.commit()
+        return s["today"]
+    add_exp(conn, user_id, value, reason)
+    return s["today"]
