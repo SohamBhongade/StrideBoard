@@ -1,0 +1,63 @@
+# Builds the StrideBoard Leaderboard desktop app (desktop/ folder) on GitHub's own Windows and
+# Mac computers, and puts StrideBoard-Leaderboard.exe and StrideBoard-Leaderboard.dmg on the
+# repo's Releases page under "leaderboard-app-latest". Runs when desktop/ changes, or by hand.
+name: Build Leaderboard app (Windows + Mac)
+
+on:
+  push:
+    branches: [main]
+    paths: ["desktop/**", ".github/workflows/leaderboard-app.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to publish the app files on the Releases page
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            file: StrideBoard-Leaderboard.exe
+          - os: macos-latest
+            file: StrideBoard-Leaderboard.dmg
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"   # not signed (school project): no certificates needed
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install
+        run: npm install --no-audit --no-fund 2>&1 | tee build-log.txt
+
+      - name: Build
+        run: |
+          npm run dist 2>&1 | tee -a build-log.txt
+          test -f "dist/${{ matrix.file }}"
+
+      - name: Publish on the Releases page
+        run: |
+          gh release view leaderboard-app-latest > /dev/null 2>&1 || \
+            gh release create leaderboard-app-latest --prerelease --target "$GITHUB_SHA" \
+              --title "StrideBoard Leaderboard app (latest build)" \
+              --notes "Shows this week's Students and Teachers leaderboards. Windows: StrideBoard-Leaderboard.exe (if Windows warns: More info, then Run anyway). Mac: StrideBoard-Leaderboard.dmg (drag to Applications, then right-click the app and choose Open the first time). On first launch type the screen code from Admin, Leaderboard screen." || true
+          sleep 5
+          gh release upload leaderboard-app-latest "dist/${{ matrix.file }}" --clobber
+
+      - name: If the build failed, publish the build log so it can be read
+        if: failure()
+        run: |
+          gh release view leaderboard-app-latest > /dev/null 2>&1 || \
+            gh release create leaderboard-app-latest --prerelease --title "StrideBoard Leaderboard app (latest build)" --notes "Build logs" || true
+          cp build-log.txt "build-log-${{ runner.os }}.txt" || echo "no log" > "build-log-${{ runner.os }}.txt"
+          gh release upload leaderboard-app-latest "build-log-${{ runner.os }}.txt" --clobber

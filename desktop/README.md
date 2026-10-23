@@ -1,0 +1,19 @@
+# StrideBoard Leaderboard (Windows and Mac)
+
+A small desktop app that shows only this week's **Students** and **Teachers** leaderboards from
+the StrideBoard website, big enough for a school TV or a laptop on a stand. It refreshes every
+minute and keeps the last boards on screen if the Wi-Fi drops.
+
+**Download:** Admin → Leaderboard screen on the website, or the
+[leaderboard-app-latest release](https://github.com/SohamBhongade/StrideBoard/releases/tag/leaderboard-app-latest):
+`StrideBoard-Leaderboard.exe` (Windows) and `StrideBoard-Leaderboard.dmg` (Mac).
+
+**First run:** type the 10-character screen code from Admin → Leaderboard screen. Change it later
+with Screen → Change screen code (Ctrl/Cmd+K). Full screen: F11 on Windows, Ctrl+Cmd+F on Mac.
+
+**Not signed by Microsoft or Apple** (a school project), so the first launch needs one extra click:
+- Windows: "Windows protected your PC" → **More info** → **Run anyway**.
+- Mac: open the .dmg, drag the app to Applications, then **right-click the app → Open → Open**.
+
+Built automatically by GitHub Actions (`.github/workflows/leaderboard-app.yml`) whenever this
+folder changes. To build by hand: `npm install` then `npm run dist` on the matching computer.

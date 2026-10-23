@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>StrideBoard Leaderboard</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; align-items: center; justify-content: center; font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+           color: #EEF1F8; background: radial-gradient(900px 500px at 20% -10%, #24346A, transparent 60%), #0A1222; }
+    .box { width: min(440px, 90vw); text-align: center; display: flex; flex-direction: column; gap: 14px; }
+    h1 { margin: 0; font-size: 28px; font-weight: 800; }
+    p { margin: 0; color: #A7B2CF; font-size: 15px; line-height: 1.45; }
+    input { font-size: 26px; letter-spacing: .14em; text-align: center; text-transform: uppercase; padding: 14px; border-radius: 14px;
+            border: 1px solid #34436B; background: #101A31; color: #fff; outline: none; }
+    input:focus { border-color: #A9B4F7; box-shadow: 0 0 0 4px rgba(169, 180, 247, .25); }
+    button { font-size: 17px; font-weight: 600; padding: 14px; border-radius: 999px; border: 0; background: #fff; color: #17181C; cursor: pointer; }
+    .err { color: #F2867C; min-height: 1.2em; }
+    .mark { margin: 0 auto 6px; width: 64px; height: 64px; border-radius: 18px; background: #fff; display: grid; place-items: center; }
+  </style>
+</head>
+<body>
+  <form class="box" id="f">
+    <div class="mark"><svg width="40" height="34" viewBox="0 0 40 34"><g transform="translate(6.8 0)"><rect x="5" y="9" width="7" height="23" rx="3.5" transform="skewX(-18)" fill="#17181C"/><rect x="17" y="2" width="7" height="30" rx="3.5" transform="skewX(-18)" fill="#A9B4F7"/><rect x="29" y="13" width="7" height="19" rx="3.5" transform="skewX(-18)" fill="#17181C"/></g></svg></div>
+    <h1>Leaderboard screen</h1>
+    <p>Type the screen code from StrideBoard: <strong>Admin → Leaderboard screen</strong>. You only need to do this once.</p>
+    <input id="code" autocomplete="off" spellcheck="false" placeholder="ABCD234567" maxlength="20" autofocus>
+    <button type="submit">Show the leaderboard</button>
+    <p class="err" id="err"></p>
+  </form>
+  <script>
+    document.getElementById("f").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const ok = await window.strideboard.saveCode(document.getElementById("code").value);
+      if (!ok) document.getElementById("err").textContent = "That doesn't look like a screen code. It has 10 letters and numbers.";
+    });
+  </script>
+</body>
+</html>

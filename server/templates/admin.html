@@ -91,6 +91,33 @@
   </form>
 </section>
 
+{# ---- Leaderboard screen: the Windows / Mac app, or any browser on a school TV ---- #}
+<section class="card card-soft" style="margin-top:16px" aria-labelledby="screen-h">
+  <div class="card-head">
+    <span class="icon-circle">{{ m.icon('trophy') }}</span>
+    <h2 id="screen-h">Leaderboard screen</h2>
+  </div>
+  <p class="small muted">Shows only this week's Students and Teachers leaderboards, big and refreshing every
+    minute: for a school TV, a reception screen or a laptop on a stand. Install the app, open it, and type
+    this screen code once.</p>
+  <div class="token-box" style="margin-top:10px">
+    <code style="font-size:22px; letter-spacing:.12em">{{ board_code }}</code>
+    <button class="btn btn-soft btn-sm" type="button" data-copy="{{ board_code }}">Copy</button>
+  </div>
+  <div class="mini-actions" style="margin-top:12px">
+    <a class="btn btn-dark" href="{{ app_downloads }}StrideBoard-Leaderboard.exe">{{ m.icon('play', 16) }} Windows app (.exe)</a>
+    <a class="btn btn-dark" href="{{ app_downloads }}StrideBoard-Leaderboard.dmg">{{ m.icon('play', 16) }} Mac app (.dmg)</a>
+    <a class="btn btn-outline" href="{{ url_for('board', key=board_code) }}" target="_blank" rel="noopener">Open in this browser</a>
+  </div>
+  {% if is_owner(user) %}
+  <form method="post" class="inline-form" style="margin-top:10px">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="link-btn small" type="submit" name="action" value="board_new"
+            data-confirm="Make a new screen code? Every screen using the old one will ask for the new code.">Make a new code</button>
+  </form>
+  {% endif %}
+</section>
+
 {# ---- Give EXP (for testing until the earning rules exist) ---- #}
 <section class="card card-soft" style="margin-top:16px" aria-labelledby="exp-h">
   <div class="card-head">

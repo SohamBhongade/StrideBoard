@@ -1,0 +1,90 @@
+{% import "_macros.html" as m with context %}
+<!doctype html>
+<html lang="en" data-theme="dark" class="board-page">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaderboard · StrideBoard</title>
+  <meta name="robots" content="noindex">
+  {% set font_url = url_for('static', filename='fonts/outfit.woff2') ~ '?v=' ~ ASSET_VERSION %}
+  <style>
+    @font-face { font-family: "Outfit"; font-style: normal; font-weight: 100 900; font-display: swap;
+                 src: url("{{ font_url }}") format("woff2"); }
+  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ ASSET_VERSION }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+</head>
+<body class="board">
+  <header class="board-head">
+    <div class="board-brand"><span class="board-mark">{{ m.logo(30) }}</span>StrideBoard</div>
+    <div class="board-title">
+      <h1>This week's leaderboard</h1>
+      <p>{{ monday.strftime('%a %-d %b') }} – {{ sunday.strftime('%a %-d %b') }} · resets every Monday</p>
+    </div>
+    <div class="board-clock"><strong data-board-clock>{{ now.strftime('%H:%M') }}</strong>
+      <span>Updated {{ now.strftime('%H:%M') }}</span></div>
+  </header>
+
+  <main class="board-grid">
+    {% for b in boards %}
+    <section class="board-panel" aria-labelledby="board-{{ loop.index }}">
+      <div class="board-panel-head">
+        <h2 id="board-{{ loop.index }}">{{ b.title }}</h2>
+        <span class="board-chip">{{ b.count|num }} {{ 'person' if b.count == 1 else 'people' }} · {{ b.total|num }} steps</span>
+      </div>
+      {% set rows = b.rows %}
+      {% if rows %}
+        <div class="board-podium">
+          {% for i in [1, 0, 2] %}{% if rows|length > i %}{% set r = rows[i] %}
+          <div class="board-spot board-spot-{{ r.rank }}">
+            {{ m.avatar(r.name, r.avatar, r.avatar_color, 74 if r.rank == 1 else 60, r.build) }}
+            <strong class="board-spot-name">{{ r.name }}</strong>
+            <span class="board-spot-dept">{{ r.department or '' }}</span>
+            <div class="board-block"><span class="board-block-rank">{{ r.rank }}</span>
+              <span class="board-block-val">{{ r.value|num }} <small>steps</small></span></div>
+          </div>
+          {% endif %}{% endfor %}
+        </div>
+        {% if rows|length > 3 %}
+        <ol class="board-list">
+          {% for r in rows[3:] %}
+          <li class="board-row">
+            <span class="board-rank">{{ r.rank }}</span>
+            {{ m.avatar(r.name, r.avatar, r.avatar_color, 38, r.build) }}
+            <span class="board-who"><strong>{{ r.name }}</strong><span>{{ r.department or '' }}</span></span>
+            <span class="board-val">{{ r.value|num }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+        {% endif %}
+      {% else %}
+        <p class="board-empty">No steps yet this week. The first sync takes the top spot!</p>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </main>
+
+  <footer class="board-foot">
+    <span>Join in at <strong>{{ request.host }}</strong></span>
+    <span>Refreshes every minute</span>
+  </footer>
+
+  {{ avatar_sheet() }}
+  <script>
+    // Keep the clock ticking and reload the boards every minute (only when the site answers,
+    // so a Wi-Fi blip never leaves an error page on the screen).
+    (function () {
+      var clock = document.querySelector("[data-board-clock]");
+      function tick() {
+        var d = new Date();
+        clock.textContent = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+      }
+      setInterval(tick, 10000);
+      setInterval(function () {
+        fetch(location.href, { cache: "no-store" }).then(function (r) { if (r.ok) location.reload(); })
+          .catch(function () { /* offline: keep showing the last boards */ });
+      }, 60000);
+    })();
+  </script>
+</body>
+</html>
