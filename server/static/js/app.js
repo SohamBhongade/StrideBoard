@@ -461,3 +461,24 @@ if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").m
     atFlag: function (cb) { done = cb; target = 5; if (!busy) step(); }
   };
 })();
+
+// Phone tab bar: scrolling down shrinks it into a round menu button (more of the page shows);
+// tapping the button, or scrolling back to the top, opens the full bar again.
+(function () {
+  var nav = document.querySelector(".bottom-nav");
+  if (!nav) return;
+  var btn = nav.querySelector(".nav-toggle"), last = window.scrollY;
+  function mini(on) {
+    if (nav.classList.contains("nav-mini") === on) return;
+    nav.classList.toggle("nav-mini", on);
+    nav.classList.toggle("nav-open", !on);
+    btn.setAttribute("aria-expanded", String(!on));
+  }
+  window.addEventListener("scroll", function () {
+    var y = window.scrollY, d = y - last;
+    if (y < 40) { mini(false); last = y; }
+    else if (d > 12) { mini(true); last = y; }
+    else if (d < -12) last = y;
+  }, { passive: true });
+  btn.addEventListener("click", function () { mini(false); });
+})();

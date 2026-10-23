@@ -121,6 +121,19 @@ button { cursor: pointer; }
   color: #D5D8DE; text-decoration: none; font-size: 12px;
 }
 .bottom-nav a.active { background: var(--ink-2); color: #fff; }
+/* Scrolling down shrinks the bar into a round menu button; a tap opens it back into the bar */
+.bottom-nav { transition: left .38s cubic-bezier(.3, 1.25, .5, 1), right .38s cubic-bezier(.3, 1.25, .5, 1), border-radius .38s; }
+.nav-toggle { display: none; }
+.bottom-nav.nav-mini { right: calc(100% - 80px); grid-template-columns: 1fr; border-radius: 34px; }
+.bottom-nav.nav-mini a { display: none; }
+.bottom-nav.nav-mini .nav-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: #fff; cursor: pointer; animation: nav-in .3s ease;
+}
+.bottom-nav.nav-open a { animation: nav-in .35s ease; }
+@keyframes nav-in { from { opacity: 0; transform: scale(.7); } }
+@media (prefers-reduced-motion: reduce) { .bottom-nav { transition: none; } }
 
 @media (min-width: 900px) {
   body { padding: 32px; }
