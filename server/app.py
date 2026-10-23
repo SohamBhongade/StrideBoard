@@ -58,7 +58,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "39"
+ASSET_VERSION = "40"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -286,12 +286,14 @@ def my_glass():
 
 
 def is_android():
-    """Android phones and tablets get the Material You look (Apple devices get glass)."""
-    return "Android" in request.headers.get("User-Agent", "")
+    """Android phones and tablets, and Windows laptops and PCs, get the Material Expressive look
+    (Apple devices get glass)."""
+    ua = request.headers.get("User-Agent", "")
+    return "Android" in ua or "Windows" in ua
 
 
 def fixed_mode():
-    """On Android, Graphite and Black ignore the Light/Dark setting: "light", "dark" or None."""
+    """On Android and Windows, Graphite and Black ignore the Light/Dark setting: "light", "dark" or None."""
     if not (g.get("user") and request.blueprint != api.bp.name and is_android()):
         return None
     return config.MATERIAL_FIXED_MODE.get(data.material_choice(db.get_db(), g.user["id"]))

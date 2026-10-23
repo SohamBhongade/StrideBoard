@@ -48,7 +48,7 @@ def scheme(seed, dark=False):
         return _neutral(ne, dark, black=is_black(seed))
     if not dark:
         return {
-            "--sage": ne(.955), "--dot": ne(.955), "--white": nv(.985), "--soft": ne(.935),
+            "--sage": ne(.955), "--dot": ne(.955), "--stripe-a": ne(.92), "--stripe-b": ne(.97), "--white": nv(.985), "--soft": ne(.935),
             "--line": nv(.86), "--input-line": nv(.74), "--hover-soft": ne(.915),
             "--peri-bg": pr(.92), "--peri": pr(.78), "--peri-dash": pr(.62), "--violet-bg": pr(.95),
             "--blue-bg": se(.91), "--blue": se(.78), "--blue-dash": se(.6),
@@ -62,7 +62,7 @@ def scheme(seed, dark=False):
             "--m-on-chrome": nv(.3),
         }
     return {
-        "--sage": ne(.065), "--dot": ne(.065), "--white": ne(.11), "--soft": ne(.15),
+        "--sage": ne(.065), "--dot": ne(.065), "--stripe-a": ne(.12), "--stripe-b": ne(.155), "--white": ne(.11), "--soft": ne(.15),
         "--line": nv(.24), "--input-line": nv(.32), "--hover-soft": ne(.18),
         "--peri-bg": pr(.22), "--peri": pr(.72), "--peri-dash": pr(.5), "--violet-bg": pr(.17),
         "--blue-bg": se(.19), "--blue": se(.68), "--blue-dash": se(.48),
@@ -82,7 +82,7 @@ def _neutral(grey, dark, black):
     mode and a true black background in dark mode (saves battery on OLED screens)."""
     if not dark:
         return {
-            "--sage": grey(.96), "--dot": grey(.96), "--white": "#FFFFFF", "--soft": grey(.93),
+            "--sage": grey(.96), "--dot": grey(.96), "--stripe-a": grey(.92), "--stripe-b": grey(.97), "--white": "#FFFFFF", "--soft": grey(.93),
             "--line": grey(.86), "--input-line": grey(.72), "--hover-soft": grey(.91),
             "--peri-bg": grey(.9), "--peri": grey(.62), "--peri-dash": grey(.5), "--violet-bg": grey(.94),
             "--blue-bg": grey(.92), "--blue": grey(.72), "--blue-dash": grey(.55),
@@ -98,7 +98,7 @@ def _neutral(grey, dark, black):
     base = (lambda light: grey(light * .55)) if black else grey   # Black: surfaces near pure black
     if black:   # black and white: pure black page, white text and buttons, no grey tints
         return {
-            "--sage": "#000000", "--dot": "#000000", "--white": "#0B0B0B", "--soft": "#141414",
+            "--sage": "#000000", "--dot": "#000000", "--stripe-a": "#111111", "--stripe-b": "#1A1A1A", "--white": "#0B0B0B", "--soft": "#141414",
             "--line": "#2A2A2A", "--input-line": "#3A3A3A", "--hover-soft": "#1A1A1A",
             "--peri-bg": "#121212", "--peri": "#FFFFFF", "--peri-dash": "#8A8A8A", "--violet-bg": "#0E0E0E",
             "--blue-bg": "#101010", "--blue": "#D9D9D9", "--blue-dash": "#7A7A7A",
@@ -113,6 +113,7 @@ def _neutral(grey, dark, black):
         }
     return {
         "--sage": "#000000" if black else grey(.07), "--dot": "#000000" if black else grey(.07),
+        "--stripe-a": grey(.12), "--stripe-b": grey(.16),
         "--white": base(.11), "--soft": base(.15), "--line": grey(.22), "--input-line": grey(.3),
         "--hover-soft": base(.18),
         "--peri-bg": base(.2), "--peri": grey(.75), "--peri-dash": grey(.5), "--violet-bg": base(.15),

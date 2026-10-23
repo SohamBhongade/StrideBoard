@@ -1198,3 +1198,13 @@ html.glass { background: radial-gradient(60vmax 60vmax at 8% 10%, #B9E6C9 0%, tr
 .material .badge-icon { border-radius: 0; -webkit-mask: var(--shape-cookie) center / contain no-repeat; mask: var(--shape-cookie) center / contain no-repeat; }
 .material .mini-tile:nth-child(3n+2) .badge-icon, .material .badge-tile:nth-child(3n+2) .badge-icon { -webkit-mask-image: var(--shape-clover); mask-image: var(--shape-clover); }
 .material .mini-tile:nth-child(3n) .badge-icon, .material .badge-tile:nth-child(3n) .badge-icon { -webkit-mask-image: var(--shape-flower); mask-image: var(--shape-flower); }
+
+/* Expressive on big screens (Windows laptops, Android tablets): keep the background shapes in view */
+@media (min-width: 900px) {
+  .material body::before { width: 720px; height: 720px; top: -260px; right: -220px; }
+  .material body::after { width: 560px; height: 560px; bottom: -220px; left: -160px; }
+  .material .app { box-shadow: 0 30px 70px color-mix(in srgb, var(--m-primary) 14%, transparent); }
+  .material .side { background: color-mix(in srgb, var(--chrome) 72%, transparent);
+    -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); }
+  .material .side-link.active { background-image: linear-gradient(135deg, var(--m-secondary-container), color-mix(in srgb, var(--pink) 50%, var(--m-secondary-container))); }
+}
