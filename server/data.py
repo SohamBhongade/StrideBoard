@@ -858,7 +858,7 @@ def progression(conn, user_id):
     Each track: {"key", "name", "unit", "total", "best", "levels": [{"level", "target",
     "earned", "earned_on"}], "next_target", "next_percent", "record": {"name", "best",
     "level", "levels": [...same shape...], "next_target"}}.
-    A level is earned on the first day the lifetime total (or best in one go) reaches it.
+    A level is earned on the first day the lifetime total (or best single day) reaches it.
     """
     _require_user(conn, user_id)
     out = []
@@ -867,9 +867,9 @@ def progression(conn, user_id):
         running, best = 0, 0
         level_dates = [None] * len(t["levels"])
         record_dates = [None] * len(t["record_levels"])
-        for day, day_total, day_best in rows:
+        for day, day_total, _ in rows:
             running += day_total
-            best = max(best, day_best)
+            best = max(best, day_total)          # record = best single day, all sets added up
             for i, target in enumerate(t["levels"]):
                 if level_dates[i] is None and running >= target:
                     level_dates[i] = day

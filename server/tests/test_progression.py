@@ -38,14 +38,14 @@ def test_step_levels_use_lifetime_total_and_record_uses_best_day(conn):
     assert t["record"]["level"] == 2 and t["record"]["next_target"] == 15_000
 
 
-def test_exercise_sets_add_up_and_best_set_counts_for_record(conn):
+def test_exercise_sets_add_up_and_best_day_counts_for_record(conn):
     uid = make_user(conn)
     data.save_exercise(conn, uid, str(TODAY), "pushups", 8)
     data.save_exercise(conn, uid, str(TODAY), "pushups", 22)
     t = track(conn, uid, "pushups")
-    assert t["total"] == 30 and t["best"] == 22
+    assert t["total"] == 30 and t["best"] == 30          # both sets that day added up
     assert [lv["target"] for lv in t["levels"] if lv["earned"]] == [5, 10, 25]
-    assert t["record"]["level"] == 2          # 10 and 20 in one go
+    assert t["record"]["level"] == 3          # 30 in one day: 10, 20 and 30
     assert track(conn, uid, "squats")["total"] == 0   # tracks stay separate
 
 

@@ -114,8 +114,8 @@ SYNC_FRESH_MINUTES = 15
 SAMPLE_KEEP_DAYS = 2
 
 # --- Progression tracks (the Challenges page) ---
-# Lifetime totals unlock level badges; the "record" badge levels up with your best in one go
-# (steps: best single day; exercises: best single set). Planks are in seconds.
+# Lifetime totals unlock level badges; the "record" badge levels up with your best single day
+# (everything you did that day added up). Planks are in seconds.
 # Exercises are typed in by the user, so they only ever earn personal badges:
 # they never count on leaderboards, tiers or challenges.
 EXERCISE_TYPES = ("pushups", "squats", "planks", "jumping_jacks")
@@ -127,22 +127,22 @@ TRACKS = {
         "record_levels": [5_000, 10_000, 15_000, 20_000, 30_000],
     },
     "pushups": {
-        "name": "Push-ups", "unit": "push-ups", "record_name": "Most in one go",
+        "name": "Push-ups", "unit": "push-ups", "record_name": "Most in a day",
         "levels": [5, 10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000],
         "record_levels": [10, 20, 30, 50, 100],
     },
     "squats": {
-        "name": "Squats", "unit": "squats", "record_name": "Most in one go",
+        "name": "Squats", "unit": "squats", "record_name": "Most in a day",
         "levels": [10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 20_000],
         "record_levels": [20, 40, 60, 100, 200],
     },
     "planks": {
-        "name": "Planks", "unit": "seconds", "record_name": "Longest plank",
+        "name": "Planks", "unit": "seconds", "record_name": "Most plank time in a day",
         "levels": [30, 60, 120, 300, 600, 1_200, 1_800, 3_600, 7_200, 18_000, 36_000],
         "record_levels": [30, 60, 120, 180, 300],
     },
     "jumping_jacks": {
-        "name": "Jumping jacks", "unit": "jumping jacks", "record_name": "Most in one go",
+        "name": "Jumping jacks", "unit": "jumping jacks", "record_name": "Most in a day",
         "levels": [25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000],
         "record_levels": [50, 100, 200, 300, 500],
     },
