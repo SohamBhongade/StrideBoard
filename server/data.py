@@ -101,6 +101,21 @@ def _get_meta(conn, key):
     return row["value"] if row else None
 
 
+def board_key(conn, renew=False):
+    """The code a leaderboard screen (the Mac app) needs to show the boards. Made on first use."""
+    key = None if renew else _get_meta(conn, "board_key")
+    if not key:
+        key = "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(10))
+        _set_meta(conn, "board_key", key)
+        conn.commit()
+    return key
+
+
+def board_key_ok(conn, given):
+    key = _get_meta(conn, "board_key")
+    return bool(key and given) and secrets.compare_digest(str(given).strip().upper(), key)
+
+
 SHORTCUT_LINK_RE = re.compile(r"https://www\.icloud\.com/shortcuts/[A-Za-z0-9]{16,64}/?")
 
 

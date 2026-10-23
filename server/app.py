@@ -31,6 +31,8 @@ LEADERBOARD_VIEWS = [("student", "Students"), ("teacher", "Teachers"),
 AGE_BANDS = [("under_13", "Under 13"), ("teen_13_17", "13 to 17"),
              ("adult_18_39", "18 to 39"), ("adult_40_59", "40 to 59"),
              ("senior_60_plus", "60 and over")]
+BOARD_APP_DOWNLOADS = "https://github.com/SohamBhongade/StrideBoard/releases/download/leaderboard-app-latest/"
+BOARD_ROWS = 8            # people per board on the leaderboard screen
 LEADERBOARD_TOP = 50       # rows shown before "Show everyone"
 MOODS = [(1, "Low"), (2, "Meh"), (3, "Okay"), (4, "Good"), (5, "Great")]
 # badge key -> (name, icon, colour, how to earn it). Names come from config.BADGES below.
@@ -55,9 +57,10 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "31"
+ASSET_VERSION = "32"
 
-PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker"}
+PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
+                    "board"}
 
 
 def today():
@@ -766,6 +769,24 @@ def add_routes(app):
                                email_pending=(data.email_code_info(conn, session["email_link_id"], "link")
                                               if session.get("email_link_id") else None))
 
+    # ---------- Leaderboard screen (the Mac app, or any browser on a school TV)
+    @app.route("/board")
+    def board():
+        """Students and Teachers boards side by side, for a big screen. Needs the screen code
+        from Admin (?key=...), so pupils' names are never public. Refreshes itself every minute."""
+        conn = db.get_db()
+        if not data.board_key_ok(conn, request.args.get("key")):
+            return render_template("board_locked.html", tried=bool(request.args.get("key"))), 403
+        t = today()
+        boards = []
+        for view, title in (("student", "Students"), ("teacher", "Teachers")):
+            rows = data.leaderboard(conn, view, t)
+            boards.append({"title": title, "rows": with_builds(conn, rows[:BOARD_ROWS]), "count": len(rows),
+                           "total": sum(r["value"] for r in rows)})
+        monday = db.local_today() - timedelta(days=db.local_today().weekday())
+        return render_template("board.html", boards=boards, monday=monday, sunday=monday + timedelta(days=6),
+                               now=datetime.now(TZ))
+
     # ---------- iPhone Shortcut file (signed on a Mac, so iPhones can add it in one tap)
     @app.route("/iphone-shortcut")
     def iphone_shortcut():
@@ -806,6 +827,11 @@ def add_routes(app):
                     saved = data.set_ios_shortcut_link(conn, request.form.get("link"))
                     flash("iPhone Shortcut link saved. Students now see a 'Get the iPhone Shortcut' button "
                           "in Settings." if saved else "iPhone Shortcut link removed.", "ok")
+                elif action == "board_new":
+                    if not is_owner(g.user):
+                        abort(403)
+                    data.board_key(conn, renew=True)
+                    flash("New screen code made. Screens using the old code will ask for the new one.", "ok")
                 elif action == "give_exp":
                     who = (request.form.get("username") or "").strip()
                     target = data.find_user_id(conn, who) if who else None
@@ -888,7 +914,8 @@ def add_routes(app):
                      or (people_role == "blocked" and u["blocked"]))
                  and (not needle or needle in f"{u['display_name']} {u['username']} {u['department'] or ''}".lower())]
         per_day = data.suggested_distance_target(conn, 1)
-        return render_template("admin.html", users=users, shown=shown, people_role=people_role,
+        return render_template("admin.html", board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
+                               users=users, shown=shown, people_role=people_role,
                                people_q=people_q, role_counts=role_counts,
                                challenges=data.active_challenges(conn, today()),
                                stats=cached_impact_stats(conn), result=result,

@@ -1,0 +1,64 @@
+{
+  "name": "strideboard-leaderboard",
+  "productName": "StrideBoard Leaderboard",
+  "version": "1.0.0",
+  "description": "This week's StrideBoard leaderboards (Students and Teachers) for a school screen.",
+  "author": "StrideBoard team",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.strideboard.leaderboard",
+    "productName": "StrideBoard Leaderboard",
+    "files": [
+      "main.js",
+      "preload.js",
+      "setup.html"
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.education",
+      "identity": null
+    },
+    "dmg": {
+      "artifactName": "StrideBoard-Leaderboard.dmg",
+      "title": "StrideBoard Leaderboard"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "StrideBoard-Leaderboard.exe"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SohamBhongade/StrideBoard.git"
+  },
+  "homepage": "https://strideboard.pythonanywhere.com"
+}

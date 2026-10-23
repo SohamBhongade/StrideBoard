@@ -1,0 +1,19 @@
+{% import "_macros.html" as m with context %}
+<!doctype html>
+<html lang="en" data-theme="dark" class="board-page">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaderboard screen · StrideBoard</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ ASSET_VERSION }}">
+</head>
+<body class="board board-locked">
+  <div class="board-lock">
+    <span class="board-mark">{{ m.logo(40) }}</span>
+    <h1>{% if tried %}That screen code didn't work{% else %}This screen needs its code{% endif %}</h1>
+    <p>An admin can find the screen code in StrideBoard under <strong>Admin → Leaderboard screen</strong>.
+       {% if tried %}If it was changed there, use the new one.{% endif %}</p>
+  </div>
+</body>
+</html>
