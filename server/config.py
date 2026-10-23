@@ -223,9 +223,11 @@ GLASS_GRADIENTS = {
 }
 GLASS_DEFAULT = "glass_stock"
 # The "Theme" tab: Android phones get the Material You look, with the whole colour scheme
-# grown from one seed colour (see material.py). Stock is free. key -> (name, price, seed colour)
+# grown from one seed colour (see material.py). Stock is free. A grey or black seed makes a
+# neutral theme with no colour at all (Black also goes true black in dark mode). key -> (name, price, seed colour)
 MATERIAL_THEMES = {
-    "mat_stock": ("Stock", 0, "#5B67D8"), "mat_ocean": ("Ocean", 50, "#1E88C8"),
+    "mat_stock": ("Stock", 0, "#5B67D8"), "mat_graphite": ("Graphite", 50, "#6B6B6B"),
+    "mat_black": ("Black", 50, "#000000"), "mat_ocean": ("Ocean", 50, "#1E88C8"),
     "mat_forest": ("Forest", 150, "#3E8E4F"), "mat_berry": ("Berry", 150, "#C2185B"),
     "mat_sunset": ("Sunset", 400, "#E8743B"), "mat_grape": ("Grape", 400, "#7E57C2"),
     "mat_gold": ("Gold", 1000, "#C9A227"),
