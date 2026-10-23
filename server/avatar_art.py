@@ -119,7 +119,29 @@ def _extra(key):
     return ""
 
 
+SILVER, SILVER_SHADE = "#D9DEE6", "#A9B2BF"
+
+
+def _wings(key):
+    """Drawn behind the body (Silver wings)."""
+    if key != "extra_silver_wings":
+        return ""
+    left = ("M29 52C21 40 11 33 5 36C9 40 9 43 7 46C12 46 14 49 12 53C17 53 19 56 17 60"
+            "C22 59 26 61 29 64Z")
+    feathers = "M10 41l14 9M11 49l15 5M15 57l12 3"
+    one = (f'<path d="{left}" fill="{SILVER}" stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"/>'
+           f'<path d="{feathers}" stroke="{SILVER_SHADE}" stroke-width="1.2" stroke-linecap="round"/>'
+           '<path d="M9 38q8 3 14 10" stroke="#fff" stroke-width="1.2" opacity=".85" fill="none"/>')
+    return f'<g>{one}</g><g transform="translate(100 0) scale(-1 1)">{one}</g>'
+
+
 def _hat(key):
+    if key == "hat_silver_visor":
+        return ('<g transform="translate(0 -4.5)">'
+                f'<path d="M24 40q26-9 52 0v5q-26-9-52 0z" fill="{SILVER}" stroke="{INK}" stroke-width="1.3"/>'
+                f'<path d="M28 44q22 11 44 0q-22 3-44 0z" fill="{SILVER_SHADE}" stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"/>'
+                '<path d="M30 39.5q20-6 40 0" stroke="#fff" stroke-width="1.3" opacity=".9" fill="none"/>'
+                '<path d="M36 46.5q8 2.4 14 2.4" stroke="#fff" stroke-width="1.1" opacity=".7" fill="none"/></g>')
     if key == "hat_headband":
         return (f'<path d="M24 38q26-9 52 0v6q-26-9-52 0z" fill="#E5786B" stroke="{INK}" stroke-width="1.3"/>'
                 '<path d="M30 40l40-2" stroke="#fff" stroke-width="1.2" opacity=".8"/>')
@@ -155,6 +177,7 @@ def _parts(build, uid):
     main, shade = COLORS.get(build.get("color"), COLORS["color_mint"])
     return (
         f'{_bg(build.get("bg"), uid)}'
+        f'{_wings(build.get("extra"))}'
         f'{_feet(build.get("shoes"), shade)}'
         f'<ellipse cx="50" cy="56" rx="27" ry="29" fill="{main}" stroke="{INK}" stroke-width="1.6"/>'
         f'<ellipse cx="50" cy="65" rx="15" ry="12" fill="#fff" opacity=".28"/>'

@@ -187,10 +187,12 @@ AVATAR_ITEMS = {
     "hat_cap": ("hat", "Cap", 150), "hat_beanie": ("hat", "Beanie", 150),
     "hat_flower": ("hat", "Flower", 150), "hat_party": ("hat", "Party hat", 400),
     "hat_headphones": ("hat", "Headphones", 400), "hat_crown": ("hat", "Crown", 1000),
+    "hat_silver_visor": ("hat", "Silver visor", 100),
 
     "extra_none": ("extra", "None", 0), "extra_glasses": ("extra", "Glasses", 50),
     "extra_scarf": ("extra", "Scarf", 150), "extra_shades": ("extra", "Shades", 150),
     "extra_whistle": ("extra", "Coach whistle", 150), "extra_medal": ("extra", "Medal", 400),
+    "extra_silver_wings": ("extra", "Silver wings", 100),
 
     "shoes_plain": ("shoes", "Bare feet", 0), "shoes_sneakers": ("shoes", "Sneakers", 150),
     "shoes_runners": ("shoes", "Red runners", 50), "shoes_sky": ("shoes", "Sky trainers", 50),
@@ -244,10 +246,16 @@ SHOP_ITEMS = {**AVATAR_ITEMS, **{k: ("glass", v[0], v[1]) for k, v in GLASS_GRAD
 # along (missing a day doesn't reset you). After day 28 it starts again, using the tier you
 # finished last week: same tier, same rewards; a higher tier gets a better calendar.
 # Each day: ("exp", amount) or ("item", avatar item key); an item you already own pays its
-# price in EXP instead. Only Bronze exists so far; other tiers use it until theirs are added.
+# price in EXP instead. Moving up a tier switches to the better calendar straight away (same
+# day number); dropping down only shows when a calendar starts again. Tiers without their own
+# calendar use the best one below them.
 def _calendar(*weeks):
     return [day for week in weeks for day in week]
 
+
+# Tier-only items: never sold, only given by that tier's reward calendar. Their "price" is the
+# EXP paid instead if a calendar gives one you already own.
+EXCLUSIVE_ITEMS = {"hat_silver_visor": "Silver", "extra_silver_wings": "Silver"}
 
 REWARD_TRACKS = {
     "Bronze": _calendar(
@@ -255,6 +263,12 @@ REWARD_TRACKS = {
         [("exp", 6)] * 6 + [("item", "hat_headband")],
         [("exp", 8)] * 6 + [("exp", 40)],
         [("exp", 10)] * 6 + [("item", "shoes_runners")],
+    ),
+    "Silver": _calendar(
+        [("exp", 8)] * 6 + [("exp", 35)],
+        [("exp", 10)] * 6 + [("item", "hat_silver_visor")],
+        [("exp", 12)] * 6 + [("exp", 60)],
+        [("exp", 15)] * 6 + [("item", "extra_silver_wings")],
     ),
 }
 

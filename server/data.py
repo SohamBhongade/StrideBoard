@@ -574,7 +574,8 @@ def avatar_shop(conn, user_id):
     worn = {**build, "glass": glass_choice(conn, user_id), "material": material_choice(conn, user_id)}
     bought = {r[0] for r in conn.execute("SELECT item_key FROM avatar_owned WHERE user_id = ?", (user_id,))}
     items = [{"key": k, "slot": slot, "name": name, "price": price,
-              "owned": price == 0 or k in bought, "worn": worn.get(slot) == k}
+              "owned": price == 0 or k in bought, "worn": worn.get(slot) == k,
+              "exclusive": config.EXCLUSIVE_ITEMS.get(k)}
              for k, (slot, name, price) in config.SHOP_ITEMS.items()]
     return {"balance": exp_balance(conn, user_id), "build": build, "items": items}
 
@@ -621,6 +622,8 @@ def buy_avatar_item(conn, user_id, key):
     _require_user(conn, user_id)
     if price == 0:
         raise ValueError(f"{name} is free: just tap Wear")
+    if key in config.EXCLUSIVE_ITEMS:
+        raise ValueError(f"{name} can't be bought: it's a {config.EXCLUSIVE_ITEMS[key]} daily reward")
     balance = exp_balance(conn, user_id)
     if balance < price:
         raise ValueError(f"{name} costs {price:,} EXP and you have {balance:,}")
@@ -1761,11 +1764,23 @@ def reset_person(conn, user_id):
 
 # ---------- Daily login rewards (config.REWARD_TRACKS)
 
+_TIER_ORDER = [name for name, _ in config.TIERS]
+
+
 def _track_for(tier):
-    """(tier name, 28-day calendar): tiers without their own calendar yet use Bronze's."""
-    if tier in config.REWARD_TRACKS:
-        return tier, config.REWARD_TRACKS[tier]
+    """(tier name, 28-day calendar): a tier without its own calendar uses the best one below it."""
+    for name in reversed(_TIER_ORDER[:_TIER_ORDER.index(tier) + 1] if tier in _TIER_ORDER else ["Bronze"]):
+        if name in config.REWARD_TRACKS:
+            return name, config.REWARD_TRACKS[name]
     return "Bronze", config.REWARD_TRACKS["Bronze"]
+
+
+def _reward_tier(conn, user_id, today):
+    """The tier that picks your calendar: the better of this week's and last week's (so Monday's
+    reset to Bronze doesn't take away last week's Silver)."""
+    this_week = calc.tier_for(_sum_steps(conn, user_id, *calc.week_bounds(today)))
+    last_week = _last_week_tier(conn, user_id, today)
+    return max(this_week, last_week, key=_TIER_ORDER.index)
 
 
 def _last_week_tier(conn, user_id, today):
@@ -1793,13 +1808,17 @@ def reward_status(conn, user_id, today=None):
                         "ORDER BY date DESC LIMIT 1", (user_id,)).fetchone()
     claimed_today = bool(last and last["date"] == today.isoformat())
     if last is None:
-        cycle, day, tier = 1, 1, _last_week_tier(conn, user_id, today)
+        cycle, day, tier = 1, 1, _reward_tier(conn, user_id, today)
     elif claimed_today:
         cycle, day, tier = last["cycle"], last["day"], last["tier"]
     elif last["day"] >= len(_track_for(last["tier"])[1]):
-        cycle, day, tier = last["cycle"] + 1, 1, _last_week_tier(conn, user_id, today)   # new month
+        cycle, day, tier = last["cycle"] + 1, 1, _reward_tier(conn, user_id, today)   # new month
     else:
         cycle, day, tier = last["cycle"], last["day"] + 1, last["tier"]
+    if last is not None and day > 1:
+        better = _track_for(_reward_tier(conn, user_id, today))[0]
+        if _TIER_ORDER.index(better) > _TIER_ORDER.index(_track_for(tier)[0]):
+            tier = better            # moved up: the better calendar straight away, same day number
     tier, track = _track_for(tier)
     days = []
     for n, reward in enumerate(track, start=1):
