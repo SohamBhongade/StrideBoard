@@ -50,7 +50,7 @@ jobs:
           gh release view leaderboard-app-latest > /dev/null 2>&1 || \
             gh release create leaderboard-app-latest --prerelease --target "$GITHUB_SHA" \
               --title "StrideBoard Leaderboard app (latest build)" \
-              --notes "Shows this week's Students and Teachers leaderboards. Windows: StrideBoard-Leaderboard.exe (if Windows warns: More info, then Run anyway). Mac: StrideBoard-Leaderboard.dmg (drag to Applications, then right-click the app and choose Open the first time). On first launch type the screen code from Admin, Leaderboard screen." || true
+              --notes "Shows this week's Students and Teachers leaderboards. Windows: StrideBoard-Leaderboard.exe, a one-click installer (if Windows warns: More info, then Run anyway). Mac: StrideBoard-Leaderboard.dmg (drag to Applications, then right-click the app and choose Open the first time). On first launch type the screen code from Admin, Leaderboard screen." || true
           sleep 5
           gh release upload leaderboard-app-latest "dist/${{ matrix.file }}" --clobber
 

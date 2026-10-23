@@ -1,7 +1,7 @@
 // StrideBoard Leaderboard: a window that shows only this week's Students and Teachers
 // leaderboards from the StrideBoard website (the /board page), refreshing every minute.
 // It asks for the screen code once (Admin -> Leaderboard screen) and remembers it.
-const { app, BrowserWindow, Menu, ipcMain, powerSaveBlocker, screen, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, nativeTheme, powerSaveBlocker, screen, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
 
@@ -43,9 +43,12 @@ function createWindow() {
   const bounds = onSomeScreen(saved.bounds) ? saved.bounds : { width: 1280, height: 760 };
   win = new BrowserWindow({
     ...bounds, minWidth: 480, minHeight: 360, fullscreen: !!saved.fullScreen,
+    show: false,                       // appear only once painted: no white flash on start
     backgroundColor: "#0A1222", title: "StrideBoard Leaderboard", autoHideMenuBar: true,
-    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true },
+    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false,
+                      sandbox: true, spellcheck: false },
   });
+  win.once("ready-to-show", () => win.show());
   // Only StrideBoard opens inside the window; anything else opens in the normal browser.
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: "deny" }; });
   win.webContents.on("will-navigate", (event, url) => {
@@ -104,11 +107,18 @@ function buildMenu() {
   ]));
 }
 
-app.whenReady().then(() => {
-  // A leaderboard screen should stay on: stop the computer dimming or sleeping the display.
-  powerSaveBlocker.start("prevent-display-sleep");
-  buildMenu();
-  createWindow();
-  app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
-});
-app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
+// One window only: opening the app again just brings the screen to the front.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
+  app.whenReady().then(() => {
+    nativeTheme.themeSource = "dark";   // dark title bar on Mac and Windows, to match the board
+    // A leaderboard screen should stay on: stop the computer dimming or sleeping the display.
+    powerSaveBlocker.start("prevent-display-sleep");
+    buildMenu();
+    createWindow();
+    app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  });
+  app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
+}
