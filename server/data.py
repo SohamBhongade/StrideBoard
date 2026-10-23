@@ -421,7 +421,7 @@ def list_users(conn):
     """All users for the admin page (no PIN hashes, no tokens)."""
     rows = conn.execute(
         "SELECT id, username, display_name, role, department, age_band, daily_goal, "
-        "goal_is_custom, created_at, blocked_until, block_reason FROM users "
+        "goal_is_custom, created_at, blocked_until, block_reason, last_sync FROM users "
         "ORDER BY role, department, display_name"
     ).fetchall()
     now = local_now_iso()
@@ -434,14 +434,12 @@ def list_users(conn):
         "SUM(CASE WHEN date = ? THEN steps ELSE 0 END) AS today "
         "FROM steps WHERE date >= ? AND date <= ? GROUP BY user_id",
         (today.isoformat(), monday, today.isoformat()))}
-    ever = dict(conn.execute("SELECT user_id, MAX(updated_at) FROM steps GROUP BY user_id").fetchall())
     people = []
     for r in rows:
         p = dict(r)
         w = week.get(p["id"])
         p["steps_today"] = w["today"] if w else 0
         p["steps_week"] = w["week"] if w else 0
-        p["last_sync"] = ever.get(p["id"])
         until = p.pop("blocked_until")
         p["blocked"] = bool(until and until > now)          # timed out or banned right now
         p["blocked_until"] = None if (not p["blocked"] or until == FOREVER) else until
@@ -677,6 +675,11 @@ def _write_steps(conn, user_id, day, steps, source, updated_at=None):
         "source = excluded.source, updated_at = excluded.updated_at",
         (user_id, day, steps, source, updated_at or local_now_iso()),
     )
+    # Remember the latest sync on the person, so the admin People list doesn't have to search
+    # every step ever saved to find it.
+    at = updated_at or local_now_iso()
+    conn.execute("UPDATE users SET last_sync = ? WHERE id = ? AND (last_sync IS NULL OR last_sync < ?)",
+                 (at, user_id, at))
 
 
 def award_badges(conn, user_id, day, today):
@@ -1749,7 +1752,7 @@ def reset_person(conn, user_id):
     for table in PERSONAL_TABLES:   # fixed names above, never user input
         conn.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
     conn.execute("UPDATE users SET avatar = NULL, avatar_color = NULL, daily_goal = ?, "
-                 "goal_is_custom = 0, created_at = ? WHERE id = ?",
+                 "goal_is_custom = 0, created_at = ?, last_sync = NULL WHERE id = ?",
                  (config.AGE_BAND_GOALS[row["age_band"]], local_now_iso(), user_id))
     conn.commit()
     return row["display_name"]

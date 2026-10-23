@@ -31,7 +31,12 @@
     }
   </style>
   {# Apple devices (iPhone, iPad, Mac; any browser) get the frosted "glass" look #}
-  <script>if (/Mac|iPhone|iPad|iPod/.test(navigator.userAgent)) document.documentElement.classList.add("glass");</script>
+  <script>(function (h, n) {
+    if (/Mac|iPhone|iPad|iPod/.test(n.userAgent)) h.classList.add("glass");
+    // Low-memory phones and Data Saver: drop the costliest effects so scrolling stays smooth
+    var c = n.connection;
+    if ((n.deviceMemory && n.deviceMemory <= 4) || (c && c.saveData)) h.classList.add("lite");
+  })(document.documentElement, navigator);</script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ ASSET_VERSION }}">
   {% if android %}{% set mat = my_material() %}{# Material You colours (Avatar studio > Theme) #}
   <style>

@@ -48,7 +48,8 @@ def connect(path=None):
 # Columns added after the first release. CREATE TABLE IF NOT EXISTS does not
 # change a table that already exists, so older databases get them here.
 ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT", "email_hash TEXT",
-                           "blocked_until TEXT", "block_reason TEXT", "rename_notice TEXT"]}
+                           "blocked_until TEXT", "block_reason TEXT", "rename_notice TEXT",
+                           "last_sync TEXT"]}
 
 
 def create_tables(conn):
@@ -59,6 +60,10 @@ def create_tables(conn):
         for column in columns:
             if column.split()[0] not in have:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column}")  # fixed names, no user input
+                if column.startswith("last_sync"):
+                    # Fill it in once from the steps already saved (the admin People list reads it).
+                    conn.execute("UPDATE users SET last_sync = (SELECT MAX(updated_at) FROM steps "
+                                 "WHERE steps.user_id = users.id)")
     # One account per email address (people made by an admin have none, which is fine).
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email_hash)")
     conn.commit()
