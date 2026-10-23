@@ -127,7 +127,7 @@
       <div class="record-text">
         <strong>{{ t.record.name }}{% if t.record.level %} · level {{ t.record.level }} of {{ t.record.levels|length }}{% endif %}</strong>
         <span class="small muted">
-          {% if t.best %}Your best: {{ t.best|amount(t.key) }}{% if t.key == 'steps' %} in a day{% elif t.key != 'planks' %} in one go{% endif %}.{% else %}No record yet.{% endif %}
+          {% if t.best %}Your best: {{ t.best|amount(t.key) }} in a day.{% else %}No record yet.{% endif %}
           {% if t.record.next_target %} Next at {{ t.record.next_target|amount(t.key) }}.{% endif %}
         </span>
       </div>

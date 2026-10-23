@@ -54,9 +54,9 @@ BADGES = {k: (config.BADGES.get(k, v[0]),) + v[1:] for k, v in _BADGE_LOOK.items
 # How each progression track looks: icon and colour (the levels live in config.TRACKS).
 TRACK_LOOK = {"steps": ("foot", "blue"), "pushups": ("pushup", "pink"), "squats": ("squat", "peach"),
               "planks": ("plank", "mint"), "jumping_jacks": ("jump", "violet")}
-RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups in one go",
-               "squats": "Do {n} squats in one go", "planks": "Hold a plank for {n}",
-               "jumping_jacks": "Do {n} jumping jacks in one go"}
+RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups in one day",
+               "squats": "Do {n} squats in one day", "planks": "Plank for {n} in one day",
+               "jumping_jacks": "Do {n} jumping jacks in one day"}
 
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
