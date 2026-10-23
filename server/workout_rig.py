@@ -253,11 +253,10 @@ def _head(view, main, extra):
 
 def figure(build, exercise):
     """The animated athlete for one exercise, as the inside of a 100x100 <svg>."""
-    from avatar_art import COLORS
+    from avatar_art import COLORS, SHOES
     build = build or {}
     main, shade = COLORS.get(build.get("color"), COLORS["color_mint"])
-    shoe_key = build.get("shoes")
-    shoe = "#FFFFFF" if shoe_key == "shoes_sneakers" else "#E8C15A" if shoe_key == "shoes_gold" else "#E5786B"
+    shoe = SHOES.get(build.get("shoes"), ("#E5786B",))[0]
     fn, dur = EXERCISES[exercise]
     poses = [fn(i / FRAMES) for i in range(FRAMES + 1)]
     first = _segments(poses[0], (main, shade, shoe))

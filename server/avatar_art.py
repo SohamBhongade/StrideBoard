@@ -42,15 +42,25 @@ def _bg(key, uid):
     return '<rect width="100" height="100" fill="#F1F2F4"/>'
 
 
+# shoes -> (shoe colour, stripe colour, or a list of colours for several thin stripes)
+SHOES = {
+    "shoes_sneakers": ("#FFFFFF", "#E5786B"), "shoes_runners": ("#E5574B", "#FFFFFF"),
+    "shoes_sky": ("#8EC3F2", "#FFFFFF"), "shoes_neon": ("#C8F25A", INK),
+    "shoes_pink": ("#F7A8CF", "#FFFFFF"), "shoes_court": ("#FFFFFF", "#3FA66B"),
+    "shoes_black": ("#2A2B33", "#FFFFFF"), "shoes_gold": ("#E8C15A", "#FFFFFF"),
+    "shoes_rainbow": ("#FFFFFF", ["#E5574B", "#F2C94C", "#4C8FE5"]),
+}
+
+
 def _feet(key, shade):
-    if key == "shoes_sneakers":
-        shoe = "#FFFFFF"
-        stripe = '<path d="M33 85h10M53 85h10" stroke="#E5786B" stroke-width="1.6" stroke-linecap="round"/>'
-    elif key == "shoes_gold":
-        shoe = "#E8C15A"
-        stripe = '<path d="M33 85h10M53 85h10" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>'
+    shoe, stripe_colour = SHOES.get(key, (shade, None))
+    if isinstance(stripe_colour, list):
+        stripe = "".join(f'<path d="M34 {y}h8M54 {y}h8" stroke="{c}" stroke-width="1.2" stroke-linecap="round"/>'
+                         for y, c in zip((83.8, 85.4, 87), stripe_colour))
+    elif stripe_colour:
+        stripe = f'<path d="M33 85h10M53 85h10" stroke="{stripe_colour}" stroke-width="1.6" stroke-linecap="round"/>'
     else:
-        shoe, stripe = shade, ""
+        stripe = ""
     return (f'<ellipse cx="39" cy="86" rx="9" ry="5" fill="{shoe}" stroke="{INK}" stroke-width="1.4"/>'
             f'<ellipse cx="61" cy="86" rx="9" ry="5" fill="{shoe}" stroke="{INK}" stroke-width="1.4"/>{stripe}')
 

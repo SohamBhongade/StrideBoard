@@ -165,7 +165,7 @@ AVATAR_COLORS = ("peri", "blue", "pink", "mint", "peach", "violet", "gold", "sag
 # Price tiers: 0 = free starter, 50 common, 150 rare, 400 epic, 1000 legendary.
 AVATAR_SLOTS = [   # (slot key, name shown) in display order
     ("color", "Colour"), ("eyes", "Eyes"), ("mouth", "Mouth"), ("hat", "Headwear"),
-    ("extra", "Extras"), ("shoes", "Shoes"), ("bg", "Background"),
+    ("extra", "Extras"), ("shoes", "Shoes"), ("bg", "Background"), ("glass", "Glass"),
 ]
 # item key -> (slot, name, price in EXP). Order = display order within a slot.
 AVATAR_ITEMS = {
@@ -193,12 +193,38 @@ AVATAR_ITEMS = {
     "extra_whistle": ("extra", "Coach whistle", 150), "extra_medal": ("extra", "Medal", 400),
 
     "shoes_plain": ("shoes", "Bare feet", 0), "shoes_sneakers": ("shoes", "Sneakers", 150),
-    "shoes_gold": ("shoes", "Gold sneakers", 1000),
+    "shoes_runners": ("shoes", "Red runners", 50), "shoes_sky": ("shoes", "Sky trainers", 50),
+    "shoes_neon": ("shoes", "Neon", 150), "shoes_pink": ("shoes", "Pink pops", 150),
+    "shoes_court": ("shoes", "Court classics", 150), "shoes_black": ("shoes", "Midnight", 400),
+    "shoes_rainbow": ("shoes", "Rainbow", 400), "shoes_gold": ("shoes", "Gold sneakers", 1000),
 
     "bg_plain": ("bg", "Plain", 0), "bg_sage": ("bg", "Sage", 0), "bg_sky": ("bg", "Sky", 50),
     "bg_track": ("bg", "Running track", 150), "bg_sunrise": ("bg", "Sunrise", 400),
     "bg_stars": ("bg", "Night sky", 400),
 }
+# The "Glass" tab of the studio: the colour field behind the frosted glass look, which only
+# Apple devices (iPhone, iPad, Mac) show. Stock is free and is what everyone starts with.
+# key -> (name, price in EXP, light colours, dark colours); colours = (base, 4 glows).
+GLASS_GRADIENTS = {
+    "glass_stock": ("Stock", 0, ("#EEF1F6", "#B9E6C9", "#C7CBFF", "#FFD3C2", "#BFE3F7"),
+                    ("#0A1020", "#1E4F48", "#2C2F7A", "#5A2E4A", "#183A66")),
+    "glass_ocean": ("Ocean", 50, ("#EAF4F8", "#A8E0F0", "#B7C8FF", "#C5F2E6", "#9FD2F5"),
+                    ("#07121F", "#12466A", "#1F2E7A", "#0F5A5A", "#173A66")),
+    "glass_forest": ("Forest", 150, ("#F0F6EC", "#B5E3B0", "#D9EFA8", "#A8DCC8", "#CDE8B9"),
+                     ("#08140C", "#1E4F2A", "#3A4F1A", "#145048", "#24402A")),
+    "glass_sunset": ("Sunset", 150, ("#FFF3EC", "#FFC9A8", "#FFB3C7", "#FFE3A3", "#F9C2E0"),
+                     ("#160A12", "#6A2E2A", "#6A1F4A", "#6A4A1A", "#4A1F5A")),
+    "glass_candy": ("Candy", 400, ("#FFF2F8", "#FFC2E2", "#C9C2FF", "#B8F0E8", "#FFE0B8"),
+                    ("#120A18", "#6A2456", "#3A2A7A", "#145A55", "#6A4520")),
+    "glass_aurora": ("Aurora", 400, ("#EEF3FA", "#B4F5D8", "#C2B5FF", "#A8E8FF", "#E6C2FF"),
+                     ("#050A16", "#0F6A50", "#3A1F8A", "#0F4F7A", "#5A1F7A")),
+    "glass_gold": ("Gold", 1000, ("#FFF8EA", "#FFE19A", "#FFD0A0", "#FFF0C2", "#F2C88A"),
+                   ("#120D04", "#6A4F12", "#5A3410", "#4A3A10", "#3A2A0A")),
+}
+GLASS_DEFAULT = "glass_stock"
+# Everything the studio sells: avatar parts plus glass gradients.
+SHOP_ITEMS = {**AVATAR_ITEMS, **{k: ("glass", v[0], v[1]) for k, v in GLASS_GRADIENTS.items()}}
+
 # What everyone starts with. The colour varies by person so the leaderboards aren't all one colour.
 AVATAR_DEFAULTS = {"eyes": "eyes_dots", "mouth": "mouth_smile", "hat": "hat_none",
                    "extra": "extra_none", "shoes": "shoes_plain", "bg": "bg_plain"}

@@ -1080,3 +1080,14 @@ html.glass { background: radial-gradient(60vmax 60vmax at 8% 10%, #B9E6C9 0%, tr
   :root.glass { --glass: rgba(255, 255, 255, .9); --glass-strong: rgba(255, 255, 255, .95); }
   :root.glass[data-theme="dark"] { --glass: rgba(24, 30, 54, .95); --glass-strong: rgba(36, 44, 76, .95); }
 }
+
+/* Glass tab of the Avatar studio: only Apple devices show the glass look, so only they see it */
+.glass-only, .glass-note { display: none !important; }
+.glass .glass-only { display: inline-flex !important; }
+.glass .glass-note { display: block !important; }
+.glass .no-glass-note { display: none; }
+.glass-swatch {
+  display: flex; width: 100%; max-width: 132px; height: 76px; border-radius: 18px; overflow: hidden;
+  border: 1px solid var(--line); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+.glass-swatch span { flex: 1; }
