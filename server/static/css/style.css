@@ -1239,3 +1239,8 @@ html.glass { background: radial-gradient(60vmax 60vmax at 8% 10%, #B9E6C9 0%, tr
 .reward-day.big .rd-r { color: color-mix(in srgb, var(--gold) 65%, currentColor); }
 .reward-day.claimed { opacity: .55; }
 .reward-day.today { background: color-mix(in srgb, currentColor 22%, transparent); box-shadow: 0 0 0 2px currentColor; }
+
+/* Offline copy of Home (see sw.js) */
+.offline-note { margin-bottom: 14px; padding: 10px 14px; border-radius: 14px; font-size: 14px;
+  background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-line); }
+[data-offline-copy] form button:disabled, [data-offline-copy] form input:disabled { opacity: .45; cursor: not-allowed; }

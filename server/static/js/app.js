@@ -495,3 +495,23 @@ if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").m
     setTimeout(function () { btn.textContent = "Update"; }, 15000);
   });
 })();
+
+// Offline Home: the service worker shows the last saved Home when there's no internet.
+// Say so, grey out anything that needs the internet, and refresh once it's back.
+(function () {
+  var saved = document.documentElement.getAttribute("data-offline-copy");
+  if (!saved) return;
+  var when = new Date(+saved);
+  var label = when.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+  var note = document.createElement("div");
+  note.className = "offline-note";
+  note.setAttribute("role", "status");
+  note.textContent = "You're offline \u00b7 this is your Home from " + label + ". It updates when you're back online.";
+  var main = document.querySelector(".main");
+  if (main) main.insertBefore(note, main.firstChild);
+  document.querySelectorAll("form button, form input, [data-app-update-button]").forEach(function (el) {
+    el.disabled = true;
+    el.setAttribute("title", "Needs the internet");
+  });
+  window.addEventListener("online", function () { location.reload(); });
+})();
