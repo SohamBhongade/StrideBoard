@@ -60,7 +60,7 @@ def test_after_28_days_a_new_calendar_uses_last_weeks_tier(conn):
         put_steps(conn, uid, later - timedelta(days=back), 10_000)
     s = data.reward_status(conn, uid, later)
     assert s["cycle"] == 2 and s["day"] == 1
-    assert s["tier"] == "Silver"                  # Gold has no calendar yet: the best one below it
+    assert s["tier"] == "Gold"
 
 
 def test_reset_clears_the_calendar(conn):
@@ -124,3 +124,31 @@ def test_moving_up_on_day_1_after_claiming_shows_silver(conn):
     put_steps(conn, uid, DAY1, 36_000)                           # then reached Silver
     s = data.reward_status(conn, uid, DAY1)
     assert s["tier"] == "Silver" and s["day"] == 1 and s["claimed_today"]
+
+
+def test_every_tier_has_a_better_calendar_and_its_own_items():
+    order = [name for name, _ in config.TIERS]
+    exp = [sum(v for k, v in config.REWARD_TRACKS[t] if k == "exp") for t in order]
+    assert exp == sorted(exp) and len(set(exp)) == 4                 # each tier gives more EXP
+    for tier in order:
+        track = config.REWARD_TRACKS[tier]
+        assert len(track) == 28
+        items = [v for k, v in track if k == "item"]
+        if tier != "Bronze":
+            assert all(config.EXCLUSIVE_ITEMS[i] == tier for i in items)   # tier-only items
+
+
+def test_platinum_week_gets_the_platinum_calendar(conn):
+    uid = make_user(conn)
+    put_steps(conn, uid, DAY1, 95_000)
+    s = data.reward_status(conn, uid, DAY1)
+    assert s["tier"] == "Platinum" and s["today"]["label"] == "+18 EXP"
+    assert s["days"][13]["label"] == "Platinum halo" and s["days"][27]["label"] == "Platinum glow"
+
+
+def test_gold_and_platinum_items_draw():
+    import avatar_art
+    for build in ({"hat": "hat_gold_laurel"}, {"extra": "extra_gold_cape"}, {"hat": "hat_platinum_halo"},
+                  {"bg": "bg_platinum_glow"}):
+        svg = str(avatar_art.render({"color": "color_sky", **build}, 60))
+        assert avatar_art.GOLD in svg or avatar_art.PLAT in svg or "pg" in svg

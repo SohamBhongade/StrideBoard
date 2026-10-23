@@ -22,7 +22,19 @@ COLORS = {
 }
 
 
+def _sparkle(x, y, r):
+    return (f'<path d="M{x} {y - r}Q{x + r * .18} {y - r * .18} {x + r} {y}Q{x + r * .18} {y + r * .18} {x} {y + r}'
+            f'Q{x - r * .18} {y + r * .18} {x - r} {y}Q{x - r * .18} {y - r * .18} {x} {y - r}Z" fill="#fff"/>')
+
+
 def _bg(key, uid):
+    if key == "bg_platinum_glow":
+        return (f'<defs><radialGradient id="pg{uid}" cx=".5" cy=".45" r=".7">'
+                '<stop offset="0" stop-color="#F4FFFD"/><stop offset=".55" stop-color="#BFF0E8"/>'
+                '<stop offset="1" stop-color="#7FC9C0"/></radialGradient></defs>'
+                f'<rect width="100" height="100" fill="url(#pg{uid})"/>'
+                + _sparkle(16, 20, 5) + _sparkle(84, 26, 4) + _sparkle(80, 80, 5.5) + _sparkle(18, 74, 3.5)
+                + _sparkle(50, 8, 3))
     if key == "bg_sage":
         return '<rect width="100" height="100" fill="#C9DCCC"/>'
     if key == "bg_sky":
@@ -120,10 +132,17 @@ def _extra(key):
 
 
 SILVER, SILVER_SHADE = "#D9DEE6", "#A9B2BF"
+GOLD, GOLD_SHADE = "#E8C15A", "#C99B2E"
+PLAT, PLAT_SHADE = "#BFF0E8", "#8FD5CC"
 
 
 def _wings(key):
-    """Drawn behind the body (Silver wings)."""
+    """Extras drawn behind the body: Silver wings, Gold cape."""
+    if key == "extra_gold_cape":
+        return (f'<path d="M31 46Q50 52 69 46L86 90Q50 97 14 90Z" fill="{GOLD}" stroke="{INK}" stroke-width="1.4" stroke-linejoin="round"/>'
+                f'<path d="M27 70Q24 82 22 89M73 70Q76 82 78 89" stroke="{GOLD_SHADE}" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
+                f'<path d="M15 88Q50 95 85 88" stroke="#B4492F" stroke-width="2.6" fill="none"/>'
+                '<path d="M33 49Q42 53 50 53" stroke="#fff" stroke-width="1.2" opacity=".7" fill="none"/>')
     if key != "extra_silver_wings":
         return ""
     left = ("M29 52C21 40 11 33 5 36C9 40 9 43 7 46C12 46 14 49 12 53C17 53 19 56 17 60"
@@ -135,7 +154,26 @@ def _wings(key):
     return f'<g>{one}</g><g transform="translate(100 0) scale(-1 1)">{one}</g>'
 
 
+def _laurel():
+    leaves = []
+    for side in (1, -1):
+        for i, (x, y, rot) in enumerate(((27, 42, -30), (28, 34, -10), (32, 27, 15), (38, 22, 35), (44, 19, 55))):
+            cx = 50 + side * (50 - x)
+            r = rot if side == 1 else -rot
+            leaves.append(f'<ellipse cx="{cx}" cy="{y}" rx="4.4" ry="2.2" transform="rotate({r} {cx} {y})" '
+                          f'fill="{GOLD if i % 2 else GOLD_SHADE}" stroke="{INK}" stroke-width=".9"/>')
+    stems = (f'<path d="M26 46Q27 26 47 18M74 46Q73 26 53 18" stroke="{GOLD_SHADE}" stroke-width="1.6" fill="none"/>')
+    return stems + "".join(leaves)
+
+
 def _hat(key):
+    if key == "hat_gold_laurel":
+        return _laurel()
+    if key == "hat_platinum_halo":
+        return (f'<ellipse cx="50" cy="17" rx="17" ry="5" fill="none" stroke="{PLAT}" stroke-width="7" opacity=".35"/>'
+                f'<ellipse cx="50" cy="17" rx="17" ry="5" fill="none" stroke="{INK}" stroke-width="4.4"/>'
+                f'<ellipse cx="50" cy="17" rx="17" ry="5" fill="none" stroke="{PLAT}" stroke-width="2.6"/>'
+                '<path d="M38 14.5q6-2 12-2.2" stroke="#fff" stroke-width="1.2" opacity=".9" fill="none"/>')
     if key == "hat_silver_visor":
         return ('<g transform="translate(0 -4.5)">'
                 f'<path d="M24 40q26-9 52 0v5q-26-9-52 0z" fill="{SILVER}" stroke="{INK}" stroke-width="1.3"/>'
