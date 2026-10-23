@@ -8,6 +8,11 @@ minute and keeps the last boards on screen if the Wi-Fi drops.
 [leaderboard-app-latest release](https://github.com/SohamBhongade/StrideBoard/releases/tag/leaderboard-app-latest):
 `StrideBoard-Leaderboard.exe` (Windows) and `StrideBoard-Leaderboard.dmg` (Mac).
 
+**Made for a screen that's always on:** keeps the display awake (no dimming or sleep), remembers its
+window size, place and full screen, hides the mouse pointer after 3 still seconds in full screen,
+scrolls in small windows, keeps the last boards if the Wi-Fi drops, and asks for the screen code
+again if it's wrong or was changed in Admin.
+
 **First run:** type the 10-character screen code from Admin → Leaderboard screen. Change it later
 with Screen → Change screen code (Ctrl/Cmd+K). Full screen: F11 on Windows, Ctrl+Cmd+F on Mac.
 
