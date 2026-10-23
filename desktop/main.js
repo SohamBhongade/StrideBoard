@@ -22,8 +22,8 @@ function showBoard() {
   if (!code) return showSetup();
   win.loadURL(`${SITE}/board?key=${encodeURIComponent(code)}`);
 }
-function showSetup() {
-  win.loadFile(path.join(__dirname, "setup.html"));
+function showSetup(problem) {
+  win.loadFile(path.join(__dirname, "setup.html"), problem ? { query: { problem } } : undefined);
 }
 
 function createWindow() {
@@ -36,6 +36,10 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: "deny" }; });
   win.webContents.on("will-navigate", (event, url) => {
     if (!url.startsWith(SITE) && !url.startsWith("file:")) { event.preventDefault(); shell.openExternal(url); }
+  });
+  // The website says the code is wrong (or was changed in Admin): ask for it again straight away.
+  win.webContents.on("did-navigate", (_e, url, status) => {
+    if (url.startsWith(SITE) && status === 403) showSetup("wrong");
   });
   // No internet: wait a moment and try again, rather than leaving an error on the screen.
   win.webContents.on("did-fail-load", (_e, _code, _desc, url) => {

@@ -1,7 +1,7 @@
 {
   "name": "strideboard-leaderboard",
   "productName": "StrideBoard Leaderboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "This week's StrideBoard leaderboards (Students and Teachers) for a school screen.",
   "author": "StrideBoard team",
   "license": "MIT",
