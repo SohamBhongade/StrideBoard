@@ -124,7 +124,7 @@ button { cursor: pointer; }
 /* Scrolling down shrinks the bar into a round menu button; a tap opens it back into the bar */
 .bottom-nav { transition: left .38s cubic-bezier(.3, 1.25, .5, 1), right .38s cubic-bezier(.3, 1.25, .5, 1), border-radius .38s; }
 .nav-toggle { display: none; }
-.bottom-nav.nav-mini { left: calc(50% - 34px); right: calc(50% - 34px); grid-template-columns: 1fr; border-radius: 34px; }
+.bottom-nav.nav-mini { right: calc(100% - 80px); grid-template-columns: 1fr; border-radius: 34px; }
 .bottom-nav.nav-mini a { display: none; }
 .bottom-nav.nav-mini .nav-toggle {
   display: flex; align-items: center; justify-content: center;
