@@ -2,7 +2,7 @@
 
 Three layers:
   1. Daily: PythonAnywhere runs `python3 ~/strideboard/server/backup.py` once a day (Tasks tab).
-     It saves a compressed copy next to the database, in backups/, and keeps the last 14.
+     It saves a compressed copy next to the database, in backups/, and keeps the last 7.
   2. Weekly (Mondays): that same run also emails the copy to the site's own Gmail, so a copy
      exists outside PythonAnywhere too.
   3. Any time: the owner can download a copy from Admin > Backups.
@@ -24,7 +24,8 @@ from zoneinfo import ZoneInfo  # noqa: E402
 
 TZ = ZoneInfo(config.TIMEZONE)
 
-KEEP_DAYS = 14
+KEEP_DAYS = 7          # a week of copies: a whole school year fits easily in the free disk space
+EMAIL_LIMIT = 20_000_000   # Gmail refuses attachments over 25 MB; bigger copies get a note instead
 PREFIX = "strideboard-backup-"
 
 
@@ -42,7 +43,9 @@ def snapshot(db_path):
         with dst:
             src.backup(dst)
         dst.close()
-        return gzip.compress(Path(tmp).read_bytes(), compresslevel=9)
+        # Level 6: about 10x faster than the maximum (9) for a file only a few % bigger, so the
+        # daily task stays well inside PythonAnywhere's free CPU time.
+        return gzip.compress(Path(tmp).read_bytes(), compresslevel=6)
     finally:
         src.close()
         os.remove(tmp)
@@ -81,8 +84,13 @@ def main(argv=None):
     if now.weekday() == 0 or "--email" in argv:      # Mondays, or when asked
         import mailer
         try:
-            to = mailer.send_backup(path.name, path.read_bytes())
-            print(f"Emailed it to {to}")
+            blob = path.read_bytes()
+            if len(blob) > EMAIL_LIMIT:
+                to = mailer.send_backup(path.name, None)
+                print(f"Too big to attach ({len(blob) / 1e6:.0f} MB): emailed {to} a reminder to download one")
+            else:
+                to = mailer.send_backup(path.name, blob)
+                print(f"Emailed it to {to}")
         except ValueError as e:
             print(f"Couldn't email it: {e}")
 
