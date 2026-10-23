@@ -129,7 +129,8 @@ CREATE TABLE IF NOT EXISTS meta (
 
 -- Indexes make the weekly leaderboard queries fast.
 CREATE INDEX IF NOT EXISTS idx_steps_date ON steps(date);
-CREATE INDEX IF NOT EXISTS idx_moods_user_date ON moods(user_id, date);
+-- (moods already has UNIQUE (user_id, date), which works as an index: no second copy needed)
+DROP INDEX IF EXISTS idx_moods_user_date;
 
 -- Mini challenges: one row per attempt. status: active, done or quit.
 -- base_steps is today's step total when a walk started (walks finish on new steps).

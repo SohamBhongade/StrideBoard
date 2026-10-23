@@ -31,13 +31,13 @@ def test_snapshot_is_a_complete_database(tmp_path):
     assert c.execute("SELECT username FROM users").fetchone()[0] == "sam"
 
 
-def test_daily_backups_keep_the_last_14(tmp_path):
+def test_daily_backups_keep_the_last_7(tmp_path):
     path = make_db(tmp_path)
     start = datetime(2026, 10, 1, 3, 0, tzinfo=backup.TZ)
     for d in range(20):
         backup.save_daily(str(path), start + timedelta(days=d))
     files = sorted(p.name for p in backup.folder_for(str(path)).iterdir())
-    assert len(files) == 14 and files[0].endswith("2026-10-07.sqlite3.gz") and files[-1].endswith("2026-10-20.sqlite3.gz")
+    assert len(files) == 7 and files[0].endswith("2026-10-14.sqlite3.gz") and files[-1].endswith("2026-10-20.sqlite3.gz")
     assert backup.latest(str(path))[0] == files[-1]
 
 

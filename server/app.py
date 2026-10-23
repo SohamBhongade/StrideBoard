@@ -61,7 +61,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "44"
+ASSET_VERSION = "45"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -159,6 +159,35 @@ def cached_impact_stats(conn):
     return stats
 
 
+_BOARD_CACHE = {}           # (database, view, day, role) -> (time made, rows)
+BOARD_CACHE_SECONDS = 30
+
+
+def cached_leaderboard(conn, view, day, role=None):
+    """A leaderboard, ranked once and reused for up to 30 seconds.
+
+    Ranking the whole school is the biggest job on Home (its top-3 preview), Ranks and the
+    TV screen. At break time hundreds of people open those within seconds, so one ranking is
+    shared instead of redone for each of them. Rows are copied so a page can't change it.
+    """
+    if current_app.testing:
+        return data.leaderboard(conn, view, day, role=role)
+    key = (current_app.config.get("DATABASE") or config.DATABASE, view, str(day), role)
+    now = datetime.now().timestamp()
+    hit = _BOARD_CACHE.get(key)
+    if not hit or now - hit[0] >= BOARD_CACHE_SECONDS:
+        if len(_BOARD_CACHE) > 64:
+            _BOARD_CACHE.clear()
+        hit = (now, data.leaderboard(conn, view, day, role=role))
+        _BOARD_CACHE[key] = hit
+    return [dict(r) for r in hit[1]]
+
+
+def clear_leaderboard_cache():
+    """After a ban, rename or reset, show the change straight away."""
+    _BOARD_CACHE.clear()
+
+
 def add_speed(app):
     """Make pages load faster on phones and school Wi-Fi.
 
@@ -242,7 +271,7 @@ def add_template_helpers(app):
                 "fixed_mode": fixed_mode(),
                 "try_on": lambda build, slot, key: {**build, slot: key},
                 "my_glass": my_glass(), "GLASS_GRADIENTS": config.GLASS_GRADIENTS,
-                "glass_bg": glass_bg, "android": is_android(), "my_material": my_material,
+                "glass_bg": glass_bg, "glass_vars": glass_vars, "android": is_android(), "my_material": my_material,
                 "MATERIAL_THEMES": config.MATERIAL_THEMES, "material_swatch": material.swatch,
                 "AVATARS": config.AVATARS, "AVATAR_COLORS": config.AVATAR_COLORS}
 
@@ -332,6 +361,12 @@ def my_material():
         key = data.material_choice(db.get_db(), g.user["id"])
     seed = config.MATERIAL_THEMES[key][2]
     return {"light": material.css_vars(seed), "dark": material.css_vars(seed, dark=True)}
+
+
+def glass_vars(colours):
+    """The glass colours as CSS variables (--g0 base, --g1..--g4 glows): the still background
+    and the slowly drifting layer above it both use them."""
+    return " ".join(f"--g{i}: {c};" for i, c in enumerate(colours))
 
 
 def glass_bg(colours, unit="vmax"):
@@ -641,7 +676,7 @@ def add_routes(app):
         week = this_week(data.history(conn, uid, 7, t), d["daily_goal"])
         # A small leaderboard preview: top 3 plus where you are
         view = g.user["role"] if g.user["role"] in ("student", "teacher") else "student"
-        board = data.leaderboard(conn, view, t)
+        board = cached_leaderboard(conn, view, t)
         mine = next((r for r in board if r.get("user_id") == uid), None)
         preview = with_builds(conn, board[:3] + ([mine] if mine and mine["rank"] > 3 else []))
         return render_template("dashboard.html", d=d, week=week, preview=preview,
@@ -711,7 +746,7 @@ def add_routes(app):
         view = request.args.get("view", default)
         if view not in views:
             view = default
-        rows = data.leaderboard(db.get_db(), view, today(), role=role)
+        rows = cached_leaderboard(db.get_db(), view, today(), role=role)
         # Big boards show the top 50 plus your own row; "Show everyone" opens the full list.
         # Ranks are worked out on the full board first, so they never change.
         show_all = request.args.get("all") == "1"
@@ -884,7 +919,7 @@ def add_routes(app):
         t = today()
         boards = []
         for view, title in (("student", "Students"), ("teacher", "Teachers")):
-            rows = data.leaderboard(conn, view, t)
+            rows = cached_leaderboard(conn, view, t)
             boards.append({"title": title, "rows": with_builds(conn, rows[:BOARD_ROWS]), "count": len(rows),
                            "total": sum(r["value"] for r in rows)})
         monday = db.local_today() - timedelta(days=db.local_today().weekday())
@@ -913,6 +948,7 @@ def add_routes(app):
         result = None
         if request.method == "POST":
             _IMPACT_CACHE.clear()      # an Admin change: show fresh impact numbers next
+            clear_leaderboard_cache()  # ...and fresh leaderboards (bans, renames, resets)
             action = request.form.get("action")
             try:
                 if action == "add_users":

@@ -436,7 +436,7 @@ while phones are syncing) and compresses it.
 
 - **Daily:** on PythonAnywhere, Tasks tab, add a daily task:
   `python3 /home/strideboard/strideboard/server/backup.py`
-  It saves into `strideboard-data/backups/` next to the database and keeps the last 14 days.
+  It saves into `strideboard-data/backups/` next to the database and keeps the last 7 days.
   On Mondays it also emails the copy to the site's Gmail (an off-site copy).
 - **Any time:** the owner can click **Admin → Backups → Download a backup**.
 
