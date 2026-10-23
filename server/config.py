@@ -187,12 +187,13 @@ AVATAR_ITEMS = {
     "hat_cap": ("hat", "Cap", 150), "hat_beanie": ("hat", "Beanie", 150),
     "hat_flower": ("hat", "Flower", 150), "hat_party": ("hat", "Party hat", 400),
     "hat_headphones": ("hat", "Headphones", 400), "hat_crown": ("hat", "Crown", 1000),
-    "hat_silver_visor": ("hat", "Silver visor", 100),
+    "hat_silver_visor": ("hat", "Silver visor", 100), "hat_gold_laurel": ("hat", "Gold laurel", 150),
+    "hat_platinum_halo": ("hat", "Platinum halo", 200),
 
     "extra_none": ("extra", "None", 0), "extra_glasses": ("extra", "Glasses", 50),
     "extra_scarf": ("extra", "Scarf", 150), "extra_shades": ("extra", "Shades", 150),
     "extra_whistle": ("extra", "Coach whistle", 150), "extra_medal": ("extra", "Medal", 400),
-    "extra_silver_wings": ("extra", "Silver wings", 100),
+    "extra_silver_wings": ("extra", "Silver wings", 100), "extra_gold_cape": ("extra", "Gold cape", 150),
 
     "shoes_plain": ("shoes", "Bare feet", 0), "shoes_sneakers": ("shoes", "Sneakers", 150),
     "shoes_runners": ("shoes", "Red runners", 50), "shoes_sky": ("shoes", "Sky trainers", 50),
@@ -202,7 +203,7 @@ AVATAR_ITEMS = {
 
     "bg_plain": ("bg", "Plain", 0), "bg_sage": ("bg", "Sage", 0), "bg_sky": ("bg", "Sky", 50),
     "bg_track": ("bg", "Running track", 150), "bg_sunrise": ("bg", "Sunrise", 400),
-    "bg_stars": ("bg", "Night sky", 400),
+    "bg_stars": ("bg", "Night sky", 400), "bg_platinum_glow": ("bg", "Platinum glow", 200),
 }
 # The "Glass" tab of the studio: the colour field behind the frosted glass look, which only
 # Apple devices (iPhone, iPad, Mac) show. Stock is free and is what everyone starts with.
@@ -255,7 +256,9 @@ def _calendar(*weeks):
 
 # Tier-only items: never sold, only given by that tier's reward calendar. Their "price" is the
 # EXP paid instead if a calendar gives one you already own.
-EXCLUSIVE_ITEMS = {"hat_silver_visor": "Silver", "extra_silver_wings": "Silver"}
+EXCLUSIVE_ITEMS = {"hat_silver_visor": "Silver", "extra_silver_wings": "Silver",
+                   "hat_gold_laurel": "Gold", "extra_gold_cape": "Gold",
+                   "hat_platinum_halo": "Platinum", "bg_platinum_glow": "Platinum"}
 
 REWARD_TRACKS = {
     "Bronze": _calendar(
@@ -269,6 +272,18 @@ REWARD_TRACKS = {
         [("exp", 10)] * 6 + [("item", "hat_silver_visor")],
         [("exp", 12)] * 6 + [("exp", 60)],
         [("exp", 15)] * 6 + [("item", "extra_silver_wings")],
+    ),
+    "Gold": _calendar(
+        [("exp", 12)] * 6 + [("exp", 50)],
+        [("exp", 15)] * 6 + [("item", "hat_gold_laurel")],
+        [("exp", 18)] * 6 + [("exp", 80)],
+        [("exp", 20)] * 6 + [("item", "extra_gold_cape")],
+    ),
+    "Platinum": _calendar(
+        [("exp", 18)] * 6 + [("exp", 75)],
+        [("exp", 22)] * 6 + [("item", "hat_platinum_halo")],
+        [("exp", 26)] * 6 + [("exp", 120)],
+        [("exp", 30)] * 6 + [("item", "bg_platinum_glow")],
     ),
 }
 
