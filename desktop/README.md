@@ -6,7 +6,7 @@ minute and keeps the last boards on screen if the Wi-Fi drops.
 
 **Download:** Admin → Leaderboard screen on the website, or the
 [leaderboard-app-latest release](https://github.com/SohamBhongade/StrideBoard/releases/tag/leaderboard-app-latest):
-`StrideBoard-Leaderboard.exe` (Windows) and `StrideBoard-Leaderboard.dmg` (Mac).
+`StrideBoard-Leaderboard.exe` (Windows: a one-click installer that adds Start menu and desktop shortcuts) and `StrideBoard-Leaderboard.dmg` (Mac).
 
 **Made for a screen that's always on:** keeps the display awake (no dimming or sleep), remembers its
 window size, place and full screen, hides the mouse pointer after 3 still seconds in full screen,
@@ -17,7 +17,9 @@ again if it's wrong or was changed in Admin.
 with Screen → Change screen code (Ctrl/Cmd+K). Full screen: F11 on Windows, Ctrl+Cmd+F on Mac.
 
 **Not signed by Microsoft or Apple** (a school project), so the first launch needs one extra click:
-- Windows: "Windows protected your PC" → **More info** → **Run anyway**.
+- Windows: "Windows protected your PC" → **More info** → **Run anyway**. It installs in a few
+  seconds (no admin rights needed) and opens; after that use the Start menu or desktop shortcut.
+  Uninstall from Settings → Apps like any other app.
 - Mac: open the .dmg, drag the app to Applications, then **right-click the app → Open → Open**.
 
 Built automatically by GitHub Actions (`.github/workflows/leaderboard-app.yml`) whenever this

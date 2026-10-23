@@ -69,21 +69,42 @@
     <span>Refreshes every minute</span>
   </footer>
 
-  {{ avatar_sheet() }}
+  <div id="board-sheet">{{ avatar_sheet() }}</div>
   <script>
-    // Keep the clock ticking and reload the boards every minute (only when the site answers,
-    // so a Wi-Fi blip never leaves an error page on the screen).
+    // Live updates without reloading the page: every minute, fetch the boards and swap in only
+    // the parts that changed (no flash, little work). While the window is hidden or minimised it
+    // waits, then catches up the moment it's visible. If the site can't be reached, the last
+    // boards stay on screen. A new code in Admin or a website update reloads the page properly.
     (function () {
       var clock = document.querySelector("[data-board-clock]");
       function tick() {
         var d = new Date();
         clock.textContent = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
       }
+      var css = document.querySelector('link[rel=stylesheet]').getAttribute("href");
+      var parts = [".board-grid", ".board-title p", ".board-clock span", "#board-sheet"];
+      var waiting = false;
+      function refresh() {
+        if (document.hidden) { waiting = true; return; }
+        fetch(location.href, { cache: "no-store" }).then(function (r) {
+          if (r.status === 403) { location.reload(); throw 0; }     // the screen code was changed
+          if (!r.ok) throw 0;
+          return r.text();
+        }).then(function (html) {
+          var fresh = new DOMParser().parseFromString(html, "text/html");
+          var link = fresh.querySelector('link[rel=stylesheet]');
+          if (link && link.getAttribute("href") !== css) { location.reload(); return; }   // site updated
+          parts.forEach(function (sel) {
+            var now = document.querySelector(sel), next = fresh.querySelector(sel);
+            if (now && next && now.innerHTML !== next.innerHTML) now.innerHTML = next.innerHTML;
+          });
+        }).catch(function () { /* offline: keep showing the last boards */ });
+      }
       setInterval(tick, 10000);
-      setInterval(function () {
-        fetch(location.href, { cache: "no-store" }).then(function (r) { if (r.ok) location.reload(); })
-          .catch(function () { /* offline: keep showing the last boards */ });
-      }, 60000);
+      setInterval(refresh, 60000);
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) { tick(); if (waiting) { waiting = false; refresh(); } }
+      });
     })();
   </script>
 </body>

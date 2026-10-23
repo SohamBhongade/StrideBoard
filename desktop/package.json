@@ -1,7 +1,7 @@
 {
   "name": "strideboard-leaderboard",
   "productName": "StrideBoard Leaderboard",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "This week's StrideBoard leaderboards (Students and Teachers) for a school screen.",
   "author": "StrideBoard team",
   "license": "MIT",
@@ -45,15 +45,28 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "nsis",
           "arch": [
             "x64"
           ]
         }
       ]
     },
-    "portable": {
-      "artifactName": "StrideBoard-Leaderboard.exe"
+    "compression": "maximum",
+    "electronLanguages": [
+      "en",
+      "en-US",
+      "en-GB"
+    ],
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "StrideBoard-Leaderboard.exe",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "shortcutName": "StrideBoard Leaderboard",
+      "deleteAppDataOnUninstall": false
     }
   },
   "repository": {
