@@ -105,6 +105,30 @@ class MainActivity : ComponentActivity() {
         if (Prefs.serverUrl(this) != loadedBase) loadSite()
         refreshBanner()
         startLive()
+        offerToRemoveOldApp()
+    }
+
+    /**
+     * Apps before 1.4 had another id (com.strideboard.app) and can't be updated, so this one
+     * was installed beside it. If the old one is still there, offer to remove it: Android then
+     * asks "Do you want to uninstall this app?" and one tap removes it.
+     */
+    private var askedAboutOldApp = false
+    private fun offerToRemoveOldApp() {
+        if (askedAboutOldApp) return
+        val old = "com.strideboard.app"
+        val installed = try { packageManager.getPackageInfo(old, 0); true } catch (e: Exception) { false }
+        if (!installed) return
+        askedAboutOldApp = true
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Remove the old StrideBoard app?")
+            .setMessage("You're on the new StrideBoard app, which updates itself from now on. " +
+                "The old one isn't needed any more. Your account and steps are safe on the website.")
+            .setPositiveButton("Remove it") { _, _ ->
+                startActivity(Intent(Intent.ACTION_DELETE, Uri.parse("package:$old")))
+            }
+            .setNegativeButton("Not now", null)
+            .show()
     }
 
     override fun onPause() {
