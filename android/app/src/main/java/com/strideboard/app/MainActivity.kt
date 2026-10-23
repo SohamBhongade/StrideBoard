@@ -22,6 +22,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -246,6 +247,31 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * The strips behind the clock/battery at the top and the gesture bar at the bottom belong
+     * to the app, not the website. Paint them the page's own background colour (whatever
+     * Light/Dark/Automatic and colour theme the person chose), with dark or light icons to suit.
+     */
+    private fun matchBarsToPage() {
+        val js = "(function(){var b=getComputedStyle(document.body).backgroundColor;" +
+            "if(!b||b.indexOf('rgba(0, 0, 0, 0)')===0)b=getComputedStyle(document.documentElement).backgroundColor;" +
+            "return b;})()"
+        webView.evaluateJavascript(js) { result ->
+            val nums = Regex("""\d+(\.\d+)?""").findAll(result ?: "").map { it.value.toDouble() }.toList()
+            if (nums.size < 3) return@evaluateJavascript
+            if (nums.size >= 4 && nums[3] == 0.0) return@evaluateJavascript     // still transparent
+            val (r, g, b) = nums.take(3).map { it.toInt().coerceIn(0, 255) }
+            val colour = android.graphics.Color.rgb(r, g, b)
+            findViewById<View>(R.id.root).setBackgroundColor(colour)
+            window.decorView.setBackgroundColor(colour)
+            val lightPage = (0.299 * r + 0.587 * g + 0.114 * b) > 150
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                isAppearanceLightStatusBars = lightPage
+                isAppearanceLightNavigationBars = lightPage
+            }
+        }
+    }
+
     private inner class SiteClient : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val uri = request.url
@@ -267,6 +293,7 @@ class MainActivity : ComponentActivity() {
             if (!mainFrameFailed) {
                 offlineView.visibility = View.GONE
                 webView.visibility = View.VISIBLE
+                matchBarsToPage()
             }
         }
 
