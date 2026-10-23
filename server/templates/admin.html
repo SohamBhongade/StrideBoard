@@ -109,7 +109,7 @@
     <a class="btn btn-dark" href="{{ app_downloads }}StrideBoard-Leaderboard.dmg">{{ m.icon('play', 16) }} Mac app (.dmg)</a>
     <a class="btn btn-outline" href="{{ url_for('board', key=board_code) }}" target="_blank" rel="noopener">Open in this browser</a>
   </div>
-  {% if is_owner(user) %}
+  {% if owner %}
   <form method="post" class="inline-form" style="margin-top:10px">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <button class="link-btn small" type="submit" name="action" value="board_new"
@@ -244,7 +244,7 @@
     <table>
       <thead><tr>{% if owner %}<th><span class="visually-hidden">Select</span></th>{% endif %}<th>Name</th><th>Username</th><th>Role</th><th>Class / department</th>
         {% if people_role == 'blocked' %}<th>Status</th><th>Reason</th>{% if owner %}<th></th>{% endif %}
-        {% else %}<th>Age band</th><th>Daily goal</th>{% endif %}</tr></thead>
+        {% else %}<th class="num">Today</th><th class="num">This week</th><th>Last sync</th><th>Age band</th><th>Daily goal</th>{% endif %}</tr></thead>
       <tbody data-people-rows>
         {% for u in shown %}
         <tr data-search="{{ (u.display_name ~ ' ' ~ u.username ~ ' ' ~ (u.department or ''))|lower }}">
@@ -259,6 +259,9 @@
               <input type="hidden" name="back" value="people-blocked">
               <button class="btn btn-outline btn-sm" type="submit" name="action" value="mod_unblock">Unban</button></form></td>{% endif %}
             {% else %}
+            <td class="num">{% if u.role != 'admin' %}<span class="{{ 'steps-met' if u.steps_today >= u.daily_goal else 'steps-under' if u.steps_today else 'muted' }}">{{ u.steps_today|num }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{% if u.role != 'admin' %}{{ u.steps_week|num }}{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="{{ 'muted' if not u.last_sync }}">{{ u.last_sync|synced }}</td>
             <td>{{ age_labels.get(u.age_band, u.age_band) }}</td><td>{{ u.daily_goal|num }}{% if u.goal_is_custom %} (own){% endif %}</td>
             {% endif %}</tr>
         {% endfor %}

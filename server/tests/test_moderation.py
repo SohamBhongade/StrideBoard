@@ -110,3 +110,18 @@ def test_reset_person_keeps_the_account_but_erases_its_history(conn):
     assert conn.execute("SELECT steps FROM steps WHERE user_id = ?", (other,)).fetchone()[0] == 9000
     with pytest.raises(ValueError, match="doesn't exist"):
         data.reset_person(conn, 99999)
+
+
+def test_people_list_shows_steps_today_week_and_last_sync(conn):
+    from datetime import timedelta
+    import db as _db
+    today = _db.local_today()
+    uid = make_user(conn, "sam", display_name="Sam Lee")
+    idle = make_user(conn, "kim", display_name="Kim Ali")
+    data.save_steps(conn, uid, today.isoformat(), 6500, "manual")
+    if today.weekday() > 0:                       # an earlier day this week counts towards the week
+        data.save_steps(conn, uid, (today - timedelta(days=1)).isoformat(), 4000, "manual")
+    people = {p["id"]: p for p in data.list_users(conn)}
+    assert people[uid]["steps_today"] == 6500
+    assert people[uid]["steps_week"] == 6500 + (4000 if today.weekday() > 0 else 0)
+    assert people[uid]["last_sync"] and people[idle]["last_sync"] is None and people[idle]["steps_week"] == 0

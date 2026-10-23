@@ -425,9 +425,23 @@ def list_users(conn):
         "ORDER BY role, department, display_name"
     ).fetchall()
     now = local_now_iso()
+    # Steps today, this week (Monday to today) and the last time each phone synced:
+    # two grouped queries for everyone, not one per person.
+    today = local_today()
+    monday = calc.week_bounds(today)[0].isoformat()
+    week = {r["user_id"]: r for r in conn.execute(
+        "SELECT user_id, SUM(steps) AS week, MAX(updated_at) AS synced, "
+        "SUM(CASE WHEN date = ? THEN steps ELSE 0 END) AS today "
+        "FROM steps WHERE date >= ? AND date <= ? GROUP BY user_id",
+        (today.isoformat(), monday, today.isoformat()))}
+    ever = dict(conn.execute("SELECT user_id, MAX(updated_at) FROM steps GROUP BY user_id").fetchall())
     people = []
     for r in rows:
         p = dict(r)
+        w = week.get(p["id"])
+        p["steps_today"] = w["today"] if w else 0
+        p["steps_week"] = w["week"] if w else 0
+        p["last_sync"] = ever.get(p["id"])
         until = p.pop("blocked_until")
         p["blocked"] = bool(until and until > now)          # timed out or banned right now
         p["blocked_until"] = None if (not p["blocked"] or until == FOREVER) else until

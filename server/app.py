@@ -57,7 +57,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "32"
+ASSET_VERSION = "33"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -185,6 +185,19 @@ def add_speed(app):
 # ---------------------------------------------------------------- templates
 
 def add_template_helpers(app):
+    @app.template_filter("synced")
+    def synced(iso):
+        """When a phone last synced, short: 'Today 08:12', 'Yesterday 21:30', 'Mon 19 Oct', or 'Never'."""
+        if not iso:
+            return "Never"
+        when = datetime.fromisoformat(iso)
+        days = (db.local_today() - when.date()).days
+        if days == 0:
+            return f"Today {when:%H:%M}"
+        if days == 1:
+            return f"Yesterday {when:%H:%M}"
+        return when.strftime("%a %-d %b")
+
     @app.template_filter("num")
     def num(n):
         """8423 -> "8,423"."""
