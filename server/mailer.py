@@ -67,3 +67,26 @@ def send_code(to, code, purpose="signup"):
     except (smtplib.SMTPException, OSError):
         log.exception("could not send sign-up email")
         raise ValueError("we couldn't send the email just now. Check the address and try again") from None
+
+
+def send_backup(filename, data):
+    """Email a database backup to the site's own Gmail (an off-site copy). Returns the address."""
+    user, password = gmail_login()
+    if not (user and password):
+        raise ValueError("Gmail isn't set up, so the backup wasn't emailed")
+    msg = EmailMessage()
+    msg["Subject"] = f"StrideBoard weekly backup ({filename})"
+    msg["From"] = f"StrideBoard <{user}>"
+    msg["To"] = user
+    msg.set_content("This week's copy of the StrideBoard database is attached. Keep this email: "
+                    "if anything ever goes wrong, the site can be restored from it (see README).\n")
+    msg.add_attachment(data, maintype="application", subtype="gzip", filename=filename)
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=60) as smtp:
+            smtp.starttls()
+            smtp.login(user, password)
+            smtp.send_message(msg)
+    except (smtplib.SMTPException, OSError):
+        log.exception("could not email the backup")
+        raise ValueError("Gmail didn't accept the email just now") from None
+    return user

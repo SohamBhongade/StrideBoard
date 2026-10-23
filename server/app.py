@@ -4,6 +4,7 @@ The pages people see. All data comes from data.py (Agent 1); this file never
 writes SQL. Run from the server folder with:  flask run
 """
 import gzip
+import io
 import os
 import re
 import secrets
@@ -14,6 +15,7 @@ from flask import (Flask, abort, current_app, send_file, flash, g, get_flashed_m
                    render_template, request, session, url_for)
 
 import api
+import backup
 import avatar_art
 import material
 import config
@@ -1012,7 +1014,19 @@ def add_routes(app):
                                csv_text=request.form.get("csv", "") if result else "",
                                shortcut_link=data.ios_shortcut_link(conn),
                                owner=is_owner(g.user),
-                               blocked=data.blocked_people(conn) if is_owner(g.user) else [])
+                               blocked=data.blocked_people(conn) if is_owner(g.user) else [],
+                               last_backup=backup.latest(current_app.config["DATABASE"])
+                               if is_owner(g.user) else None,
+                               backup_script=os.path.abspath(backup.__file__))
+
+    @app.route("/admin/backup")
+    def admin_backup():
+        """Owner only: download the whole database, compressed, to keep a copy safe."""
+        if not is_owner(g.user):
+            abort(403)
+        blob = backup.snapshot(current_app.config["DATABASE"])
+        return send_file(io.BytesIO(blob), mimetype="application/gzip", as_attachment=True,
+                         download_name=backup.file_name(), max_age=0)
 
     # ---------- PWA plumbing
     @app.route("/sw.js")
