@@ -1017,8 +1017,8 @@ th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 :root.glass { --glass: rgba(255, 255, 255, .34); --glass-strong: rgba(255, 255, 255, .55); --glass-line: rgba(255, 255, 255, .7); --glass-shadow: 0 10px 30px rgba(30, 40, 80, .12), 0 1px 2px rgba(30, 40, 80, .08); --glass-hi: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .25); --ink: #12131A; --muted: #3F4656; }
 :root.glass[data-theme="dark"] { --glass: rgba(30, 40, 72, .38); --glass-strong: rgba(40, 52, 92, .55); --glass-line: rgba(255, 255, 255, .18); --glass-shadow: 0 12px 34px rgba(0, 0, 0, .35); --glass-hi: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(255, 255, 255, .05); --ink: #F2F4FA; --muted: #B7C0DA; }
 .glass body, .glass .main { background: transparent !important; background-image: none !important; }
-html.glass { background: radial-gradient(60vmax 60vmax at 8% 10%, #B9E6C9 0%, transparent 60%), radial-gradient(55vmax 55vmax at 95% 20%, #C7CBFF 0%, transparent 60%), radial-gradient(60vmax 60vmax at 85% 95%, #FFD3C2 0%, transparent 60%), radial-gradient(50vmax 50vmax at 10% 90%, #BFE3F7 0%, transparent 60%), #EEF1F6; background-attachment: fixed; min-height: 100%; }
-:root.glass[data-theme="dark"] { background: radial-gradient(60vmax 60vmax at 8% 10%, #1E4F48 0%, transparent 60%), radial-gradient(55vmax 55vmax at 95% 20%, #2C2F7A 0%, transparent 60%), radial-gradient(60vmax 60vmax at 85% 95%, #5A2E4A 0%, transparent 60%), radial-gradient(50vmax 50vmax at 10% 90%, #183A66 0%, transparent 60%), #0A1020; background-attachment: fixed; }
+html.glass { --g0: #EEF1F6; --g1: #B9E6C9; --g2: #C7CBFF; --g3: #FFD3C2; --g4: #BFE3F7; background: radial-gradient(60vmax 60vmax at 8% 10%, var(--g1) 0%, transparent 60%), radial-gradient(55vmax 55vmax at 95% 20%, var(--g2) 0%, transparent 60%), radial-gradient(60vmax 60vmax at 85% 95%, var(--g3) 0%, transparent 60%), radial-gradient(50vmax 50vmax at 10% 90%, var(--g4) 0%, transparent 60%), var(--g0); background-attachment: fixed; min-height: 100%; }
+:root.glass[data-theme="dark"] { --g0: #0A1020; --g1: #1E4F48; --g2: #2C2F7A; --g3: #5A2E4A; --g4: #183A66; }
 .glass .app { background: transparent !important; box-shadow: none !important; }
 .glass .card, .glass .card-soft, .glass .card-white, .glass .card-peri, .glass .card-blue, .glass .card-pink, .glass .card-peach, .glass .nudge, .glass .warn-box, .glass .flash, .glass .inner, .glass .stat, .glass .rank-list, .glass .history, .glass .table-wrap, .glass .mini-tile, .glass .badge-tile, .glass .badge-mini, .glass .item-tile, .glass .token-box { background: var(--glass) !important; border: 1px solid var(--glass-line) !important; box-shadow: var(--glass-shadow), var(--glass-hi) !important; color: var(--ink); }
 .glass .inner, .glass .stat, .glass .mini-tile, .glass .badge-tile, .glass .badge-mini, .glass .item-tile, .glass .token-box, .glass .rank-list, .glass .history, .glass .table-wrap { background: rgba(255, 255, 255, .22) !important; box-shadow: var(--glass-hi) !important; }
@@ -1060,7 +1060,7 @@ html.glass { background: radial-gradient(60vmax 60vmax at 8% 10%, #B9E6C9 0%, tr
 :root.glass[data-theme="dark"] .btn-dark { background: rgba(255, 255, 255, .88) !important; color: #111 !important; box-shadow: inset 0 1px 0 #fff, 0 6px 18px rgba(0, 0, 0, .3); }
 @media (prefers-color-scheme: dark) {
   :root.glass[data-theme="auto"] { --glass: rgba(30, 40, 72, .38); --glass-strong: rgba(40, 52, 92, .55); --glass-line: rgba(255, 255, 255, .18); --glass-shadow: 0 12px 34px rgba(0, 0, 0, .35); --glass-hi: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(255, 255, 255, .05); --ink: #F2F4FA; --muted: #B7C0DA; }
-  :root.glass[data-theme="auto"] { background: radial-gradient(60vmax 60vmax at 8% 10%, #1E4F48 0%, transparent 60%), radial-gradient(55vmax 55vmax at 95% 20%, #2C2F7A 0%, transparent 60%), radial-gradient(60vmax 60vmax at 85% 95%, #5A2E4A 0%, transparent 60%), radial-gradient(50vmax 50vmax at 10% 90%, #183A66 0%, transparent 60%), #0A1020; background-attachment: fixed; }
+  :root.glass[data-theme="auto"] { --g0: #0A1020; --g1: #1E4F48; --g2: #2C2F7A; --g3: #5A2E4A; --g4: #183A66; }
   :root.glass[data-theme="auto"] .inner, :root.glass[data-theme="auto"] .stat, :root.glass[data-theme="auto"] .mini-tile, :root.glass[data-theme="auto"] .rank-list, :root.glass[data-theme="auto"] .badge-tile, :root.glass[data-theme="auto"] .item-tile { background: rgba(255, 255, 255, .06) !important; }
   :root.glass[data-theme="auto"] .pill.active, :root.glass[data-theme="auto"] .chip-dark { background: rgba(255, 255, 255, .9) !important; color: #111 !important; }
   :root.glass[data-theme="auto"] .bottom-nav { background: rgba(28, 34, 60, .5) !important; border-color: rgba(255, 255, 255, .16); box-shadow: 0 14px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .18) !important; }
@@ -1244,3 +1244,24 @@ html.glass { background: radial-gradient(60vmax 60vmax at 8% 10%, #B9E6C9 0%, tr
 .offline-note { margin-bottom: 14px; padding: 10px 14px; border-radius: 14px; font-size: 14px;
   background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-line); }
 [data-offline-copy] form button:disabled, [data-offline-copy] form input:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Glass: the colour field drifts slowly behind the glass. A copy of the background on its
+   own layer is moved by the graphics chip (no repainting), so it stays smooth. Still for
+   Reduce Motion and on low-memory phones. */
+html.glass::before {
+  content: ""; position: fixed; inset: -18%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38% 34% at 22% 24%, var(--g1) 0%, transparent 70%),
+    radial-gradient(36% 32% at 80% 30%, var(--g2) 0%, transparent 70%),
+    radial-gradient(40% 36% at 74% 78%, var(--g3) 0%, transparent 70%),
+    radial-gradient(34% 30% at 26% 76%, var(--g4) 0%, transparent 70%);
+  animation: glass-drift 32s ease-in-out infinite alternate; will-change: transform;
+}
+@keyframes glass-drift {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  33%  { transform: translate3d(6%, -5%, 0) rotate(28deg) scale(1.12); }
+  66%  { transform: translate3d(-6%, 4%, 0) rotate(-22deg) scale(1.05); }
+  100% { transform: translate3d(4%, 6%, 0) rotate(40deg) scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) { html.glass::before { animation: none; } }
+html.lite.glass::before { animation: none; will-change: auto; }

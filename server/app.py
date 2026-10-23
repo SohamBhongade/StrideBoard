@@ -61,7 +61,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "44"
+ASSET_VERSION = "45"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -271,7 +271,7 @@ def add_template_helpers(app):
                 "fixed_mode": fixed_mode(),
                 "try_on": lambda build, slot, key: {**build, slot: key},
                 "my_glass": my_glass(), "GLASS_GRADIENTS": config.GLASS_GRADIENTS,
-                "glass_bg": glass_bg, "android": is_android(), "my_material": my_material,
+                "glass_bg": glass_bg, "glass_vars": glass_vars, "android": is_android(), "my_material": my_material,
                 "MATERIAL_THEMES": config.MATERIAL_THEMES, "material_swatch": material.swatch,
                 "AVATARS": config.AVATARS, "AVATAR_COLORS": config.AVATAR_COLORS}
 
@@ -361,6 +361,12 @@ def my_material():
         key = data.material_choice(db.get_db(), g.user["id"])
     seed = config.MATERIAL_THEMES[key][2]
     return {"light": material.css_vars(seed), "dark": material.css_vars(seed, dark=True)}
+
+
+def glass_vars(colours):
+    """The glass colours as CSS variables (--g0 base, --g1..--g4 glows): the still background
+    and the slowly drifting layer above it both use them."""
+    return " ".join(f"--g{i}: {c};" for i, c in enumerate(colours))
 
 
 def glass_bg(colours, unit="vmax"):

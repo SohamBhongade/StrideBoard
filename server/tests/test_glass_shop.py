@@ -82,9 +82,9 @@ def client(tmp_path):
 def test_studio_glass_tab_buy_and_page_colours(client):
     page = client.get("/settings?slot=glass").data.decode()
     assert "glass-swatch" in page and "Stock" in page and "Forest" in page
-    assert "html.glass { background" not in page          # stock comes from the stylesheet
+    assert "html.glass { --g0" not in page          # stock comes from the stylesheet
     r = client.post("/settings", data={"csrf": "x", "action": "avatar_buy", "item": "glass_forest", "slot": "glass"})
     assert r.status_code == 302 and "slot=glass" in r.headers["Location"]
     page = client.get("/").data.decode()
     light, dark = config.GLASS_GRADIENTS["glass_forest"][2:]
-    assert "html.glass { background" in page and light[1] in page and dark[1] in page
+    assert "html.glass { --g0" in page and light[1] in page and dark[1] in page

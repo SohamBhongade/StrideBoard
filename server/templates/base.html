@@ -47,10 +47,10 @@
   {% endif %}
   {% if my_glass.key != 'glass_stock' %}{# the glass gradient they picked in the Avatar studio #}
   <style>
-    html.glass { background: {{ glass_bg(my_glass.light) }}; background-attachment: fixed; }
-    :root.glass[data-theme="dark"] { background: {{ glass_bg(my_glass.dark) }}; background-attachment: fixed; }
+    html.glass { {{ glass_vars(my_glass.light) }} }
+    :root.glass[data-theme="dark"] { {{ glass_vars(my_glass.dark) }} }
     @media (prefers-color-scheme: dark) {
-      :root.glass[data-theme="auto"] { background: {{ glass_bg(my_glass.dark) }}; background-attachment: fixed; }
+      :root.glass[data-theme="auto"] { {{ glass_vars(my_glass.dark) }} }
     }
   </style>
   {% endif %}
