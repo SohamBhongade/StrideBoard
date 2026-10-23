@@ -44,3 +44,17 @@ def test_new_code_replaces_the_old_one(site):
     conn.close()
     assert new != key and len(new) == 10
     assert c.get(f"/board?key={key}").status_code == 403 and c.get(f"/board?key={new}").status_code == 200
+
+
+def test_admin_page_shows_the_screen_card(site):
+    c, key, path = site
+    conn = db.connect(path)
+    boss = data.create_user(conn, "soham.admin", "Soham B", "admin", None, "adult_18_39", "2468")
+    conn.close()
+    with c.session_transaction() as s:
+        s["user_id"] = boss
+    page = c.get("/admin")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert "Leaderboard screen" in html and key in html and "Make a new code" in html
+    assert "Today" in html and "This week" in html and "Last sync" in html
