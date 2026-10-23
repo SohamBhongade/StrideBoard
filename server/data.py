@@ -573,17 +573,25 @@ def avatar_shop(conn, user_id):
     """
     _require_user(conn, user_id)
     build = avatar_build(conn, user_id)
+    worn = {**build, "glass": glass_choice(conn, user_id)}
     bought = {r[0] for r in conn.execute("SELECT item_key FROM avatar_owned WHERE user_id = ?", (user_id,))}
     items = [{"key": k, "slot": slot, "name": name, "price": price,
-              "owned": price == 0 or k in bought, "worn": build.get(slot) == k}
-             for k, (slot, name, price) in config.AVATAR_ITEMS.items()]
+              "owned": price == 0 or k in bought, "worn": worn.get(slot) == k}
+             for k, (slot, name, price) in config.SHOP_ITEMS.items()]
     return {"balance": exp_balance(conn, user_id), "build": build, "items": items}
 
 
+def glass_choice(conn, user_id):
+    """Which glass gradient someone picked in the studio (Stock until they pick another)."""
+    row = conn.execute("SELECT item_key FROM avatar_equipped WHERE user_id = ? AND slot = 'glass'",
+                       (user_id,)).fetchone()
+    return row[0] if row and row[0] in config.GLASS_GRADIENTS else config.GLASS_DEFAULT
+
+
 def _item(key):
-    if key not in config.AVATAR_ITEMS:
+    if key not in config.SHOP_ITEMS:
         raise ValueError("that item doesn't exist")
-    slot, name, price = config.AVATAR_ITEMS[key]
+    slot, name, price = config.SHOP_ITEMS[key]
     return slot, name, price
 
 

@@ -57,7 +57,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "36"
+ASSET_VERSION = "37"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -236,6 +236,8 @@ def add_template_helpers(app):
                 "creature": creature, "avatar_sheet": avatar_sheet, "my_build": my_build(),
                 "theme": current_theme(), "THEMES": THEMES,
                 "try_on": lambda build, slot, key: {**build, slot: key},
+                "my_glass": my_glass(), "GLASS_GRADIENTS": config.GLASS_GRADIENTS,
+                "glass_bg": glass_bg,
                 "AVATARS": config.AVATARS, "AVATAR_COLORS": config.AVATAR_COLORS}
 
 
@@ -269,6 +271,26 @@ def my_build():
     if "my_build" not in g:
         g.my_build = data.avatar_build(db.get_db(), g.user["id"])
     return g.my_build
+
+
+def my_glass():
+    """The logged-in person's glass gradient colours: {"light": (...), "dark": (...)}."""
+    key = config.GLASS_DEFAULT
+    if g.get("user") and request.blueprint != api.bp.name:
+        key = data.glass_choice(db.get_db(), g.user["id"])
+    _, _, light, dark = config.GLASS_GRADIENTS[key]
+    return {"key": key, "light": light, "dark": dark}
+
+
+def glass_bg(colours, unit="vmax"):
+    """CSS background for a glass colour field: (base, 4 glows) as soft blobs in the corners.
+    unit="%" sizes the blobs to a small box (the swatches in the Avatar studio)."""
+    base, a, b, c, d = colours
+    big = 2 if unit == "%" else 1     # in a small box, % blobs need to be bigger to look the same
+    return (f"radial-gradient({60 * big}{unit} {60 * big}{unit} at 8% 10%, {a} 0%, transparent 60%), "
+            f"radial-gradient({55 * big}{unit} {55 * big}{unit} at 95% 20%, {b} 0%, transparent 60%), "
+            f"radial-gradient({60 * big}{unit} {60 * big}{unit} at 85% 95%, {c} 0%, transparent 60%), "
+            f"radial-gradient({50 * big}{unit} {50 * big}{unit} at 10% 90%, {d} 0%, transparent 60%), {base}")
 
 
 def with_builds(conn, rows):
@@ -756,13 +778,14 @@ def add_routes(app):
                     return resp
                 elif action in ("avatar_buy", "avatar_wear"):
                     key = request.form.get("item", "")
-                    name = config.AVATAR_ITEMS.get(key, (None, "That item"))[1]
+                    name = config.SHOP_ITEMS.get(key, (None, "That item"))[1]
                     if action == "avatar_buy":
                         left = data.buy_avatar_item(conn, uid, key)
                         flash(f"Bought {name}! You have {left:,} EXP left.", "badge")
                     else:
                         data.wear_avatar_item(conn, uid, key)
-                        flash(f"Now wearing {name}.", "ok")
+                        flash(f"Now using {name}." if key in config.GLASS_GRADIENTS
+                              else f"Now wearing {name}.", "ok")
             except ValueError as e:
                 flash(first_upper(str(e)), "error")
             slot = request.form.get("slot")

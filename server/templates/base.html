@@ -33,6 +33,15 @@
   {# Apple devices (iPhone, iPad, Mac; any browser) get the frosted "glass" look #}
   <script>if (/Mac|iPhone|iPad|iPod/.test(navigator.userAgent)) document.documentElement.classList.add("glass");</script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ ASSET_VERSION }}">
+  {% if my_glass.key != 'glass_stock' %}{# the glass gradient they picked in the Avatar studio #}
+  <style>
+    html.glass { background: {{ glass_bg(my_glass.light) }}; background-attachment: fixed; }
+    :root.glass[data-theme="dark"] { background: {{ glass_bg(my_glass.dark) }}; background-attachment: fixed; }
+    @media (prefers-color-scheme: dark) {
+      :root.glass[data-theme="auto"] { background: {{ glass_bg(my_glass.dark) }}; background-attachment: fixed; }
+    }
+  </style>
+  {% endif %}
   <script>
     // Intro animations (counting numbers, filling bars) play only the first time
     // a page is opened in this tab. Coming back to it, or saving a form, shows it
