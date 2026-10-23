@@ -55,6 +55,14 @@ def client(tmp_path):
     return c
 
 
+WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141 Safari/537.36"
+
+
+def test_windows_gets_the_same_look(client):
+    page = client.get("/", headers={"User-Agent": WINDOWS}).data.decode()
+    assert 'class="material"' in page and ":root.material" in page
+
+
 def test_android_gets_material_and_others_do_not(client):
     page = client.get("/", headers={"User-Agent": ANDROID}).data.decode()
     assert 'class="material"' in page and ":root.material" in page
@@ -70,7 +78,7 @@ def test_choosing_a_theme_changes_the_android_colours(client):
     page = client.get("/", headers={"User-Agent": ANDROID}).data.decode()
     assert material.scheme(seed)["--m-primary"] in page
     studio = client.get("/settings?slot=material", headers={"User-Agent": ANDROID}).data.decode()
-    assert "mat-swatch" in studio and "Your Android colour theme" in studio
+    assert "mat-swatch" in studio and "Your colour theme" in studio
 
 
 def test_android_gets_the_expressive_extras():
