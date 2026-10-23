@@ -29,6 +29,10 @@
     <p class="err" id="err"></p>
   </form>
   <script>
+    if (new URLSearchParams(location.search).get("problem") === "wrong") {
+      document.querySelector("h1").textContent = "That screen code didn't work";
+      document.getElementById("err").textContent = "Type the code from Admin, Leaderboard screen. If someone made a new code there, use the new one.";
+    }
     document.getElementById("f").addEventListener("submit", async (e) => {
       e.preventDefault();
       const ok = await window.strideboard.saveCode(document.getElementById("code").value);
