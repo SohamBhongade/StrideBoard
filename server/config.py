@@ -240,6 +240,24 @@ MATERIAL_FIXED_MODE = {"mat_graphite": "light", "mat_black": "dark"}
 SHOP_ITEMS = {**AVATAR_ITEMS, **{k: ("glass", v[0], v[1]) for k, v in GLASS_GRADIENTS.items()},
               **{k: ("material", v[0], v[1]) for k, v in MATERIAL_THEMES.items()}}
 
+# --- Daily login rewards: a 28-day calendar per tier. Open StrideBoard, tap Claim, move one day
+# along (missing a day doesn't reset you). After day 28 it starts again, using the tier you
+# finished last week: same tier, same rewards; a higher tier gets a better calendar.
+# Each day: ("exp", amount) or ("item", avatar item key); an item you already own pays its
+# price in EXP instead. Only Bronze exists so far; other tiers use it until theirs are added.
+def _calendar(*weeks):
+    return [day for week in weeks for day in week]
+
+
+REWARD_TRACKS = {
+    "Bronze": _calendar(
+        [("exp", 5)] * 6 + [("exp", 25)],
+        [("exp", 6)] * 6 + [("item", "hat_headband")],
+        [("exp", 8)] * 6 + [("exp", 40)],
+        [("exp", 10)] * 6 + [("item", "shoes_runners")],
+    ),
+}
+
 # What everyone starts with. The colour varies by person so the leaderboards aren't all one colour.
 AVATAR_DEFAULTS = {"eyes": "eyes_dots", "mouth": "mouth_smile", "hat": "hat_none",
                    "extra": "extra_none", "shoes": "shoes_plain", "bg": "bg_plain"}

@@ -1223,3 +1223,19 @@ html.glass { background: radial-gradient(60vmax 60vmax at 8% 10%, #B9E6C9 0%, tr
 .lite.glass .bottom-nav { background: rgba(255, 255, 255, .9) !important; }
 .lite.glass[data-theme="dark"] .bottom-nav { background: rgba(28, 34, 60, .94) !important; }
 .lite .card, .lite .nudge { animation: none !important; }
+
+/* ------------------------------------------------------------ daily reward (Home tier card) */
+.reward { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 20px;
+  background: color-mix(in srgb, currentColor 8%, transparent); }
+.reward-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.reward-head h3 { font-size: 17px; font-weight: 600; margin: 0; }
+.reward-done { display: flex; align-items: center; gap: 6px; font-size: 15px; }
+.reward-claim { width: 100%; }
+.reward-strip { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.reward-day { aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; line-height: 1.1; background: color-mix(in srgb, currentColor 9%, transparent); }
+.rd-n { font-size: 10px; opacity: .6; }
+.rd-r { font-size: 12px; font-weight: 600; display: flex; }
+.reward-day.big .rd-r { color: color-mix(in srgb, var(--gold) 65%, currentColor); }
+.reward-day.claimed { opacity: .55; }
+.reward-day.today { background: color-mix(in srgb, currentColor 22%, transparent); box-shadow: 0 0 0 2px currentColor; }

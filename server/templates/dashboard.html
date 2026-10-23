@@ -109,6 +109,33 @@
       {% for name, floor in TIERS %}{% if name == d.tier %}<span>{{ name }} {{ floor|num }}</span>{% endif %}{% endfor %}
       {% if d.next_tier %}{% for name, floor in TIERS %}{% if name == d.next_tier %}<span>{{ name }} {{ floor|num }}</span>{% endif %}{% endfor %}{% endif %}
     </div>
+    {# ---- Daily login reward: a 28-day calendar for your tier (data.reward_status) ---- #}
+    <div class="reward" aria-labelledby="reward-h">
+      <div class="reward-head">
+        <h3 id="reward-h">Daily reward</h3>
+        <span class="small muted">{{ reward.tier }} calendar · day {{ reward.day }} of {{ reward.length }}</span>
+      </div>
+      {% if reward.claimed_today %}
+        <p class="reward-done">{{ m.icon('check', 16) }} Got {{ reward.today.label }} today. Tomorrow: {{ reward.next.label }}.</p>
+      {% else %}
+        <form method="post" action="{{ url_for('claim_reward') }}" class="inline-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="btn btn-light reward-claim" type="submit">{{ m.icon('gem', 17) }} Claim {{ reward.today.label }}</button>
+        </form>
+      {% endif %}
+      <ol class="reward-strip" aria-label="This month's {{ reward.tier }} rewards">
+        {% for r in reward.days %}
+        <li class="reward-day {{ r.state }}{% if r.big %} big{% endif %}"
+            title="Day {{ r.day }}: {{ r.label }}{% if r.state == 'claimed' %} (claimed){% endif %}">
+          <span class="rd-n">{{ r.day }}</span>
+          {% if r.state == 'claimed' %}<span class="rd-r">{{ m.icon('check', 14) }}</span>
+          {% elif r.kind == 'item' %}<span class="rd-r">{{ m.icon('gem', 15) }}</span>
+          {% else %}<span class="rd-r">{{ r.short }}</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+      <p class="small muted">{{ m.icon('gem', 13) }} Day 14: {{ reward.days[13].label }} · Day 28: {{ reward.days[27].label }}. Same tier next month, same rewards; go up a tier for better ones.</p>
+    </div>
     <a class="btn btn-light" href="{{ url_for('insights') }}" style="margin-top:auto">See your weekly wrap-up {{ m.icon('play', 15) }}</a>
   </section>
 </div>
