@@ -68,15 +68,20 @@ object StepReader {
         )
     }
 
+    /** How many days back the app catches up: the website accepts steps up to 7 days ago. */
+    const val CATCH_UP_DAYS = 7L
+
     /**
-     * Yesterday's and today's totals, with Dubai midnight as the day boundary.
+     * Daily totals for the last week up to today (oldest first), with Dubai midnight as the
+     * day boundary. The phone keeps counting with no internet (camping, flights...), so when
+     * it is back online every missed day is sent and streaks pick up where they left off.
      * aggregate() merges phone + watch + other apps without double counting.
      */
-    suspend fun readYesterdayAndToday(c: Context): List<DayTotal> {
+    suspend fun readRecentDays(c: Context): List<DayTotal> {
         val client = HealthConnectClient.getOrCreate(c)
         val now = ZonedDateTime.now(DUBAI)
         val today = now.toLocalDate()
-        return listOf(today.minusDays(1), today).map { day ->
+        return (CATCH_UP_DAYS downTo 0L).map { today.minusDays(it) }.map { day ->
             val start = day.atStartOfDay(DUBAI).toInstant()
             val nextDay = day.plusDays(1).atStartOfDay(DUBAI).toInstant()
             val end = if (nextDay.isAfter(now.toInstant())) now.toInstant() else nextDay

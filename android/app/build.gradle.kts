@@ -10,8 +10,23 @@ android {
         applicationId = "com.strideboard.app"
         minSdk = 26          // Health Connect library minimum
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
+    }
+
+    // One fixed key for every release, so each new APK installs over the last one (and the
+    // in-app updater works). GitHub fills these from the repo's secrets; on a laptop without
+    // them the build falls back to the debug key.
+    val keystorePath = System.getenv("STRIDEBOARD_KEYSTORE")
+    signingConfigs {
+        if (keystorePath != null && file(keystorePath).exists()) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("STRIDEBOARD_KEYSTORE_PASSWORD")
+                keyAlias = "strideboard"
+                keyPassword = System.getenv("STRIDEBOARD_KEYSTORE_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -23,10 +38,7 @@ android {
             // Release builds: https:// only.
             manifestPlaceholders["usesCleartextTraffic"] = "false"
             isMinifyEnabled = false
-            // Sideloaded hackathon APK: sign with the built-in debug key so no keystore is needed.
-            // Phones can only install updates signed with the same key, so build every APK on
-            // the same computer (see README).
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 

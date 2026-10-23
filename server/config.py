@@ -251,6 +251,13 @@ CONSISTENT_DAYS = 5              # steps on 5 different days in one week
 COMEBACK_FACTOR = 1.25           # week at least 25% above last week...
 COMEBACK_MIN_LAST_WEEK = 10_000  # ...and last week had at least 10,000 steps
 
+# --- The Android app: the newest version on the Releases page. Bump this with versionCode in
+# android/app/build.gradle.kts, and Home shows older apps a small "Update" notice. ---
+ANDROID_APP_LATEST = {"code": 5, "name": "1.4",
+                      "news": "Days without signal now sync later, and the app updates itself from now on."}
+ANDROID_APP_UPDATER_FROM = 5     # versions from here on update in-app; older ones reinstall once
+ANDROID_APK_URL = "https://github.com/SohamBhongade/StrideBoard/releases/download/android-latest/StrideBoard.apk"
+
 # --- Leaderboards, wrap-up and challenges ---
 IMPROVEMENT_MIN_LAST_WEEK = 1_000  # need some steps last week to compare against
 MOOD_CHART_DAYS = 28               # mood-vs-steps chart looks back 4 weeks

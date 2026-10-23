@@ -31,7 +31,20 @@ jobs:
       - name: Accept the Android SDK licences
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
+      - name: Unpack the signing key (repo secret)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/strideboard.jks"
+            echo "STRIDEBOARD_KEYSTORE=$RUNNER_TEMP/strideboard.jks" >> "$GITHUB_ENV"
+          else
+            echo "No ANDROID_KEYSTORE_B64 secret: signing with a throwaway debug key."
+          fi
+
       - name: Build the APK
+        env:
+          STRIDEBOARD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --stacktrace --no-daemon 2>&1 | tee build-log.txt

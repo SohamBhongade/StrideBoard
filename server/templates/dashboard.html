@@ -7,6 +7,18 @@
   <a class="btn btn-soft" href="{{ url_for('log') }}">{{ m.icon('plus', 18) }} Log your day</a>
 {% endcall %}
 
+{% if app_update %}
+{# Inside an older Android app: a small notice to update (see android_app_update in app.py) #}
+<div class="nudge nudge-blue app-update" data-app-update>
+  <span class="icon-circle">{{ m.icon('phone') }}</span>
+  <div class="nudge-text">
+    <strong>App update ready ({{ app_update.name }})</strong>
+    <span>{{ app_update.news }}{% if not app_update.in_app %} Just this once: uninstall the old app first.{% endif %}</span>
+  </div>
+  <a class="btn btn-dark btn-sm" href="{{ app_update.url }}"{% if app_update.in_app %} data-app-update-button{% endif %}>{{ m.icon('upload', 16) }} {{ 'Update' if app_update.in_app else 'Download' }}</a>
+</div>
+{% endif %}
+
 <div class="grid-3">
 
   {# ---- Stage 1: the goal ---- #}

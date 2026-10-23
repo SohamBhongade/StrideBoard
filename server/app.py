@@ -5,6 +5,7 @@ writes SQL. Run from the server folder with:  flask run
 """
 import gzip
 import os
+import re
 import secrets
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -58,7 +59,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "40"
+ASSET_VERSION = "41"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -302,6 +303,24 @@ def fixed_mode():
 def page_theme():
     """The theme the page is actually drawn in (the setting, unless the colour theme fixes it)."""
     return fixed_mode() or current_theme()
+
+
+def android_app_update():
+    """Inside the StrideBoard Android app, an older version gets a small Update notice on Home.
+
+    Returns None (no notice), or {"name", "news", "in_app": True when the app can update itself,
+    "url"}. Old apps (before the updater) send only "StrideBoardAndroid/1.0".
+    """
+    ua = request.headers.get("User-Agent", "")
+    if "StrideBoardAndroid/" not in ua:
+        return None
+    m = re.search(r"StrideBoardApp/(\d+)", ua)
+    code = int(m.group(1)) if m else 0
+    latest = config.ANDROID_APP_LATEST
+    if code >= latest["code"]:
+        return None
+    return {"name": latest["name"], "news": latest["news"], "url": config.ANDROID_APK_URL,
+            "in_app": code >= config.ANDROID_APP_UPDATER_FROM}
 
 
 def my_material():
@@ -628,7 +647,8 @@ def add_routes(app):
                                tier_progress=tier_progress(d["weekly_total"]),
                                badge_summary=badge_summary(all_badges(conn, uid, d["badges"])),
                                water_target=WATER_TARGET,
-                               water_due=water_due(d["water_today"]))
+                               water_due=water_due(d["water_today"]),
+                               app_update=android_app_update())
 
     # ---------- Logging steps, mood, water, activity
     @app.route("/log", methods=["GET", "POST"])
