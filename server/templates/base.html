@@ -1,6 +1,6 @@
 {% import "_macros.html" as m with context %}
 <!doctype html>
-<html lang="en" data-theme="{{ theme }}"{% if android %} class="material"{% endif %}>
+<html lang="en" data-theme="{{ page_theme }}"{% if android %} class="material"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -9,8 +9,8 @@
 
   {# PWA: installable on iPhone (Add to Home Screen) and Android #}
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-  {% if theme == "dark" %}<meta name="theme-color" content="#0A1222">
-  {% elif theme == "auto" %}<meta name="theme-color" content="#C9DCCC" media="(prefers-color-scheme: light)">
+  {% if page_theme == "dark" %}<meta name="theme-color" content="#0A1222">
+  {% elif page_theme == "auto" %}<meta name="theme-color" content="#C9DCCC" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0A1222" media="(prefers-color-scheme: dark)">
   {% else %}<meta name="theme-color" content="#C9DCCC">{% endif %}
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">

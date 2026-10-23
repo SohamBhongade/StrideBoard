@@ -96,6 +96,21 @@ def _neutral(grey, dark, black):
             "--m-on-chrome": grey(.3),
         }
     base = (lambda light: grey(light * .55)) if black else grey   # Black: surfaces near pure black
+    if black:   # black and white: pure black page, white text and buttons, no grey tints
+        return {
+            "--sage": "#000000", "--dot": "#000000", "--white": "#0B0B0B", "--soft": "#141414",
+            "--line": "#2A2A2A", "--input-line": "#3A3A3A", "--hover-soft": "#1A1A1A",
+            "--peri-bg": "#121212", "--peri": "#FFFFFF", "--peri-dash": "#8A8A8A", "--violet-bg": "#0E0E0E",
+            "--blue-bg": "#101010", "--blue": "#D9D9D9", "--blue-dash": "#7A7A7A",
+            "--pink-bg": "#121212", "--pink": "#BDBDBD", "--peach-bg": "#111111", "--mint-bg": "#0F0F0F",
+            "--ink": "#FFFFFF", "--ink-2": "#2A2A2A", "--muted": "#A8A8A8",
+            "--chrome": "#0E0E0E", "--chrome-hover": "#1C1C1C", "--card-dark": "#161616", "--on-ink": "#000000",
+            "--btn-dark-hover": "#E6E6E6", "--btn-soft-hover": "#262626",
+            "--m-primary": "#FFFFFF", "--m-on-primary": "#000000",
+            "--m-primary-container": "#262626", "--m-on-primary-container": "#FFFFFF",
+            "--m-secondary-container": "#2E2E2E", "--m-on-secondary-container": "#FFFFFF",
+            "--m-on-chrome": "#BDBDBD",
+        }
     return {
         "--sage": "#000000" if black else grey(.07), "--dot": "#000000" if black else grey(.07),
         "--white": base(.11), "--soft": base(.15), "--line": grey(.22), "--input-line": grey(.3),

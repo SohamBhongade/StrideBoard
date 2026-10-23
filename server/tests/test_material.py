@@ -71,3 +71,12 @@ def test_choosing_a_theme_changes_the_android_colours(client):
     assert material.scheme(seed)["--m-primary"] in page
     studio = client.get("/settings?slot=material", headers={"User-Agent": ANDROID}).data.decode()
     assert "mat-swatch" in studio and "Your Android colour theme" in studio
+
+
+def test_android_gets_the_expressive_extras():
+    """Material 3 Expressive on Android: Material shapes, gradient cards, grain, still for reduced motion."""
+    import pathlib
+    css = (pathlib.Path(__file__).parent.parent / "static/css/style.css").read_text()
+    for bit in ("--shape-cookie", "--shape-clover", "--grain", ".material .card {", "expr-spin"):
+        assert bit in css
+    assert ".material body::before, .material body::after { animation: none; }" in css

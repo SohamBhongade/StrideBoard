@@ -233,6 +233,9 @@ MATERIAL_THEMES = {
     "mat_gold": ("Gold", 1000, "#C9A227"),
 }
 MATERIAL_DEFAULT = "mat_stock"
+# Themes that look the same whatever Light/Dark/Automatic says: Graphite is always the light
+# grey look, Black is always black and white.
+MATERIAL_FIXED_MODE = {"mat_graphite": "light", "mat_black": "dark"}
 # Everything the studio sells: avatar parts, glass gradients and Material You themes.
 SHOP_ITEMS = {**AVATAR_ITEMS, **{k: ("glass", v[0], v[1]) for k, v in GLASS_GRADIENTS.items()},
               **{k: ("material", v[0], v[1]) for k, v in MATERIAL_THEMES.items()}}

@@ -58,7 +58,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "38"
+ASSET_VERSION = "39"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -235,7 +235,8 @@ def add_template_helpers(app):
                 "INACTIVE_MINUTES": config.INACTIVE_MINUTES, "INACTIVE_MAX_STEPS": config.INACTIVE_MAX_STEPS,
                 "ASSET_VERSION": ASSET_VERSION, "TRACK_LOOK": TRACK_LOOK,
                 "creature": creature, "avatar_sheet": avatar_sheet, "my_build": my_build(),
-                "theme": current_theme(), "THEMES": THEMES,
+                "theme": current_theme(), "THEMES": THEMES, "page_theme": page_theme(),
+                "fixed_mode": fixed_mode(),
                 "try_on": lambda build, slot, key: {**build, slot: key},
                 "my_glass": my_glass(), "GLASS_GRADIENTS": config.GLASS_GRADIENTS,
                 "glass_bg": glass_bg, "android": is_android(), "my_material": my_material,
@@ -287,6 +288,18 @@ def my_glass():
 def is_android():
     """Android phones and tablets get the Material You look (Apple devices get glass)."""
     return "Android" in request.headers.get("User-Agent", "")
+
+
+def fixed_mode():
+    """On Android, Graphite and Black ignore the Light/Dark setting: "light", "dark" or None."""
+    if not (g.get("user") and request.blueprint != api.bp.name and is_android()):
+        return None
+    return config.MATERIAL_FIXED_MODE.get(data.material_choice(db.get_db(), g.user["id"]))
+
+
+def page_theme():
+    """The theme the page is actually drawn in (the setting, unless the colour theme fixes it)."""
+    return fixed_mode() or current_theme()
 
 
 def my_material():
