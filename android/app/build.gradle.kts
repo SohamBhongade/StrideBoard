@@ -7,7 +7,10 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.strideboard.app"
+        // New id from 1.4 on: the first builds (com.strideboard.app) were each signed with a
+        // different throwaway key, so they can't be updated. This app installs beside the old
+        // one and then offers to remove it (MainActivity.offerToRemoveOldApp).
+        applicationId = "com.strideboard.android"
         minSdk = 26          // Health Connect library minimum
         targetSdk = 36
         versionCode = 5

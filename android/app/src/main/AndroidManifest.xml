@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Install updates downloaded from the Releases page (Android still asks the person first) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Offer to remove the old StrideBoard app (before 1.4); Android still asks the person -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
     <!-- Health Connect: read step counts only (nothing else) -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
@@ -14,6 +16,8 @@
     <!-- Needed so the app can find the Health Connect app on Android 13 and lower -->
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
+        <!-- The old StrideBoard app, so this one can offer to remove it -->
+        <package android:name="com.strideboard.app" />
     </queries>
 
     <!--
