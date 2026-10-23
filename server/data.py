@@ -1815,7 +1815,7 @@ def reward_status(conn, user_id, today=None):
         cycle, day, tier = last["cycle"] + 1, 1, _reward_tier(conn, user_id, today)   # new month
     else:
         cycle, day, tier = last["cycle"], last["day"] + 1, last["tier"]
-    if last is not None and day > 1:
+    if last is not None:
         better = _track_for(_reward_tier(conn, user_id, today))[0]
         if _TIER_ORDER.index(better) > _TIER_ORDER.index(_track_for(tier)[0]):
             tier = better            # moved up: the better calendar straight away, same day number
