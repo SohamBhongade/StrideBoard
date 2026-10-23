@@ -2,7 +2,7 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 
-{% call m.page_head("Hi,", user.display_name.split()[0], user.department ~ " · " ~ today_label) %}
+{% call m.page_head("Hi,", user.display_name.split()[0], (user.department ~ " · " if user.department else "") ~ today_label) %}
   <a class="btn btn-outline" href="{{ url_for('settings') }}">{{ m.icon('sliders', 18) }} Goal &amp; settings</a>
   <a class="btn btn-soft" href="{{ url_for('log') }}">{{ m.icon('plus', 18) }} Log your day</a>
 {% endcall %}
