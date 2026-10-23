@@ -1,7 +1,7 @@
 // StrideBoard Leaderboard: a window that shows only this week's Students and Teachers
 // leaderboards from the StrideBoard website (the /board page), refreshing every minute.
 // It asks for the screen code once (Admin -> Leaderboard screen) and remembers it.
-const { app, BrowserWindow, Menu, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, powerSaveBlocker, screen, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
 
@@ -9,12 +9,24 @@ const SITE = process.env.STRIDEBOARD_SITE || "https://strideboard.pythonanywhere
 const settingsFile = () => path.join(app.getPath("userData"), "settings.json");
 let win = null;
 
-function readCode() {
-  try { return JSON.parse(fs.readFileSync(settingsFile(), "utf8")).code || ""; } catch (e) { return ""; }
+// settings.json: { code, bounds: {x, y, width, height}, fullScreen }
+function readSettings() {
+  try { return JSON.parse(fs.readFileSync(settingsFile(), "utf8")) || {}; } catch (e) { return {}; }
 }
-function saveCode(code) {
+function writeSettings(changes) {
+  const next = Object.assign(readSettings(), changes);
   fs.mkdirSync(path.dirname(settingsFile()), { recursive: true });
-  fs.writeFileSync(settingsFile(), JSON.stringify({ code }));
+  fs.writeFileSync(settingsFile(), JSON.stringify(next));
+}
+function readCode() { return readSettings().code || ""; }
+function saveCode(code) { writeSettings({ code }); }
+
+// A window that was on a screen that's no longer plugged in comes back on the main screen.
+function onSomeScreen(b) {
+  return b && screen.getAllDisplays().some((d) => {
+    const a = d.workArea;
+    return b.x + 80 > a.x && b.x < a.x + a.width - 80 && b.y + 40 > a.y && b.y < a.y + a.height - 40;
+  });
 }
 
 function showBoard() {
@@ -27,8 +39,10 @@ function showSetup(problem) {
 }
 
 function createWindow() {
+  const saved = readSettings();
+  const bounds = onSomeScreen(saved.bounds) ? saved.bounds : { width: 1280, height: 760 };
   win = new BrowserWindow({
-    width: 1280, height: 760, minWidth: 720, minHeight: 480,
+    ...bounds, minWidth: 480, minHeight: 360, fullscreen: !!saved.fullScreen,
     backgroundColor: "#0A1222", title: "StrideBoard Leaderboard", autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
@@ -45,6 +59,21 @@ function createWindow() {
   win.webContents.on("did-fail-load", (_e, _code, _desc, url) => {
     if (url && url.startsWith(SITE)) setTimeout(showBoard, 15000);
   });
+  // Remember the window's size, place and full screen for next time.
+  let saveTimer = null;
+  const remember = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      if (!win || win.isDestroyed()) return;
+      const full = win.isFullScreen();
+      writeSettings(full ? { fullScreen: true } : { fullScreen: false, bounds: win.getNormalBounds() });
+    }, 400);
+  };
+  ["resize", "move", "enter-full-screen", "leave-full-screen"].forEach((e) => win.on(e, remember));
+  // In full screen the mouse pointer hides itself after a few still seconds (the page does this).
+  win.on("enter-full-screen", () => win.webContents.send("full-screen", true));
+  win.on("leave-full-screen", () => win.webContents.send("full-screen", false));
+  win.webContents.on("did-finish-load", () => win.webContents.send("full-screen", win.isFullScreen()));
   showBoard();
 }
 
@@ -76,6 +105,8 @@ function buildMenu() {
 }
 
 app.whenReady().then(() => {
+  // A leaderboard screen should stay on: stop the computer dimming or sleeping the display.
+  powerSaveBlocker.start("prevent-display-sleep");
   buildMenu();
   createWindow();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

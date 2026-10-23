@@ -922,7 +922,7 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 
 /* ---------- Leaderboard screen (/board): Students and Teachers side by side, for a big screen */
 .board {
-  height: 100vh; overflow: hidden; box-sizing: border-box; margin: 0; padding: clamp(14px, 2.4vh, 40px) clamp(16px, 2.6vw, 40px); display: flex; flex-direction: column; gap: clamp(10px, 1.8vh, 28px);
+  min-height: 100vh; box-sizing: border-box; margin: 0; padding: clamp(14px, 2.4vh, 40px) clamp(16px, 2.6vw, 40px); display: flex; flex-direction: column; gap: clamp(10px, 1.8vh, 28px);
   background: radial-gradient(1200px 600px at 15% -10%, #24346A 0%, transparent 60%),
               radial-gradient(1000px 600px at 110% 110%, #1F4A55 0%, transparent 55%), #0A1222;
   color: #EEF1F8; font-family: var(--font);
@@ -983,3 +983,16 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .steps-met { display: inline-block; padding: 2px 9px; border-radius: 999px; background: var(--mint-bg); color: var(--good); font-weight: 600; }
 .steps-under { font-weight: 600; }
+/* Big enough window: everything fits on one screen with no scrolling. Small window: it scrolls. */
+@media (min-width: 821px) and (min-height: 600px) {
+  .board { height: 100vh; overflow: hidden; }
+}
+@media (max-width: 820px), (max-height: 599px) {
+  .board-panel { overflow: visible; }
+  .board-row .av { --av: 32px !important; }
+  .board-spot .av { --av: 52px !important; }
+  .board-spot-1 .board-block { height: 110px; }
+  .board-spot-2 .board-block { height: 88px; }
+  .board-spot-3 .board-block { height: 72px; }
+  .board-row { padding: 7px 12px; }
+}
