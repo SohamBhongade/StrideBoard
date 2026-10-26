@@ -99,6 +99,18 @@
     </fieldset>
     <noscript><button class="btn btn-dark" type="submit">Save</button></noscript>
   </form>
+  <form method="post" class="fast-toggle" data-autosubmit>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="fast">
+    <input type="hidden" name="fast" value="{{ '0' if fast else '1' }}">
+    <div class="fast-text">
+      <strong>{{ m.icon('spark', 18) }} Fast mode</strong>
+      <span class="small muted">Turns off moving backgrounds, blur, shadows and animations, so pages appear instantly. Best for older phones and Chromebooks. Same features and colours.</span>
+    </div>
+    <button class="switch{% if fast %} on{% endif %}" type="submit" role="switch" aria-checked="{{ 'true' if fast else 'false' }}" aria-label="Fast mode">
+      <span></span>
+    </button>
+  </form>
   <p class="small muted" style="margin-top:10px">Saved on this phone or computer.{% if fixed_mode %} Your {{ 'Black' if fixed_mode == 'dark' else 'Graphite' }} colour theme always looks {{ 'black and white' if fixed_mode == 'dark' else 'light grey' }}, so this shows once you pick another theme in the Avatar studio.{% endif %}</p>
 </section>
 
