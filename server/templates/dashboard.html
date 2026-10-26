@@ -94,26 +94,21 @@
   </section>
 
   {# ---- Stage 3: level up ---- #}
-  <section class="card card-dark tier-{{ d.tier|lower }}" aria-labelledby="tier-h">
+  {# The tier that counts for rewards: the better of this week's and last week's (data.reward_status),
+     so it doesn't drop to Bronze every Monday. #}
+  <section class="card card-dark tier-{{ reward.tier|lower }}" aria-labelledby="tier-h">
     <div class="steps-top" style="align-items:flex-start">
       <div>
-        <p class="muted">Your tier this week</p>
-        <h2 id="tier-h" class="tier-name">{{ d.tier }}</h2>
+        <p class="muted">Your tier</p>
+        <h2 id="tier-h" class="tier-name">{{ reward.tier }}</h2>
       </div>
-      {{ m.medal(d.tier, 60) }}
-    </div>
-    <p style="font-size:18px">{{ d.weekly_total|num }} steps this week.<br>
-      <span class="muted">{% if d.next_tier %}{{ d.steps_to_next_tier|num }} more to reach {{ d.next_tier }}.{% else %}Top tier! Keep it up to stay here.{% endif %}</span></p>
-    <div class="bar tier" role="img" aria-label="{{ tier_progress }}% of the way through {{ d.tier }}"><span style="--w: {{ tier_progress }}%"></span></div>
-    <div class="bar-labels muted">
-      {% for name, floor in TIERS %}{% if name == d.tier %}<span>{{ name }} {{ floor|num }}</span>{% endif %}{% endfor %}
-      {% if d.next_tier %}{% for name, floor in TIERS %}{% if name == d.next_tier %}<span>{{ name }} {{ floor|num }}</span>{% endif %}{% endfor %}{% endif %}
+      {{ m.medal(reward.tier, 60) }}
     </div>
     {# ---- Daily login reward: a 28-day calendar for your tier (data.reward_status) ---- #}
     <div class="reward" aria-labelledby="reward-h">
       <div class="reward-head">
         <h3 id="reward-h">Daily reward</h3>
-        <span class="small muted">{{ reward.tier }} calendar · day {{ reward.day }} of {{ reward.length }}</span>
+        <span class="small muted">Day {{ reward.day }} of {{ reward.length }}</span>
       </div>
       {% if reward.claimed_today %}
         <p class="reward-done">{{ m.icon('check', 16) }} Got {{ reward.today.label }} today. Tomorrow: {{ reward.next.label }}.</p>
@@ -134,8 +129,11 @@
         </li>
         {% endfor %}
       </ol>
-      <p class="small muted">{{ m.icon('gem', 13) }} Day 14: {{ reward.days[13].label }} · Day 28: {{ reward.days[27].label }}. Same tier next month, same rewards; go up a tier for better ones.</p>
+      <p class="small muted">{{ m.icon('gem', 13) }} Day 14: {{ reward.days[13].label }} · Day 28: {{ reward.days[27].label }}.</p>
     </div>
+    {% set ns = namespace(next=None, floor=0, found=False) %}
+    {% for name, floor in TIERS %}{% if ns.found and ns.next is none %}{% set ns.next = name %}{% set ns.floor = floor %}{% endif %}{% if name == reward.tier %}{% set ns.found = True %}{% endif %}{% endfor %}
+    <p class="small tier-next">{% if ns.next %}This week: {{ d.weekly_total|num }} steps · {% if d.weekly_total >= ns.floor %}{{ ns.next }} reached! Better rewards start now.{% else %}{{ (ns.floor - d.weekly_total)|num }} more for {{ ns.next }} rewards.{% endif %}{% else %}Top tier! This week: {{ d.weekly_total|num }} steps.{% endif %}</p>
     <a class="btn btn-light" href="{{ url_for('insights') }}" style="margin-top:auto">See your weekly wrap-up {{ m.icon('play', 15) }}</a>
   </section>
 </div>
