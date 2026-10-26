@@ -61,7 +61,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "45"
+ASSET_VERSION = "46"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -267,7 +267,7 @@ def add_template_helpers(app):
                 "INACTIVE_MINUTES": config.INACTIVE_MINUTES, "INACTIVE_MAX_STEPS": config.INACTIVE_MAX_STEPS,
                 "ASSET_VERSION": ASSET_VERSION, "TRACK_LOOK": TRACK_LOOK,
                 "creature": creature, "avatar_sheet": avatar_sheet, "my_build": my_build(),
-                "theme": current_theme(), "THEMES": THEMES, "page_theme": page_theme(),
+                "theme": current_theme(), "THEMES": THEMES, "fast": fast_mode(), "page_theme": page_theme(),
                 "fixed_mode": fixed_mode(),
                 "try_on": lambda build, slot, key: {**build, slot: key},
                 "my_glass": my_glass(), "GLASS_GRADIENTS": config.GLASS_GRADIENTS,
@@ -279,6 +279,11 @@ def add_template_helpers(app):
 # Appearance: remembered per phone/computer in a cookie, so the login page follows it too.
 THEMES = [("light", "Light", "sun"), ("dark", "Dark", "moon"), ("auto", "Automatic", "phone")]
 THEME_COOKIE = "theme"
+FAST_COOKIE = "fast"        # Settings > Appearance > Fast mode ("1" = on), saved on the device
+
+
+def fast_mode():
+    return request.cookies.get(FAST_COOKIE) == "1"
 
 
 def current_theme():
@@ -870,6 +875,14 @@ def add_routes(app):
                 elif action == "email_remove":
                     data.remove_email(conn, uid)
                     flash("Recovery email removed.", "ok")
+                elif action == "fast":
+                    resp = redirect(url_for("settings", _anchor="appearance"))
+                    resp.set_cookie(FAST_COOKIE, "1" if request.form.get("fast") == "1" else "0",
+                                    max_age=60 * 60 * 24 * 365 * 2, samesite="Lax", httponly=True,
+                                    secure=request.is_secure)
+                    flash("Fast mode is on: effects off, everything shows straight away."
+                          if request.form.get("fast") == "1" else "Fast mode is off.", "ok")
+                    return resp
                 elif action == "theme":
                     choice = request.form.get("theme")
                     if choice not in [k for k, _, _ in THEMES]:

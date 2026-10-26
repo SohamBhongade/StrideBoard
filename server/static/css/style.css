@@ -1265,3 +1265,31 @@ html.glass::before {
 }
 @media (prefers-reduced-motion: reduce) { html.glass::before { animation: none; } }
 html.lite.glass::before { animation: none; will-change: auto; }
+
+/* ------------------------------------------------------------ Fast mode (Settings > Appearance)
+   Same layout, colours and features; everything that costs the device effort is switched off. */
+.fast-toggle { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding: 14px 16px;
+  border-radius: var(--radius-lg); background: var(--soft); }
+.fast-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fast-text strong { display: flex; align-items: center; gap: 6px; }
+.switch { flex: none; width: 52px; height: 30px; border-radius: 999px; border: 0; padding: 3px;
+  background: var(--input-line); display: flex; transition: background .2s; }
+.switch span { width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .2s; }
+.switch.on { background: var(--good); }
+.switch.on span { transform: translateX(22px); }
+.material .switch.on { background: var(--m-primary); }
+
+html.fast *, html.fast *::before, html.fast *::after {
+  animation: none !important; transition: none !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: none !important; text-shadow: none !important;
+}
+html.fast::before, html.fast body::before, html.fast body::after { display: none !important; }
+html.fast .main, html.fast body { background-image: none !important; }
+html.fast .card, html.fast .mini-tile, html.fast .badge-tile, html.fast .nudge, html.fast .btn,
+html.fast .bottom-nav, html.fast .side { background-image: none !important; }
+html.fast.glass { background: var(--g0) !important; }
+html.fast.glass .card, html.fast.glass .inner, html.fast.glass .stat, html.fast.glass .mini-tile,
+html.fast.glass .rank-list, html.fast.glass .item-tile, html.fast.glass .badge-tile { background-color: var(--white) !important; }
+html.fast.glass .bottom-nav { background: var(--white) !important; }
+html.fast .ring .fill, html.fast .bar > span, html.fast .block.on { animation: none !important; }
