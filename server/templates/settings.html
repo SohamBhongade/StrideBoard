@@ -160,7 +160,7 @@
   <p class="small muted no-glass-note">{{ m.icon('info', 14) }} The glass look shows on iPhone, iPad and Mac only, so these colours won't show on this device.</p>
   {% endif %}
   {% if slot == 'material' %}
-  <p class="small muted">{% if android %}Your colour theme: buttons, cards and the menu all take on its colours, in light and dark. Stock is always free.{% else %}{{ m.icon('info', 14) }} Colour themes are for the Android and Windows look, so they won't show on this device.{% endif %}</p>
+  <p class="small muted">{% if android %}Your colour theme: buttons, cards and the menu all take on its colours, in light and dark. Stock is always free.{% else %}{{ m.icon('info', 14) }} Colour themes are for the Android, Windows and Chromebook look, so they won't show on this device.{% endif %}</p>
   {% endif %}
   <div class="item-grid">
     {% for it in shop['items'] if it.slot == slot %}

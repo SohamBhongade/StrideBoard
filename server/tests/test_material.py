@@ -58,6 +58,14 @@ def client(tmp_path):
 WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141 Safari/537.36"
 
 
+CHROMEBOOK = "Mozilla/5.0 (X11; CrOS x86_64 16093.68.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+
+
+def test_chromebooks_get_the_same_look(client):
+    page = client.get("/", headers={"User-Agent": CHROMEBOOK}).data.decode()
+    assert 'class="material"' in page and ":root.material" in page
+
+
 def test_windows_gets_the_same_look(client):
     page = client.get("/", headers={"User-Agent": WINDOWS}).data.decode()
     assert 'class="material"' in page and ":root.material" in page

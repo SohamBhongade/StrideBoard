@@ -318,10 +318,10 @@ def my_glass():
 
 
 def is_android():
-    """Android phones and tablets, and Windows laptops and PCs, get the Material Expressive look
-    (Apple devices get glass)."""
+    """Android phones and tablets, Windows laptops and PCs, and Chromebooks (CrOS) get the
+    Material Expressive look (Apple devices get glass)."""
     ua = request.headers.get("User-Agent", "")
-    return "Android" in ua or "Windows" in ua
+    return "Android" in ua or "Windows" in ua or "CrOS" in ua
 
 
 def fixed_mode():
