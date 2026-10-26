@@ -89,20 +89,18 @@
     {{ nav_link('challenges', 'Challenges', 'flag') }}
     {{ nav_link('insights', 'Weekly Wrap-Up', 'chart') }}
     <span class="side-spacer"></span>
-    {% if user.role == 'admin' %}{{ nav_link('admin', 'Admin', 'users') }}{% endif %}
     <a href="{{ url_for('logout') }}" class="side-link" aria-label="Log out" title="Log out">{{ m.icon('logout') }}</a>
-    <a href="{{ url_for('settings') }}" class="avatar gear-av" title="Settings" aria-label="Settings ({{ user.display_name }})"{% if request.endpoint == 'settings' %} aria-current="page"{% endif %}>{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 52, my_build) }}<span class="gear-cover" aria-hidden="true">{{ m.icon('gear', 24) }}</span></a>
   </nav>
   {% endif %}
 
   <main class="main" id="main">
     {% if user %}
-    {# Phone-only top bar: logo, admin, settings (the sidebar is hidden on phones) #}
+    {# Top bar: logo, admin, settings. On desktop only the admin and settings buttons show, at the top right. #}
     <div class="topbar">
       <a href="{{ url_for('dashboard') }}" class="topbar-logo" aria-label="StrideBoard home">{{ m.logo(30) }}<span>StrideBoard</span></a>
       <div class="topbar-actions">
-        {% if user.role == 'admin' %}<a href="{{ url_for('admin') }}" class="round-btn" aria-label="Admin">{{ m.icon('users', 20) }}</a>{% endif %}
-        <a href="{{ url_for('settings') }}" class="avatar-btn gear-av" aria-label="Settings"{% if request.endpoint == 'settings' %} aria-current="page"{% endif %}>{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 44, my_build) }}<span class="gear-cover" aria-hidden="true">{{ m.icon('gear', 20) }}</span></a>
+        {% if user.role == 'admin' %}<a href="{{ url_for('admin') }}" class="round-btn" aria-label="Admin" title="Admin"{% if request.endpoint == 'admin' %} aria-current="page"{% endif %}>{{ m.icon('users', 20) }}</a>{% endif %}
+        <a href="{{ url_for('settings') }}" class="avatar-btn gear-av" title="Settings" aria-label="Settings ({{ user.display_name }})"{% if request.endpoint == 'settings' %} aria-current="page"{% endif %}>{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 44, my_build) }}<span class="gear-cover" aria-hidden="true">{{ m.icon('gear', 20) }}</span></a>
       </div>
     </div>
     {% endif %}
