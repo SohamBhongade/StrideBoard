@@ -293,6 +293,37 @@ button { cursor: pointer; }
 @keyframes block-in { from { transform: scaleY(.4); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (max-width: 420px) { .block { height: 44px; border-radius: 11px; } .blocks { gap: 5px; } }
 
+/* Water: a glass that fills up, one step per glass */
+.water-glass {
+  --water: #4BA3E3; --water-2: #8FCBF3; --glass-edge: color-mix(in srgb, var(--ink) 55%, transparent);
+  display: flex; justify-content: center; margin: 4px 0 14px;
+}
+[data-theme="dark"] .water-glass { --water: #3D8FD6; --water-2: #69B4EE; }
+@media (prefers-color-scheme: dark) { [data-theme="auto"] .water-glass { --water: #3D8FD6; --water-2: #69B4EE; } }
+.water-glass svg { width: 140px; height: 170px; overflow: visible; }
+.wg-outline { fill: none; stroke: var(--glass-edge); stroke-width: 3; stroke-linejoin: round; }
+.wg-shine { stroke: #fff; stroke-opacity: .55; stroke-width: 4; stroke-linecap: round; fill: none; }
+.wg-tick { stroke: var(--glass-edge); stroke-width: 2; stroke-linecap: round; opacity: .55; }
+.wg-level {
+  transform: translateY(calc(151px - var(--fill) * 144px));
+  transition: transform .7s cubic-bezier(.3, 1.3, .5, 1), opacity .3s;
+}
+.water-glass.empty .wg-level { opacity: 0; }
+.wg-wave { animation: wg-wave 2.6s linear infinite; }
+.wg-front { fill: var(--water); }
+.wg-back { fill: var(--water-2); animation-duration: 3.8s; animation-direction: reverse; }
+@keyframes wg-wave { to { transform: translateX(70px); } }
+.wg-bubble { fill: #fff; opacity: 0; animation: wg-bubble 3s ease-in infinite; }
+.wg-bubble.b2 { animation-delay: 1s; } .wg-bubble.b3 { animation-delay: 2s; }
+@keyframes wg-bubble { 0% { opacity: 0; transform: translateY(40px); } 20% { opacity: .6; } 100% { opacity: 0; transform: translateY(-30px); } }
+.water-glass.pour .wg-level { animation: wg-slosh .8s ease-out; }
+@keyframes wg-slosh { 30% { rotate: -3deg; } 60% { rotate: 2deg; } }
+.wg-level { transform-origin: 70px 150px; transform-box: view-box; }
+.water-glass.full svg { filter: drop-shadow(0 6px 18px color-mix(in srgb, var(--water) 45%, transparent)); }
+.lite .wg-wave, .lite .wg-bubble, .fast .wg-wave, .fast .wg-bubble { animation: none; }
+.lite .water-glass.full svg { filter: none; }
+@media (prefers-reduced-motion: reduce) { .wg-wave, .wg-bubble, .water-glass.pour .wg-level { animation: none; } .wg-level { transition: none; } }
+
 /* Progress ring */
 .ring { position: relative; width: 92px; height: 92px; flex: none; }
 .ring > svg { transform: rotate(-90deg); }  /* not the tick icon inside */

@@ -96,3 +96,25 @@
 </span>
 {%- endif -%}
 {%- endmacro %}
+
+{# A glass that fills with water: one step per glass drunk today (app.js moves the level). #}
+{% macro water_glass(n, target) -%}
+{%- set fill = [(n or 0) / (target or 8), 1] | min -%}
+<div class="water-glass{% if (n or 0) >= target %} full{% endif %}{% if not n %} empty{% endif %}" data-water-glass style="--fill: {{ '%.3f' % fill }}" aria-hidden="true">
+  <svg viewBox="0 0 140 170" width="140" height="170">
+    <defs>
+      <clipPath id="wg-inside"><path d="M24 14 H116 L106 150 Q105 158 97 158 H43 Q35 158 34 150 Z"/></clipPath>
+    </defs>
+    <g clip-path="url(#wg-inside)">
+      <g class="wg-level">
+        <path class="wg-wave wg-back" d="M-140 6 q17.5 -9 35 0 t35 0 t35 0 t35 0 t35 0 t35 0 t35 0 t35 0 V200 H-140 Z"/>
+        <path class="wg-wave wg-front" d="M-140 8 q17.5 -9 35 0 t35 0 t35 0 t35 0 t35 0 t35 0 t35 0 t35 0 V200 H-140 Z"/>
+        <circle class="wg-bubble" cx="56" cy="60" r="3"/><circle class="wg-bubble b2" cx="84" cy="80" r="2.2"/><circle class="wg-bubble b3" cx="70" cy="100" r="2.6"/>
+      </g>
+    </g>
+    {% for i in range(1, target) %}<line class="wg-tick" x1="{{ 104 + 10 * i / target }}" x2="{{ 95 + 10 * i / target }}" y1="{{ 158 - 144 * i / target }}" y2="{{ 158 - 144 * i / target }}"/>{% endfor %}
+    <path class="wg-shine" d="M34 26 L42 140"/>
+    <path class="wg-outline" d="M20 10 H120 L110 150 Q108 162 97 162 H43 Q32 162 30 150 Z"/>
+  </svg>
+</div>
+{%- endmacro %}
