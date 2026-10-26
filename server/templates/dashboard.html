@@ -87,9 +87,7 @@
         </form>
       </div>
     </div>
-    <div class="blocks blocks-8 blocks-blue" aria-hidden="true" data-water-blocks>
-      {% for i in range(water_target) %}<span class="block{% if i < (d.water_today or 0) %} on{% endif %}" style="--i: {{ i }}"></span>{% endfor %}
-    </div>
+    {{ m.water_glass(d.water_today, water_target) }}
     <p class="small">Tap + each time you finish a glass. A bottle on your desk makes it easy.</p>
   </section>
 

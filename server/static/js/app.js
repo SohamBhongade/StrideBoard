@@ -187,11 +187,15 @@
     if (!count) return;
     var old = parseInt(count.textContent, 10) || 0;
     count.textContent = res.water;
-    document.querySelectorAll("[data-water-blocks] .block").forEach(function (b, i) {
-      var on = i < res.water;
-      b.classList.toggle("on", on);
-      b.classList.toggle("just-on", on && i >= old);   // only new glasses animate
-    });
+    var glass = document.querySelector("[data-water-glass]");
+    if (glass) {
+      glass.style.setProperty("--fill", Math.min(res.water / (res.target || 8), 1).toFixed(3));
+      glass.classList.toggle("empty", res.water === 0);
+      glass.classList.toggle("full", res.water >= res.target);
+      if (res.water > old) {   // a little slosh when a glass is added
+        glass.classList.remove("pour"); void glass.offsetWidth; glass.classList.add("pour");
+      }
+    }
     var chip = document.querySelector("[data-water-chip]");
     if (chip) chip.textContent = res.water >= res.target ? "Done for today" : (res.target - res.water) + " to go";
     var minus = document.querySelector("[data-water-minus]");
