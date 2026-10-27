@@ -82,6 +82,10 @@
       <span class="hint">Your teacher has this.</span>
     </div>
     {% endif %}
+    <label class="agree">
+      <input type="checkbox" name="agree" value="1" required {% if form.get('agree') == '1' %}checked{% endif %}>
+      <span>I have read and agree to the <a href="{{ url_for('privacy') }}" target="_blank" rel="noopener">privacy policy and terms of use</a>.</span>
+    </label>
     <button class="btn btn-dark btn-block" type="submit">Send me a code {{ m.icon('play', 16) }}</button>
   </form>
   {% endif %}

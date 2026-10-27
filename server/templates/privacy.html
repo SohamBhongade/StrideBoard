@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Privacy and terms{% endblock %}
+{% block content %}
+{# Keep this page in step with the "StrideBoard privacy policy and terms of use" doc.
+   Who runs it and who to contact come from config (STRIDEBOARD_SCHOOL_NAME etc.). #}
+{% if not user %}<div class="login-brand policy-brand"><span class="mark">{{ m.logo(34) }}</span> StrideBoard</div>{% endif %}
+{{ m.page_head("Privacy and", "terms", "Last updated " ~ updated ~ ". Written for students, staff, parents and school inspectors.") }}
+
+<div class="policy">
+
+<section class="card card-soft" aria-labelledby="p-glance">
+  <h2 id="p-glance" class="card-title">At a glance</h2>
+  <p>StrideBoard is a step-count game for students and staff at {{ school }}, built by a student team. It collects only what the game needs. Nothing it collects is sold, shared with advertisers or used for anything except running StrideBoard.</p>
+  <ul>
+    <li><b>Steps, not tracking.</b> StrideBoard stores a daily step total. It never uses GPS, location, weight, BMI, photos, contacts or the microphone.</li>
+    <li><b>Small amounts of optional data.</b> Water glasses, a daily mood (1 to 5) and activities are only stored if you choose to log them.</li>
+    <li><b>Emails are not kept.</b> An email address is only used to send a sign-up or reset code, then deleted within a day. Your account keeps only a scrambled fingerprint of it.</li>
+    <li><b>Students and teachers are kept apart.</b> In the app, students only see student boards and teachers only see teacher boards.</li>
+    <li><b>No ads and no tracking cookies.</b> The only cookies keep you logged in and remember your display settings.</li>
+    <li><b>You can ask to be removed.</b> An admin can delete an account and everything linked to it.</li>
+  </ul>
+</section>
+
+<section class="card card-soft" aria-labelledby="p-collect">
+  <h2 id="p-collect" class="card-title">What we collect and why</h2>
+  <div class="table-wrap">
+    <table class="policy-table">
+      <thead><tr><th>Data</th><th>Required?</th><th>Why it is needed</th></tr></thead>
+      <tbody>
+        <tr><td>Display name and username</td><td>Required</td><td>To log in and to show your name on leaderboards</td></tr>
+        <tr><td>Role (student or teacher) and class or department</td><td>Required</td><td>To keep student and teacher boards separate and to rank classes and departments</td></tr>
+        <tr><td>Age band (for example “13 to 17”, never a date of birth)</td><td>Required</td><td>To set a sensible starting step goal</td></tr>
+        <tr><td>PIN</td><td>Required</td><td>To log in. Stored only in scrambled (hashed) form; no one can read it, including admins</td></tr>
+        <tr><td>Email fingerprint</td><td>Required</td><td>A one-way scrambled form of your email, used to stop duplicate accounts and to send PIN reset codes. The email itself is not kept</td></tr>
+        <tr><td>Daily step total and where it came from (phone app, iPhone Shortcut or typed in)</td><td>Core of the game</td><td>For goals, leaderboards, tiers and badges</td></tr>
+        <tr><td>Step totals during the day, with the time</td><td>Kept for 2 days</td><td>Only to send the “time to stand up” reminder</td></tr>
+        <tr><td>Daily goal</td><td>Automatic</td><td>Adjusts each week from your own recent steps</td></tr>
+        <tr><td>Water glasses, mood (1 to 5), activities and exercise counts</td><td>Optional</td><td>Only if you log them; shown back to you on Home and in the Weekly Wrap-Up</td></tr>
+        <tr><td>Game progress: badges, EXP, daily rewards, avatar items, mini-challenges</td><td>Automatic</td><td>To run the game</td></tr>
+        <tr><td>When the account was made and last synced</td><td>Automatic</td><td>To show if a phone has stopped syncing and to keep the site running</td></tr>
+        <tr><td>Moderation notes: a time-out, ban or name change</td><td>Only if needed</td><td>To enforce the terms of use</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card card-soft" aria-labelledby="p-never">
+  <h2 id="p-never" class="card-title">What we never collect</h2>
+  <ul>
+    <li>Location or GPS, routes or where anyone walked</li>
+    <li>Weight, height, BMI, heart rate, sleep or any other health readings</li>
+    <li>Photos, videos, contacts, messages or microphone audio</li>
+    <li>Date of birth, home address, phone number or Emirates ID</li>
+    <li>Advertising IDs, or anything from other apps</li>
+  </ul>
+  <p>On phones, StrideBoard only asks Health Connect (Android) or Apple Health (iPhone) for the step count. It does not request any other kind of health data.</p>
+</section>
+
+<section class="card card-soft" aria-labelledby="p-who">
+  <h2 id="p-who" class="card-title">Who can see what</h2>
+  <p>On leaderboards, other people only see your <b>display name, class or department, avatar and step total</b> (or effort or improvement percentage). Everything else stays private to you.</p>
+  <div class="table-wrap">
+    <table class="policy-table">
+      <thead><tr><th>Who</th><th>What they can see</th></tr></thead>
+      <tbody>
+        <tr><td>You</td><td>Everything about your own account: steps, water, mood, activities, goal, badges and Weekly Wrap-Up</td></tr>
+        <tr><td>Students</td><td>Student leaderboards and class totals only. Students never see teacher boards in the app</td></tr>
+        <tr><td>Teachers</td><td>Teacher leaderboards and department totals only. Teachers do not see individual students’ water, mood or activities</td></tr>
+        <tr><td>School admins</td><td>The list of accounts with their class or department, step totals and sync status, plus school-wide averages. Admins cannot see anyone’s PIN or email, or one person’s mood, water or activity log</td></tr>
+        <tr><td>The big-screen board</td><td>Students and Teachers boards side by side. It only opens with a screen code from Admin, so names are never on a public link</td></tr>
+        <tr><td>Anyone else</td><td>Nothing. Every page with people’s data needs a login</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>StrideBoard data is not sold, rented or shared with advertisers or any other company.</p>
+</section>
+
+<section class="card card-soft" aria-labelledby="p-where">
+  <h2 id="p-where" class="card-title">Where data is stored and how it is protected</h2>
+  <p>StrideBoard runs on <b>PythonAnywhere</b>, a web hosting service whose servers are outside the UAE. All data is in one database on that server.</p>
+  <ul>
+    <li><b>Encrypted connection.</b> The site is served over HTTPS, so data is encrypted between your device and the server.</li>
+    <li><b>Protected logins.</b> PINs and email fingerprints are stored only in one-way scrambled form. Wrong PIN attempts are limited, and sign-up and reset codes expire after 15 minutes.</li>
+    <li><b>Cookies.</b> Three small cookies: one keeps you logged in, and two remember your theme and Fast mode. Scripts can’t read them, and there are no advertising or tracking cookies.</li>
+    <li><b>Phones.</b> The Android app keeps steps on the phone only until it can send them (for example after a trip with no signal). The iPhone Shortcut sends the day’s step total and nothing else.</li>
+    <li><b>Other services.</b> Gmail sends sign-up and PIN reset codes. The Weekly Wrap-Up chart loads a drawing library (Chart.js) from jsDelivr, which sees your internet address but no StrideBoard data. No other outside service receives anything.</li>
+  </ul>
+</section>
+
+<section class="card card-soft" aria-labelledby="p-keep">
+  <h2 id="p-keep" class="card-title">How long data is kept, and deleting it</h2>
+  <div class="table-wrap">
+    <table class="policy-table">
+      <thead><tr><th>Data</th><th>How long it is kept</th></tr></thead>
+      <tbody>
+        <tr><td>Email address typed at sign-up or for a PIN reset</td><td>Deleted within 1 day; codes stop working after 15 minutes</td></tr>
+        <tr><td>Step totals during the day (for the stand-up reminder)</td><td>2 days</td></tr>
+        <tr><td>Daily backup copies of the database, on the server</td><td>7 days, then replaced</td></tr>
+        <tr><td>Weekly backup copy, emailed to StrideBoard’s own private Gmail account</td><td>4 weeks, then deleted</td></tr>
+        <tr><td>Everything else in an account</td><td>Until the account is deleted</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><b>To delete your account,</b> ask {{ contact }}. Deleting removes the account and everything linked to it straight away: steps, water, mood, activities, badges, rewards and avatar items. Backup copies made before that drop off within the times above.</p>
+  <p>At the end of each school year, {{ school }} decides whether accounts are kept for the next year, archived or deleted.</p>
+</section>
+
+<section class="card card-soft" aria-labelledby="p-terms">
+  <h2 id="p-terms" class="card-title">Terms of use</h2>
+  <p>By creating an account, everyone agrees to these rules.</p>
+  <ol>
+    <li><b>Use your real name.</b> One account per person, in your real class or department. Moderators may change names that aren’t real or appropriate, and you’ll be told when they do.</li>
+    <li><b>Play fair.</b> Only count steps you really walked. Shaking a phone, using machines or apps that fake steps, or typing made-up numbers is cheating. Totals over 100,000 steps a day are refused.</li>
+    <li><b>Keep it kind.</b> Names, avatars and anything else you add must be respectful. No bullying, teasing or pressuring anyone about their steps.</li>
+    <li><b>Keep your PIN and codes private.</b> Don’t share your PIN. Staff shouldn’t share the big-screen code outside school.</li>
+    <li><b>Moderation.</b> Admins can time out, ban or delete accounts that break these rules. A banned email can be blocked from signing up again.</li>
+    <li><b>The service.</b> StrideBoard is a free school project, provided as it is. We work to keep it running and accurate, but it may sometimes be offline, and step counts depend on each phone.</li>
+    <li><b>Ownership.</b> The StrideBoard app and code belong to its creators, {{ team }}. Data in StrideBoard belongs to the people who entered it and is managed for {{ school }}.</li>
+  </ol>
+</section>
+
+<section class="card card-soft" aria-labelledby="p-contact">
+  <h2 id="p-contact" class="card-title">Health, changes and contact</h2>
+  <p><b>Not medical advice.</b> Step goals, reminders and the Weekly Wrap-Up are general suggestions to move more. Anyone with a health condition or injury should follow their doctor’s or the school nurse’s guidance.</p>
+  <p><b>Changes.</b> If StrideBoard starts collecting anything new, this page is updated first and users are told on the Home page. The date at the top shows the latest version.</p>
+  <p><b>Questions or requests.</b> For a copy of your data, a correction, deletion or any privacy question, contact {{ contact }}.</p>
+</section>
+
+{% if not user %}<p class="login-switch"><a href="{{ url_for('signup') }}">Create an account</a> · <a href="{{ url_for('login') }}">Log in</a></p>{% endif %}
+</div>
+{% endblock %}
