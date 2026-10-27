@@ -62,9 +62,9 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "51"
+ASSET_VERSION = "52"
 
-PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
+PUBLIC_ENDPOINTS = {"privacy", "login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
 
 
@@ -570,6 +570,8 @@ def add_routes(app):
             try:
                 if config.JOIN_CODE and form.get("code", "").strip().lower() != config.JOIN_CODE.lower():
                     raise ValueError("that school code isn't right. Ask your teacher for it")
+                if form.get("agree") != "1":
+                    raise ValueError("please read and agree to the privacy policy and terms of use")
                 if too_many_signups(request.remote_addr):
                     raise ValueError("too many sign-ups from here. Try again in an hour")
                 dept = form.get("class") if form.get("role") == "student" else form.get("department")
@@ -587,6 +589,12 @@ def add_routes(app):
         return render_template("signup.html", form=form, age_bands=AGE_BANDS, open_now=open_now,
                                classes=config.SIGNUP_CLASSES, departments=config.SIGNUP_DEPARTMENTS,
                                need_code=bool(config.JOIN_CODE), domains=config.EMAIL_DOMAINS)
+
+    @app.route("/privacy")
+    def privacy():
+        """Privacy policy and terms of use: open to everyone, linked from sign-up and every page."""
+        return render_template("privacy.html", school=config.SCHOOL_NAME, contact=config.PRIVACY_CONTACT,
+                               team=config.TEAM_NAMES, updated=config.PRIVACY_UPDATED)
 
     @app.route("/signup/verify", methods=["GET", "POST"])
     def signup_verify():
