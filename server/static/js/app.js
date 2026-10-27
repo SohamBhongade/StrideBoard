@@ -186,11 +186,17 @@
     sel.addEventListener("change", function () { sel.form.submit(); });
   });
   var boardSearch = document.querySelector("[data-board-search]");
+  // Same rule as the server: any part of a name, or a class/department word that starts with it.
+  var boardMatch = function (el, needle) {
+    if (!needle) return true;
+    if (el.getAttribute("data-name").indexOf(needle) !== -1) return true;
+    return (el.getAttribute("data-dept") || "").split(" ").some(function (w) { return w.indexOf(needle) === 0; });
+  };
   if (boardSearch) {
     boardSearch.addEventListener("input", function () {
       var needle = boardSearch.value.trim().toLowerCase();
       document.querySelectorAll(".rank-row[data-name]").forEach(function (row) {
-        row.classList.toggle("no-match", !!needle && row.getAttribute("data-name").indexOf(needle) === -1);
+        row.classList.toggle("no-match", !boardMatch(row, needle));
       });
     });
   }

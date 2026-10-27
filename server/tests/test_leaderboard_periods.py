@@ -125,3 +125,60 @@ def test_search_finds_names_and_keeps_ranks(site):
     assert "1 match for" in page and ">2<" in page                 # Omar keeps rank 2
     page = site.get("/leaderboard?q=zzz").get_data(as_text=True)
     assert "No one called" in page
+
+
+# ------------------------------------------------------------- the leaderboard screen (/board, the desktop app)
+
+@pytest.fixture()
+def screen(tmp_path):
+    web = A.create_app()
+    path = str(tmp_path / "screen.sqlite3")
+    web.config.update(TESTING=True, DATABASE=path)
+    conn = db.connect(path)
+    db.create_tables(conn)
+    today = A.today()
+    for name, steps in (("Aisha Khan", 9000), ("Omar Saeed", 7000), ("Maryam Rahman", 5000), ("Lina Odeh", 3000)):
+        uid = data.create_user(conn, name.split()[0].lower(), name, "student", "Grade 10A", "teen_13_17", "1234")
+        data.save_steps(conn, uid, today, steps, "manual")
+    key = data.board_key(conn) if hasattr(data, "board_key") else None
+    conn.close()
+    return web.test_client(), key
+
+
+def _key(screen):
+    client, key = screen
+    if key is None:
+        pytest.skip("no screen-code helper")
+    return client, key
+
+
+def test_screen_period_dropdown(screen):
+    c, key = _key(screen)
+    page = c.get(f"/board?key={key}").get_data(as_text=True)
+    assert 'name="period"' in page and 'value="week" selected' in page and "resets every Monday" in page
+    page = c.get(f"/board?key={key}&period=month").get_data(as_text=True)
+    assert 'value="month" selected' in page and "resets on the 1st" in page and "Aisha Khan" in page
+    page = c.get(f"/board?key={key}&period=bogus").get_data(as_text=True)
+    assert 'value="week" selected' in page
+
+
+def test_screen_search(screen):
+    c, key = _key(screen)
+    page = c.get(f"/board?key={key}&q=lina").get_data(as_text=True)
+    assert "Lina Odeh" in page and "Aisha Khan" not in page and "1 match" in page
+    assert ">4<" in page                                    # Lina keeps her real rank
+    page = c.get(f"/board?key={key}&q=nobody").get_data(as_text=True)
+    assert "No one called" in page
+
+
+def test_screen_still_needs_the_code(screen):
+    c, _ = screen
+    assert c.get("/board?period=all&q=a").status_code == 403
+
+
+def test_search_rule():
+    rows = [{"name": "Rami Aziz", "department": "Grade 10A"}, {"name": "Noor Hamdan", "department": "Grade 11B"}]
+    assert [r["name"] for r in data.board_search(rows, "ra")] == ["Rami Aziz"]      # not every "Grade"
+    assert [r["name"] for r in data.board_search(rows, "10a")] == ["Rami Aziz"]     # class word
+    assert [r["name"] for r in data.board_search(rows, "AMDA")] == ["Noor Hamdan"]  # any part of a name
+    assert data.board_search(rows, "  ") == rows

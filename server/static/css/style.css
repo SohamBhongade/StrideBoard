@@ -1046,6 +1046,18 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .board-row .av { --av: clamp(26px, 4vh, 38px) !important; }
 .board-spot .av { --av: clamp(40px, 7vh, 74px) !important; }
 
+/* Leaderboard screen: period dropdown + name search (dark, to match the screen) */
+.board .board-tools { margin: 0; align-items: center; }
+.board .board-period, .board .board-search { height: 46px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); color: #A7B2CF; }
+.board .board-period:focus-within, .board .board-search:focus-within { border-color: rgba(255, 255, 255, .5); }
+.board .board-period select, .board .board-search input { color: #EEF1F8; }
+.board .board-period select option { color: #17181C; }
+.board .board-search { max-width: 420px; }
+.board .board-search input::placeholder { color: #8C97B5; }
+.board-clear { color: #CFD6E8; font-size: 14px; }
+.board-spot.no-match { visibility: hidden; }
+.board-row.no-match { display: none; }
+
 /* Admin > People: steps columns */
 th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .steps-met { display: inline-block; padding: 2px 9px; border-radius: 999px; background: var(--mint-bg); color: var(--good); font-weight: 600; }
