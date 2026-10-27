@@ -180,6 +180,21 @@
     });
   }
 
+  // ---- Leaderboard: the period dropdown switches straight away; the search box hides
+  // non-matching rows as you type (Enter searches the whole board, not just the top 50).
+  document.querySelectorAll("select[data-autosubmit]").forEach(function (sel) {
+    sel.addEventListener("change", function () { sel.form.submit(); });
+  });
+  var boardSearch = document.querySelector("[data-board-search]");
+  if (boardSearch) {
+    boardSearch.addEventListener("input", function () {
+      var needle = boardSearch.value.trim().toLowerCase();
+      document.querySelectorAll(".rank-row[data-name]").forEach(function (row) {
+        row.classList.toggle("no-match", !!needle && row.getAttribute("data-name").indexOf(needle) === -1);
+      });
+    });
+  }
+
   // ---- Dashboard water +/- and mood: save without reloading the page.
   // If anything goes wrong, the form is sent the normal way instead.
   function updateWater(res) {

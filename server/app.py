@@ -29,6 +29,7 @@ SHORTCUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static
 
 # Display settings. The game rules themselves live in data.py / calc.py.
 TIERS = list(config.TIERS)  # from Agent 1's config.py, so the rules live in one place
+LEADERBOARD_PERIODS = [("day", "Today"), ("week", "This week"), ("month", "This month"), ("all", "All time")]
 LEADERBOARD_VIEWS = [("student", "Students"), ("teacher", "Teachers"),
                      ("department", "Classes & departments"), ("effort", "Effort"),
                      ("improvement", "Most improved")]
@@ -61,7 +62,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "48"
+ASSET_VERSION = "49"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -159,11 +160,11 @@ def cached_impact_stats(conn):
     return stats
 
 
-_BOARD_CACHE = {}           # (database, view, day, role) -> (time made, rows)
+_BOARD_CACHE = {}           # (database, view, day, role, period) -> (time made, rows)
 BOARD_CACHE_SECONDS = 30
 
 
-def cached_leaderboard(conn, view, day, role=None):
+def cached_leaderboard(conn, view, day, role=None, period="week"):
     """A leaderboard, ranked once and reused for up to 30 seconds.
 
     Ranking the whole school is the biggest job on Home (its top-3 preview), Ranks and the
@@ -171,14 +172,14 @@ def cached_leaderboard(conn, view, day, role=None):
     shared instead of redone for each of them. Rows are copied so a page can't change it.
     """
     if current_app.testing:
-        return data.leaderboard(conn, view, day, role=role)
-    key = (current_app.config.get("DATABASE") or config.DATABASE, view, str(day), role)
+        return data.leaderboard(conn, view, day, role=role, period=period)
+    key = (current_app.config.get("DATABASE") or config.DATABASE, view, str(day), role, period)
     now = datetime.now().timestamp()
     hit = _BOARD_CACHE.get(key)
     if not hit or now - hit[0] >= BOARD_CACHE_SECONDS:
         if len(_BOARD_CACHE) > 64:
             _BOARD_CACHE.clear()
-        hit = (now, data.leaderboard(conn, view, day, role=role))
+        hit = (now, data.leaderboard(conn, view, day, role=role, period=period))
         _BOARD_CACHE[key] = hit
     return [dict(r) for r in hit[1]]
 
@@ -751,11 +752,28 @@ def add_routes(app):
         view = request.args.get("view", default)
         if view not in views:
             view = default
-        rows = cached_leaderboard(db.get_db(), view, today(), role=role)
+        # Today / This week / This month / All time. Effort and improvement need a
+        # goal or an earlier stretch to compare with, so they have no all-time board.
+        periods = [p for p in LEADERBOARD_PERIODS
+                   if not (p[0] == "all" and view in ("effort", "improvement"))]
+        period = request.args.get("period", "week")
+        if period not in dict(periods):
+            period = "week"
+        rows = cached_leaderboard(db.get_db(), view, today(), role=role, period=period)
+        total = len(rows)
+        # Search: matching names (or class/department) from the whole board, ranks unchanged
+        q = (request.args.get("q") or "").strip()[:60]
+        if q:
+            needle = q.casefold()
+            rows = [r for r in rows if needle in (r["name"] or "").casefold()
+                    or needle in (r["department"] or "").casefold()]
+            with_builds(db.get_db(), rows)
+            return render_template("leaderboard.html", rows=rows, mine=[], total=total, trimmed=False,
+                                   show_all=True, view=view, views=allowed, view_name=views[view],
+                                   period=period, periods=periods, q=q)
         # Big boards show the top 50 plus your own row; "Show everyone" opens the full list.
         # Ranks are worked out on the full board first, so they never change.
         show_all = request.args.get("all") == "1"
-        total = len(rows)
         mine = []
         if not show_all and total > LEADERBOARD_TOP:
             me_id, my_group = g.user["id"], g.user["department"]
@@ -765,7 +783,7 @@ def add_routes(app):
         with_builds(db.get_db(), rows + mine)
         return render_template("leaderboard.html", rows=rows, mine=mine, total=total,
                                trimmed=total > len(rows), show_all=show_all, view=view,
-                               views=allowed, view_name=views[view])
+                               views=allowed, view_name=views[view], period=period, periods=periods, q="")
 
     # ---------- Stage 4: Weekly Wrap-Up
     @app.route("/insights")

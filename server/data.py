@@ -10,7 +10,7 @@ import io
 import re
 import secrets
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -1000,23 +1000,58 @@ def _department_rows(conn, start, end, roles=PLAYER_ROLES):
     return _ranked(items)
 
 
-def leaderboard(conn, view, today, role=None):
-    """This week's ranking. view: teacher | student | department | effort | improvement.
+LEADERBOARD_PERIODS = ("day", "week", "month", "all")
+
+
+def period_bounds(period, today):
+    """Dates for a leaderboard period.
+
+    Returns (start, end, prev_start, prev_end, goal_days). prev_* is the same stretch
+    one period earlier, cut to the same number of days so far (fair mid-period);
+    None for all time. goal_days turns a daily goal into the period's goal.
+    """
+    today = calc.to_date(today)
+    if period == "day":
+        y = today - timedelta(days=1)
+        return today, today, y, y, 1
+    if period == "week":
+        monday, sunday = calc.week_bounds(today)
+        return monday, sunday, monday - timedelta(days=7), today - timedelta(days=7), 7
+    if period == "month":
+        first = today.replace(day=1)
+        nxt = (first + timedelta(days=32)).replace(day=1)
+        last = nxt - timedelta(days=1)
+        prev_last = first - timedelta(days=1)
+        prev_first = prev_last.replace(day=1)
+        prev_end = prev_first + timedelta(days=min(today.day, prev_last.day) - 1)
+        return first, last, prev_first, prev_end, last.day
+    if period == "all":
+        return date(2000, 1, 1), today, None, None, None
+    raise ValueError("period must be day, week, month or all")
+
+
+def leaderboard(conn, view, today, role=None, period="week"):
+    """A ranking. view: teacher | student | department | effort | improvement.
+    period: day | week (default, Monday to Sunday) | month | all (lifetime).
+    Effort and improvement have no all-time version.
 
     Rows: {"rank", "name", "department", "value", "label", "user_id",
            "avatar", "avatar_color"} (avatar fields are None for departments).
     Only display name, department and the value are shown; admins never appear.
-    People with no steps this week are left off the person boards.
+    People with no steps in the period are left off the person boards.
     role ("student" or "teacher") keeps the department, effort and improvement
     boards to that group only; None (admins) includes both.
     """
     today = calc.to_date(today)
-    monday, sunday = calc.week_bounds(today)
+    start, end, prev_start, prev_end, goal_days = period_bounds(period, today)
+    if view in ("effort", "improvement") and period == "all":
+        raise ValueError("effort and improvement boards have no all-time version")
     roles = (role,) if role in PLAYER_ROLES else PLAYER_ROLES
+    word = {"day": "daily", "week": "weekly", "month": "monthly"}.get(period)
     items = []
 
     if view in ("teacher", "student"):
-        for p in _player_totals(conn, monday, sunday, roles=(view,)).values():
+        for p in _player_totals(conn, start, end, roles=(view,)).values():
             items.append({"name": p["display_name"], "department": p["department"],
                           "value": p["total"], "label": f"{p['total']:,} steps",
                           "user_id": p["id"], "_sort": p["total"],
@@ -1024,29 +1059,32 @@ def leaderboard(conn, view, today, role=None):
                           "_last": p["last_update"], "_tiebreak": p["id"]})
 
     elif view == "department":
-        return _department_rows(conn, monday, sunday, roles)
+        return _department_rows(conn, start, end, roles)
 
     elif view == "effort":
-        # % of their own weekly goal (daily goal x 7): fair for every age and fitness level
-        for p in _player_totals(conn, monday, sunday, roles).values():
-            ratio = p["total"] / (p["daily_goal"] * 7) * 100
+        # % of their own goal for the period: fair for every age and fitness level
+        for p in _player_totals(conn, start, end, roles).values():
+            ratio = p["total"] / (p["daily_goal"] * goal_days) * 100
             items.append({"name": p["display_name"], "department": p["department"],
-                          "value": round(ratio), "label": f"{round(ratio)}% of weekly goal",
+                          "value": round(ratio), "label": f"{round(ratio)}% of {word} goal",
                           "user_id": p["id"], "_sort": ratio,
                           "avatar": p["avatar"], "avatar_color": p["avatar_color"],
                           "_last": p["last_update"], "_tiebreak": p["id"]})
 
     elif view == "improvement":
-        # Fair mid-week: compare Monday-to-today with the same days last week.
-        this_week = _player_totals(conn, monday, today, roles)
-        last_week = _player_totals(conn, monday - timedelta(days=7), today - timedelta(days=7), roles)
-        for uid, p in this_week.items():
-            before = last_week.get(uid, {}).get("total", 0)
-            if before < config.IMPROVEMENT_MIN_LAST_WEEK:
+        # Fair mid-period: compare start-to-today with the same days one period back.
+        this_time = _player_totals(conn, start, today, roles)
+        before_time = _player_totals(conn, prev_start, prev_end, roles)
+        span = (prev_end - prev_start).days + 1
+        minimum = max(100, round(config.IMPROVEMENT_MIN_LAST_WEEK * span / 7))
+        than = {"day": "yesterday", "week": "last week", "month": "last month"}[period]
+        for uid, p in this_time.items():
+            before = before_time.get(uid, {}).get("total", 0)
+            if before < minimum:
                 continue   # nothing fair to compare against
             change = (p["total"] - before) / before * 100
             items.append({"name": p["display_name"], "department": p["department"],
-                          "value": round(change), "label": f"{round(change):+d}% vs last week",
+                          "value": round(change), "label": f"{round(change):+d}% vs {than}",
                           "user_id": uid, "_sort": change,
                           "avatar": p["avatar"], "avatar_color": p["avatar_color"],
                           "_last": p["last_update"], "_tiebreak": uid})

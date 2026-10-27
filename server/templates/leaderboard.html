@@ -2,21 +2,47 @@
 {% block title %}Leaderboards{% endblock %}
 {% block content %}
 
-{{ m.page_head("This week's", "leaderboards", "Monday to Sunday. Resets every Monday, so everyone gets a fresh start.") }}
+{% set heads = {
+  'day': ("Today's", "Midnight to midnight. A new race every day."),
+  'week': ("This week's", "Monday to Sunday. Resets every Monday, so everyone gets a fresh start."),
+  'month': ("This month's", "From the 1st to the end of the month."),
+  'all': ("All-time", "Every step since StrideBoard started.")
+} %}
+{{ m.page_head(heads[period][0], "leaderboards", heads[period][1]) }}
 
 <nav class="pills" aria-label="Leaderboard view">
   {% for key, label in views %}
-  <a class="pill{% if key == view %} active{% endif %}" href="{{ url_for('leaderboard', view=key) }}"
+  <a class="pill{% if key == view %} active{% endif %}" href="{{ url_for('leaderboard', view=key, period=period if period != 'week' else None) }}"
      {% if key == view %}aria-current="page"{% endif %}>{{ label }}</a>
   {% endfor %}
 </nav>
 
+<form class="board-tools" method="get" action="{{ url_for('leaderboard') }}" role="search">
+  <input type="hidden" name="view" value="{{ view }}">
+  <label class="board-period">
+    <span class="visually-hidden">Time period</span>
+    {{ m.icon('calendar', 20) }}
+    <select name="period" data-autosubmit>
+      {% for key, label in periods %}<option value="{{ key }}"{% if key == period %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="board-search">
+    <span class="visually-hidden">Search names</span>
+    {{ m.icon('search', 20) }}
+    <input type="search" name="q" value="{{ q }}" placeholder="Search names" autocomplete="off" maxlength="60" data-board-search>
+  </label>
+  <button class="visually-hidden" type="submit">Search</button>
+</form>
+
+{% set span = {'day': 'today', 'week': 'this week', 'month': 'this month', 'all': 'of all time'}[period] %}
+{% set every = {'day': 'daily', 'week': 'weekly', 'month': 'monthly', 'all': 'all-time'}[period] %}
+{% set than = {'day': 'yesterday', 'week': 'last week', 'month': 'last month', 'all': ''}[period] %}
 {% set explain = {
-  'student': 'Total steps this week.',
-  'teacher': 'Total steps this week.',
-  'department': 'Average weekly steps per member. Members with no steps count as 0, so get everyone moving!',
-  'effort': 'Percent of your own weekly goal. Fair for everyone, whatever your goal.',
-  'improvement': 'Change compared with last week.'
+  'student': 'Total steps ' ~ span ~ '.',
+  'teacher': 'Total steps ' ~ span ~ '.',
+  'department': 'Average ' ~ every ~ ' steps per member. Members with no steps count as 0, so get everyone moving!',
+  'effort': 'Percent of your own ' ~ every ~ ' goal. Fair for everyone, whatever your goal.',
+  'improvement': 'Change compared with ' ~ than ~ '.'
 } %}
 
 {% macro is_me(r) -%}
@@ -29,8 +55,11 @@
     <span class="muted small right">{{ explain[view] }}</span>
   </div>
 
+  {% if q %}
+  <p class="board-results small">{{ rows|length }} match{{ '' if rows|length == 1 else 'es' }} for <b>“{{ q }}”</b> · <a href="{{ url_for('leaderboard', view=view, period=period if period != 'week' else None) }}">Clear</a></p>
+  {% endif %}
   {% if rows %}
-    {% if rows|length >= 3 %}
+    {% if rows|length >= 3 and not q %}
     <div class="podium" aria-hidden="true">
       {% for i in [1, 0, 2] %}{% set r = rows[i] %}
       <div class="podium-spot podium-{{ r.rank }}">
@@ -44,7 +73,7 @@
     <ol class="rank-list">
       {% for r in rows %}
       {% set me = is_me(r) %}
-      <li class="rank-row rank-{{ r.rank }} {{ me }}">
+      <li class="rank-row rank-{{ r.rank }} {{ me }}" data-name="{{ (r.name ~ ' ' ~ (r.department or ''))|lower }}">
         <span class="rank-num">{{ r.rank }}</span>
         {% if r.user_id %}{{ m.avatar(r.name, r.avatar, r.avatar_color, 40, r.build) }}{% endif %}
         <span class="rank-who"><strong>{{ r.name }}{% if me %} ({{ 'yours' if r.user_id is none else 'you' }}){% endif %}</strong><span>{{ r.department }}</span></span>
@@ -64,12 +93,16 @@
       {% endif %}
     </ol>
     {% if trimmed %}
-    <a class="btn btn-soft btn-block board-more" href="{{ url_for('leaderboard', view=view, all=1) }}">Show everyone ({{ total|num }})</a>
+    <a class="btn btn-soft btn-block board-more" href="{{ url_for('leaderboard', view=view, period=period if period != 'week' else None, all=1) }}">Show everyone ({{ total|num }})</a>
     {% elif show_all and total > 50 %}
-    <a class="btn btn-soft btn-block board-more" href="{{ url_for('leaderboard', view=view) }}">Show top 50</a>
+    <a class="btn btn-soft btn-block board-more" href="{{ url_for('leaderboard', view=view, period=period if period != 'week' else None) }}">Show top 50</a>
     {% endif %}
   {% else %}
-    {{ m.empty("No steps yet this week", "Once people's phones sync, this board fills up. Be the first!", "trophy") }}
+    {% if q %}
+    {{ m.empty("No one called “" ~ q ~ "”", "Check the spelling, or try part of the name.", "search") }}
+    {% else %}
+    {{ m.empty("No steps yet " ~ span, "Once people's phones sync, this board fills up. Be the first!", "trophy") }}
+    {% endif %}
   {% endif %}
 </section>
 {% endblock %}
