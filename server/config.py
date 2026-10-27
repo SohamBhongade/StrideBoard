@@ -82,16 +82,11 @@ TIERS = [
     ("Platinum", 90_000),
 ]
 
-# --- Starting daily goal by age band ---
-# PLACEHOLDERS: the team must check these against current WHO (or similar)
-# guidance and cite the source in the video.
-AGE_BAND_GOALS = {
-    "under_13": 11_000,
-    "teen_13_17": 10_000,
-    "adult_18_39": 8_000,
-    "adult_40_59": 8_000,
-    "senior_60_plus": 6_000,
-}
+# --- Starting daily goal: the same for everyone ---
+# 6,000 is an easy start; after two weeks each person's goal adapts to their own steps.
+START_GOAL = 6_000   # everyone starts here; the adaptive goal takes over after two weeks
+AGE_BAND_GOALS = {band: START_GOAL for band in
+                  ("under_13", "teen_13_17", "adult_18_39", "adult_40_59", "senior_60_plus")}
 
 # --- Adaptive goal: 14-day average x 1.10, rounded to 250, kept in 3,000-15,000 ---
 ADAPTIVE_MIN_DAYS = 14

@@ -459,14 +459,11 @@ def set_custom_goal(conn, user_id, goal):
 
 
 def set_age_band(conn, user_id, age_band):
-    """Change the age band. Without a custom goal, the goal resets to the band's default."""
+    """Change the age band. It never changes the goal: everyone starts at the same goal,
+    and an adapted goal shouldn't be wiped by fixing an age band."""
     age_band = _check_age_band(age_band)
-    user = _require_user(conn, user_id)
-    if user["goal_is_custom"]:
-        conn.execute("UPDATE users SET age_band = ? WHERE id = ?", (age_band, user_id))
-    else:
-        conn.execute("UPDATE users SET age_band = ?, daily_goal = ? WHERE id = ?",
-                     (age_band, config.AGE_BAND_GOALS[age_band], user_id))
+    _require_user(conn, user_id)
+    conn.execute("UPDATE users SET age_band = ? WHERE id = ?", (age_band, user_id))
     conn.commit()
 
 

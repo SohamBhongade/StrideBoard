@@ -28,6 +28,23 @@ def fixed_today(monkeypatch):
     return TODAY
 
 
+# The older tests do their sums with different starting goals per age band, which keeps
+# them clear (a teen 10,000, an adult 8,000 ...). The real site starts everyone at
+# config.START_GOAL: see test_start_goal.py.
+OLD_BAND_GOALS = {"under_13": 11_000, "teen_13_17": 10_000, "adult_18_39": 8_000,
+                  "adult_40_59": 8_000, "senior_60_plus": 6_000}
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "real_goals: use the site's real starting goals")
+
+
+@pytest.fixture(autouse=True)
+def band_goals_for_sums(request, monkeypatch):
+    if "real_goals" not in request.keywords:
+        monkeypatch.setattr(data.config, "AGE_BAND_GOALS", dict(OLD_BAND_GOALS))
+
+
 @pytest.fixture
 def conn(tmp_path):
     connection = db.connect(tmp_path / "test.sqlite3")

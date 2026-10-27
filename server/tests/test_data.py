@@ -94,7 +94,7 @@ def test_list_users_hides_secrets(conn):
 def test_custom_goal_and_age_band(conn):
     uid = make_user(conn, "sam", age_band="teen_13_17")
     data.set_age_band(conn, uid, "under_13")
-    assert data.get_user(conn, uid)["daily_goal"] == 11000   # follows the band
+    assert data.get_user(conn, uid)["daily_goal"] == 10000   # the band never changes the goal
 
     data.set_custom_goal(conn, uid, "9000")
     user = data.get_user(conn, uid)

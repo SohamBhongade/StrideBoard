@@ -69,7 +69,7 @@
         <select class="input" id="age_band" name="age_band">
           {% for value, label in age_bands %}<option value="{{ value }}" {% if me.age_band == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
         </select>
-        <span class="hint">Used for your starting goal. We never ask your exact age.</span>
+        <span class="hint">We never ask your exact age. It doesn't change your goal.</span>
       </div>
       <button class="btn btn-outline" type="submit">Save age band</button>
     </form>
