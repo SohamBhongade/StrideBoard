@@ -1,5 +1,6 @@
-// StrideBoard Leaderboard: a window that shows only this week's Students and Teachers
-// leaderboards from the StrideBoard website (the /board page), refreshing every minute.
+// StrideBoard Leaderboard: a window that shows only the Students and Teachers leaderboards
+// from the StrideBoard website (the /board page), refreshing every minute. A dropdown picks
+// today, this week, this month or all time (remembered), and a search box finds names.
 // It asks for the screen code once (Admin -> Leaderboard screen) and remembers it.
 const { app, BrowserWindow, Menu, ipcMain, nativeTheme, powerSaveBlocker, screen, shell } = require("electron");
 const fs = require("fs");
@@ -8,8 +9,9 @@ const path = require("path");
 const SITE = process.env.STRIDEBOARD_SITE || "https://strideboard.pythonanywhere.com";   // the env var is for testing
 const settingsFile = () => path.join(app.getPath("userData"), "settings.json");
 let win = null;
+const PERIODS = ["day", "week", "month", "all"];
 
-// settings.json: { code, bounds: {x, y, width, height}, fullScreen }
+// settings.json: { code, period, bounds: {x, y, width, height}, fullScreen }
 function readSettings() {
   try { return JSON.parse(fs.readFileSync(settingsFile(), "utf8")) || {}; } catch (e) { return {}; }
 }
@@ -32,7 +34,9 @@ function onSomeScreen(b) {
 function showBoard() {
   const code = readCode();
   if (!code) return showSetup();
-  win.loadURL(`${SITE}/board?key=${encodeURIComponent(code)}`);
+  const period = readSettings().period;
+  const extra = PERIODS.includes(period) && period !== "week" ? `&period=${period}` : "";
+  win.loadURL(`${SITE}/board?key=${encodeURIComponent(code)}${extra}`);
 }
 function showSetup(problem) {
   win.loadFile(path.join(__dirname, "setup.html"), problem ? { query: { problem } } : undefined);
@@ -56,7 +60,12 @@ function createWindow() {
   });
   // The website says the code is wrong (or was changed in Admin): ask for it again straight away.
   win.webContents.on("did-navigate", (_e, url, status) => {
-    if (url.startsWith(SITE) && status === 403) showSetup("wrong");
+    if (url.startsWith(SITE) && status === 403) return showSetup("wrong");
+    // Remember the time period picked on the board, so a restart opens the same one.
+    if (url.startsWith(`${SITE}/board`) && status === 200) {
+      const period = new URL(url).searchParams.get("period") || "week";
+      if (PERIODS.includes(period) && period !== readSettings().period) writeSettings({ period });
+    }
   });
   // No internet: wait a moment and try again, rather than leaving an error on the screen.
   win.webContents.on("did-fail-load", (_e, _code, _desc, url) => {

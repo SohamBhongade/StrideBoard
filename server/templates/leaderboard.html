@@ -73,7 +73,7 @@
     <ol class="rank-list">
       {% for r in rows %}
       {% set me = is_me(r) %}
-      <li class="rank-row rank-{{ r.rank }} {{ me }}" data-name="{{ (r.name ~ ' ' ~ (r.department or ''))|lower }}">
+      <li class="rank-row rank-{{ r.rank }} {{ me }}" data-name="{{ r.name|lower }}" data-dept="{{ (r.department or '')|lower }}">
         <span class="rank-num">{{ r.rank }}</span>
         {% if r.user_id %}{{ m.avatar(r.name, r.avatar, r.avatar_color, 40, r.build) }}{% endif %}
         <span class="rank-who"><strong>{{ r.name }}{% if me %} ({{ 'yours' if r.user_id is none else 'you' }}){% endif %}</strong><span>{{ r.department }}</span></span>

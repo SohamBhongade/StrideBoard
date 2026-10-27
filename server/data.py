@@ -1003,6 +1003,19 @@ def _department_rows(conn, start, end, roles=PLAYER_ROLES):
 LEADERBOARD_PERIODS = ("day", "week", "month", "all")
 
 
+def board_search(rows, q):
+    """Leaderboard rows matching a search, ranks unchanged: any part of the name, or a
+    class/department word starting with it ("10a" finds Grade 10A, "ra" doesn't)."""
+    needle = (q or "").strip().casefold()
+    if not needle:
+        return rows
+    def hit(r):
+        name = (r.get("name") or "").casefold()
+        words = (r.get("department") or "").casefold().split()
+        return needle in name or any(w.startswith(needle) for w in words)
+    return [r for r in rows if hit(r)]
+
+
 def period_bounds(period, today):
     """Dates for a leaderboard period.
 

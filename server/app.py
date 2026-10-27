@@ -62,7 +62,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "49"
+ASSET_VERSION = "51"
 
 PUBLIC_ENDPOINTS = {"login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -764,9 +764,7 @@ def add_routes(app):
         # Search: matching names (or class/department) from the whole board, ranks unchanged
         q = (request.args.get("q") or "").strip()[:60]
         if q:
-            needle = q.casefold()
-            rows = [r for r in rows if needle in (r["name"] or "").casefold()
-                    or needle in (r["department"] or "").casefold()]
+            rows = data.board_search(rows, q)
             with_builds(db.get_db(), rows)
             return render_template("leaderboard.html", rows=rows, mine=[], total=total, trimmed=False,
                                    show_all=True, view=view, views=allowed, view_name=views[view],
@@ -948,14 +946,22 @@ def add_routes(app):
         if not data.board_key_ok(conn, request.args.get("key")):
             return render_template("board_locked.html", tried=bool(request.args.get("key"))), 403
         t = today()
+        # Today / This week / This month / All time, and a name search across both boards
+        period = request.args.get("period", "week")
+        if period not in dict(LEADERBOARD_PERIODS):
+            period = "week"
+        q = (request.args.get("q") or "").strip()[:60]
         boards = []
         for view, title in (("student", "Students"), ("teacher", "Teachers")):
-            rows = cached_leaderboard(conn, view, t)
-            boards.append({"title": title, "rows": with_builds(conn, rows[:BOARD_ROWS]), "count": len(rows),
-                           "total": sum(r["value"] for r in rows)})
-        monday = db.local_today() - timedelta(days=db.local_today().weekday())
-        return render_template("board.html", boards=boards, monday=monday, sunday=monday + timedelta(days=6),
-                               now=datetime.now(TZ))
+            rows = cached_leaderboard(conn, view, t, period=period)
+            shown = rows
+            if q:   # matching names (or classes/departments), ranks unchanged
+                shown = data.board_search(rows, q)
+            boards.append({"title": title, "rows": with_builds(conn, shown[:BOARD_ROWS]), "count": len(rows),
+                           "matches": len(shown), "total": sum(r["value"] for r in rows)})
+        start, end = data.period_bounds(period, t)[:2]
+        return render_template("board.html", boards=boards, start=start, end=end, period=period,
+                               periods=LEADERBOARD_PERIODS, q=q, now=datetime.now(TZ))
 
     # ---------- iPhone Shortcut file (signed on a Mac, so iPhones can add it in one tap)
     @app.route("/iphone-shortcut")

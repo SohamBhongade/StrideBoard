@@ -1,8 +1,13 @@
 # StrideBoard Leaderboard (Windows and Mac)
 
-A small desktop app that shows only this week's **Students** and **Teachers** leaderboards from
+A small desktop app that shows only the **Students** and **Teachers** leaderboards from
 the StrideBoard website, big enough for a school TV or a laptop on a stand. It refreshes every
 minute and keeps the last boards on screen if the Wi-Fi drops.
+
+**Choose the time:** the dropdown at the top switches between **Today**, **This week**, **This month**
+and **All time**. The app remembers your choice next time it opens. **Find someone:** type in the
+search box to filter both boards as you type; press Enter to search everyone, not just the top 8
+(each person keeps their real rank).
 
 **Download:** Admin → Leaderboard screen on the website, or the
 [leaderboard-app-latest release](https://github.com/SohamBhongade/StrideBoard/releases/tag/leaderboard-app-latest):
