@@ -324,6 +324,25 @@ button { cursor: pointer; }
 .lite .water-glass.full svg { filter: none; }
 @media (prefers-reduced-motion: reduce) { .wg-wave, .wg-bubble, .water-glass.pour .wg-level { animation: none; } .wg-level { transition: none; } }
 
+/* Leaderboard: period dropdown + name search */
+.board-tools { display: flex; gap: 10px; margin: -6px 0 18px; flex-wrap: wrap; }
+.board-period, .board-search {
+  display: flex; align-items: center; gap: 8px; height: 50px; padding: 0 16px;
+  border-radius: 25px; background: var(--white); border: 1.5px solid var(--line); color: var(--muted);
+}
+.board-period:focus-within, .board-search:focus-within { border-color: var(--ink); }
+.board-period select {
+  border: 0; background: transparent; color: var(--ink); font: inherit; font-weight: 600; font-size: 16px;
+  padding: 0 4px 0 0; cursor: pointer; outline: none;
+}
+.board-search { flex: 1; min-width: 200px; }
+.board-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; outline: none; }
+.board-search input::-webkit-search-cancel-button { cursor: pointer; }
+.board-results { margin: 0 0 14px; color: var(--muted); }
+.board-results a { color: var(--ink); }
+.rank-row.no-match { display: none; }
+.glass .board-period, .glass .board-search { background: var(--glass) !important; border: 1px solid var(--glass-line) !important; }
+
 /* Progress ring */
 .ring { position: relative; width: 92px; height: 92px; flex: none; }
 .ring > svg { transform: rotate(-90deg); }  /* not the tick icon inside */
