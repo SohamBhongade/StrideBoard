@@ -8,6 +8,7 @@ weekly goal update, and adds these commands:
     flask update-goals         recompute adaptive goals now
 """
 import logging
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -112,6 +113,10 @@ def init_app(app):
     app.config.setdefault("DATABASE", config.DATABASE)
     if not app.config.get("SECRET_KEY"):
         app.config["SECRET_KEY"] = config.SECRET_KEY
+    # The built-in key is public (it's in this code on GitHub): anyone could forge a login with
+    # it. On a real server (PythonAnywhere) refuse to start until STRIDEBOARD_SECRET_KEY is set.
+    if app.config["SECRET_KEY"] == "dev-only-not-secret-change-me" and os.environ.get("PYTHONANYWHERE_DOMAIN"):
+        raise RuntimeError("Set STRIDEBOARD_SECRET_KEY in the WSGI file: the built-in key is public.")
 
     conn = connect(app.config["DATABASE"])
     create_tables(conn)
