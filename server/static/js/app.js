@@ -555,3 +555,55 @@ if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").m
   });
   window.addEventListener("online", function () { location.reload(); });
 })();
+
+// Under-18s: a break after BREAK_AFTER minutes of using the app (UAE Child Digital Safety Law).
+// Time only counts while a page is open and visible; 5 minutes away counts as a break already.
+// Kept in sessionStorage, so it carries across pages but not to someone else's browser.
+(function () {
+  var body = document.body, veil = document.querySelector("[data-break]");
+  var after = parseInt(body.getAttribute("data-break-after"), 10) || 0;
+  if (!after || !veil) return;
+  var wait = parseInt(body.getAttribute("data-break-seconds"), 10) || 60;
+  var btn = veil.querySelector("[data-break-done]"), count = veil.querySelector("[data-break-count]");
+  var load = function (k) { try { return parseInt(sessionStorage.getItem(k), 10) || 0; } catch (e) { return 0; } };
+  var save = function (k, v) { try { sessionStorage.setItem(k, String(v)); } catch (e) { /* fine */ } };
+  var used = load("sb_used"), last = load("sb_last"), breakEnds = load("sb_break_until");
+  if (last && Date.now() - last > 5 * 60 * 1000) used = 0;        // they were away: that was a break
+  function show() {
+    if (!breakEnds) { breakEnds = Date.now() + wait * 1000; save("sb_break_until", breakEnds); }
+    veil.hidden = false;
+    btn.disabled = true;
+    var timer = setInterval(function () {
+      var left = Math.ceil((breakEnds - Date.now()) / 1000);
+      if (left > 0) { count.textContent = left; return; }
+      clearInterval(timer);
+      btn.disabled = false;
+      btn.textContent = "Keep going";
+      btn.focus();
+    }, 250);
+  }
+  btn.addEventListener("click", function () {
+    veil.hidden = true; used = 0; breakEnds = 0;
+    save("sb_used", 0); save("sb_break_until", 0);
+  });
+  if (breakEnds) show();
+  setInterval(function () {
+    if (document.hidden || !veil.hidden) return;
+    used += 15; last = Date.now();
+    save("sb_used", used); save("sb_last", last);
+    if (used >= after * 60) show();
+  }, 15000);
+})();
+
+// A parent's daily time limit: tell the server each minute the app is open, and show the
+// "Time's up" page as soon as the minutes run out.
+(function () {
+  if (!document.body.getAttribute("data-screen-limit")) return;
+  setInterval(function () {
+    if (document.hidden || !window.fetch) return;
+    fetch("/ping", { credentials: "same-origin", cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d && d.over) location.reload(); })
+      .catch(function () { /* offline: fine */ });
+  }, 60000);
+})();

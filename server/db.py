@@ -19,6 +19,7 @@ from flask import current_app, g
 from flask.cli import with_appcontext
 
 import config
+import tokens
 
 DUBAI = ZoneInfo(config.TIMEZONE)
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
@@ -54,7 +55,14 @@ ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT", "email_hash TEXT"
                            # Under-13s who sign up themselves: a parent approves first.
                            # parent_status NULL = not needed (13+, or made by an admin).
                            "parent_status TEXT", "parent_email TEXT", "parent_token_hash TEXT",
-                           "parent_asked_at TEXT"],
+                           "parent_asked_at TEXT",
+                           # Phone tokens are stored sealed; this fingerprint finds the owner.
+                           "api_token_hash TEXT",
+                           # How your name shows on leaderboards: full | short | hidden.
+                           # NULL = the default (short for students and under-18s, full for adults).
+                           "board_name TEXT",
+                           # A parent's daily time limit in minutes (NULL = none).
+                           "time_limit INTEGER"],
                  "pending_signups": ["parent_email TEXT"]}
 
 
@@ -75,6 +83,17 @@ def retire_avatar_items(conn):
         conn.execute("DELETE FROM avatar_equipped WHERE item_key = ?", (key,))
 
 
+def seal_tokens(conn):
+    """Seal any phone token still stored readable (from before tokens were sealed). The phones
+    keep working: the token itself doesn't change, only how it's stored."""
+    rows = conn.execute("SELECT id, api_token FROM users WHERE api_token NOT LIKE ? OR api_token_hash IS NULL",
+                        (tokens.PREFIX + "%",)).fetchall()
+    for r in rows:
+        plain = tokens.unseal(r["api_token"]) or tokens.new_token()
+        conn.execute("UPDATE users SET api_token = ?, api_token_hash = ? WHERE id = ?",
+                     (tokens.seal(plain), tokens.fingerprint(plain), r["id"]))
+
+
 def create_tables(conn):
     """Create any missing tables and columns. Safe to run again: it never drops data."""
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
@@ -88,8 +107,10 @@ def create_tables(conn):
                     conn.execute("UPDATE users SET last_sync = (SELECT MAX(updated_at) FROM steps "
                                  "WHERE steps.user_id = users.id)")
     retire_avatar_items(conn)
+    seal_tokens(conn)
     # One account per email address (people made by an admin have none, which is fine).
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email_hash)")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_token ON users(api_token_hash)")
     conn.commit()
 
 
@@ -170,7 +191,7 @@ def show_token_command(username):
     ).fetchone()
     if row is None:
         raise click.ClickException(f"No user called {username!r}")
-    click.echo(row["api_token"])
+    click.echo(tokens.unseal(row["api_token"]) or "(sealed with a different secret key: make a new token)")
 
 
 @click.command("update-goals")

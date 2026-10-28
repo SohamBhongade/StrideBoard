@@ -34,7 +34,7 @@ def test_big_board_shows_top_50_and_you(site):
     c, ids, login = site
     login(ids[57])                                        # rank 58
     page = c.get("/leaderboard?view=student").get_data(as_text=True)
-    assert "Student 49 Test" in page and "Student 50 Test" not in page
+    assert page.count("title=\"Report Student T.\"") == 50
     assert "Student 57 Test (you)" in page and ">58<" in page
     assert "Show everyone (60)" in page
 
@@ -43,7 +43,7 @@ def test_show_everyone_lists_all(site):
     c, ids, login = site
     login(ids[0])
     page = c.get("/leaderboard?view=student&all=1").get_data(as_text=True)
-    assert "Student 59 Test" in page and "Show top 50" in page and "Show everyone" not in page
+    assert page.count("title=\"Report Student T.\"") == 59 and "Show top 50" in page and "Show everyone" not in page
 
 
 def test_in_top_50_no_extra_row(site):

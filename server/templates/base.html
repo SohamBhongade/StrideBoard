@@ -68,7 +68,7 @@
   </script>
   {% block head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}"{% if break_after %} data-break-after="{{ break_after }}" data-break-seconds="{{ BREAK_SECONDS }}"{% endif %}{% if screen_limit %} data-screen-limit="{{ screen_limit }}"{% endif %}>
 
 {%- macro nav_link(endpoint, label, icon_name) -%}
   <a href="{{ url_for(endpoint) }}" class="side-link{% if request.endpoint == endpoint %} active{% endif %}"
@@ -89,7 +89,10 @@
     {{ nav_link('challenges', 'Challenges', 'flag') }}
     {{ nav_link('insights', 'Weekly Wrap-Up', 'chart') }}
     <span class="side-spacer"></span>
-    <a href="{{ url_for('logout') }}" class="side-link" aria-label="Log out" title="Log out">{{ m.icon('logout') }}</a>
+    <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button type="submit" class="side-link" aria-label="Log out" title="Log out">{{ m.icon('logout') }}</button>
+    </form>
   </nav>
   {% endif %}
 
@@ -180,6 +183,18 @@
 {# Inside the StrideBoard Android app only: tell the app who is logged in, so it can sync
    their steps without anyone copying a token. Ordinary browsers never get the token in the page. #}
 <script>if (window.StrideBoardApp && window.StrideBoardApp.linkAccount) { window.StrideBoardApp.linkAccount({{ user.api_token|tojson }}); }</script>
+{% endif %}
+{% if break_after %}
+{# Under-18s: a short break after a while on the app (UAE Child Digital Safety Law). #}
+<div class="break-veil" data-break hidden>
+  <div class="break-card" role="alertdialog" aria-modal="true" aria-labelledby="break-h" aria-describedby="break-p">
+    <span class="break-icon">{{ m.icon('stand', 30) }}</span>
+    <h2 id="break-h">Time for a break</h2>
+    <p id="break-p">You've been on StrideBoard for {{ break_after }} minutes. Stand up, stretch, have some water, look out of the window.</p>
+    <p class="break-ar" lang="ar" dir="rtl">حان وقت الاستراحة. قف وتمدد واشرب بعض الماء.</p>
+    <button class="btn btn-dark btn-block" type="button" data-break-done disabled><span>Back in <span data-break-count>{{ BREAK_SECONDS }}</span>s</span></button>
+  </div>
+</div>
 {% endif %}
 {{ avatar_sheet() }}
 </body>

@@ -51,8 +51,29 @@
   {% else %}
   <div>
     <h1 class="hero"><span class="light">Thank</span> you.</h1>
-    <p class="muted hero-sub">{% if done == "approved" %}You approved {{ child.name }}’s account. They can log in now.{% else %}You approved {{ child.name }}’s account.{% endif %} Keep the email: this link lets you withdraw consent at any time.</p>
+    <p class="muted hero-sub">{% if done == "approved" %}You approved {{ child.name }}’s account. They can log in now.{% elif done == "saved" %}Your settings for {{ child.name }} are saved.{% else %}You approved {{ child.name }}’s account.{% endif %} Keep the email: this link lets you change these settings or withdraw consent at any time.</p>
   </div>
+  <section class="card card-soft form parent-card">
+    <h2 class="card-title">Parental controls · <span lang="ar">أدوات الرقابة الأبوية</span></h2>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="time_limit">Daily time limit · <span lang="ar">الحد اليومي</span></label>
+        <select class="input" id="time_limit" name="time_limit">
+          {% for mins in limits %}<option value="{{ mins }}" {% if mins == time_limit %}selected{% endif %}>{{ 'No limit' if not mins else mins ~ ' minutes a day' }}</option>{% endfor %}
+        </select>
+        <span class="hint">{% if time_limit %}Used today: {{ used }} of {{ time_limit }} minutes. {% endif %}When the time is used up, the app shows “Time’s up” until tomorrow. Steps still sync from the phone. Every child also gets a short break reminder after {{ config_break }} minutes on the app.</span>
+      </div>
+      <fieldset class="choice-list">
+        <legend class="label-text">{{ child.name }}’s name on the school leaderboards</legend>
+        {% for key, label, example in name_choices %}
+        <label class="choice"><input type="radio" name="board_name" value="{{ key }}" {% if key == board_name %}checked{% endif %}>
+          <span><strong>{{ label }}</strong><span class="small muted">{{ example }}</span></span></label>
+        {% endfor %}
+      </fieldset>
+      <button class="btn btn-dark btn-block" type="submit" name="choice" value="controls">Save · حفظ</button>
+    </form>
+  </section>
   <section class="card card-soft form parent-card">
     <h2 class="card-title">Withdraw consent</h2>
     <p>This deletes {{ child.name }}’s account and everything in it straight away. It can’t be undone. <span lang="ar" dir="rtl">سحب الموافقة يحذف الحساب وكل بياناته فورًا.</span></p>

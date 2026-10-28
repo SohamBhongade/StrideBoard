@@ -65,7 +65,10 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "59"
+ASSET_VERSION = "60"
+
+# Pages that still work after a parent's daily time limit is used up.
+TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
 
 PUBLIC_ENDPOINTS = {"privacy", "parent", "login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -302,7 +305,11 @@ def add_template_helpers(app):
                 "ASSET_VERSION": ASSET_VERSION, "TRACK_LOOK": TRACK_LOOK,
                 "creature": creature, "avatar_sheet": avatar_sheet, "my_build": my_build(),
                 "theme": current_theme(), "THEMES": THEMES, "fast": fast_mode(), "page_theme": page_theme(),
-                "fixed_mode": fixed_mode(),
+                "fixed_mode": fixed_mode(), "BREAK_SECONDS": config.BREAK_SECONDS,
+                # Under-18s get a break reminder after a while; a parent's limit gets a ping
+                "break_after": (config.BREAK_AFTER_MINUTES if g.get("user") and
+                                g.user["age_band"] in data.UNDER_18 else 0),
+                "screen_limit": (g.user.get("time_limit") or 0) if g.get("user") else 0,
                 "try_on": lambda build, slot, key: {**build, slot: key},
                 "my_glass": my_glass(), "GLASS_GRADIENTS": config.GLASS_GRADIENTS,
                 "glass_bg": glass_bg, "glass_vars": glass_vars, "android": is_android(), "my_material": my_material,
@@ -473,6 +480,13 @@ def add_security(app):
                         return redirect(url_for("login"))
         if g.user is None and request.endpoint not in PUBLIC_ENDPOINTS:
             return redirect(url_for("login"))
+        # A parent's daily time limit: count the minutes, and once they're used up only the
+        # "Time's up" page shows (steps still sync from the phone, which doesn't use the site).
+        if g.user is not None and g.user.get("time_limit") and request.endpoint not in TIME_FREE:
+            used = data.note_screen_minute(db.get_db(), g.user["id"])
+            g.screen_left = max(0, g.user["time_limit"] - used)
+            if used > g.user["time_limit"] and request.endpoint != "ping":
+                return render_template("time_up.html", limit=g.user["time_limit"]), 200
         if request.method == "POST":
             sent, expected = request.form.get("csrf", ""), session.get("csrf", "")
             if not expected or not secrets.compare_digest(sent, expected):
@@ -716,7 +730,8 @@ def add_routes(app):
                 return redirect(url_for("report", uid=uid))
             flash("Thanks for telling us. An admin will check it. Your name isn't shown to the person you reported.", "ok")
             return redirect(url_for("leaderboard"))
-        return render_template("report.html", target=target, reasons=data.REPORT_REASONS)
+        shown = data.shown_name(target["display_name"], data.board_name_choice(target)) or "this person"
+        return render_template("report.html", target=target, shown=shown, reasons=data.REPORT_REASONS)
 
     @app.route("/parent/<token>", methods=["GET", "POST"])
     def parent(token):
@@ -732,14 +747,28 @@ def add_routes(app):
                 data.parent_approve(conn, token)
                 clear_leaderboard_cache()
                 return redirect(url_for("parent", token=token, done="approved"))
+            if choice == "controls" and child["status"] == "given":
+                try:
+                    data.set_time_limit(conn, child["id"], request.form.get("time_limit"))
+                    data.set_board_name(conn, child["id"], request.form.get("board_name"))
+                except ValueError as e:
+                    flash(first_upper(str(e)), "error")
+                    return redirect(url_for("parent", token=token))
+                clear_leaderboard_cache()
+                return redirect(url_for("parent", token=token, done="saved"))
             if choice in ("decline", "withdraw"):
                 name = data.parent_remove(conn, token)
                 clear_leaderboard_cache()
                 return render_template("parent.html", child=None, done="removed", name=name)
             flash("Tick the box to confirm, then tap Approve.", "error")
             return redirect(url_for("parent", token=token))
+        kid = data.get_user(conn, child["id"])
         return render_template("parent.html", child=child, token=token, done=request.args.get("done"),
-                               wait_days=config.PARENT_WAIT_DAYS)
+                               wait_days=config.PARENT_WAIT_DAYS, time_limit=kid["time_limit"] or 0,
+                               config_break=config.BREAK_AFTER_MINUTES,
+                               board_name=data.board_name_choice(kid), limits=data.TIME_LIMIT_CHOICES,
+                               name_choices=data.BOARD_NAME_CHOICES,
+                               used=data.screen_minutes_today(conn, child["id"]))
 
     @app.route("/signup/verify", methods=["GET", "POST"])
     def signup_verify():
@@ -833,6 +862,10 @@ def add_routes(app):
 
     @app.route("/logout", methods=["GET", "POST"])
     def logout():
+        # Logging out is a form (POST, with the page's code), so a link on another site can't
+        # log anyone out. After "Delete my account" the session is already empty.
+        if g.user is not None and request.method != "POST":
+            return redirect(url_for("settings"))
         session.clear()
         if request.args.get("deleted") == "1":   # after "Delete my account" (going via here clears the offline copy too)
             flash("Your account and everything in it has been deleted.", "ok")
@@ -1030,6 +1063,10 @@ def add_routes(app):
                     clear_leaderboard_cache()
                     session.clear()
                     return redirect(url_for("logout", deleted=1))
+                elif action == "board_name":
+                    data.set_board_name(conn, uid, request.form.get("board_name"))
+                    clear_leaderboard_cache()
+                    flash("Saved. The leaderboards show your name this way now.", "ok")
                 elif action == "new_token":
                     data.regenerate_token(conn, uid)
                     flash("New token made. Update it in your phone's Shortcut or app.", "ok")
@@ -1104,7 +1141,7 @@ def add_routes(app):
                 return redirect(url_for("settings", slot=slot, _anchor="studio"))
             if action and action.startswith("email_"):
                 return redirect(url_for("settings", _anchor="recovery"))
-            if action in ("my_details", "delete_me"):
+            if action in ("my_details", "delete_me", "board_name"):
                 return redirect(url_for("settings", _anchor="your-data"))
             return redirect(url_for("settings"))
         slot = request.args.get("slot")
@@ -1114,6 +1151,8 @@ def add_routes(app):
                                classes=config.SIGNUP_CLASSES, departments=config.SIGNUP_DEPARTMENTS,
                                is_owner=g.user["username"] == config.OWNER_USERNAME,
                                shop=data.avatar_shop(conn, uid), slot=slot, slots=config.AVATAR_SLOTS,
+                               name_choices=data.BOARD_NAME_CHOICES,
+                               board_name=data.board_name_choice(g.user),
                                server_url=request.url_root.rstrip("/"),
                                email_linked=data.has_email(conn, uid), mail_ready=mailer.ready(),
                                shortcut_link=iphone_shortcut_link(conn),
@@ -1344,6 +1383,14 @@ def add_routes(app):
     @app.route("/offline")
     def offline():
         return render_template("offline.html")
+
+    @app.route("/ping")
+    def ping():
+        """Called once a minute (only for people with a time limit) while the app is open."""
+        left = g.get("screen_left")
+        resp = jsonify(ok=True, left=left, over=left == 0 if left is not None else False)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
 
 
 # ------------------------------------------------------------------ helpers

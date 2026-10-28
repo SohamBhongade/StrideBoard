@@ -33,7 +33,7 @@ def test_screen_needs_the_code(site):
 def test_screen_shows_students_and_teachers(site):
     c, key, _ = site
     page = c.get(f"/board?key={key.lower()}").get_data(as_text=True)     # not fussy about capitals
-    assert "Students" in page and "Teachers" in page and "Amal Khan" in page and "Ms Rossi" in page
+    assert "Students" in page and "Teachers" in page and "Amal K." in page and "Amal Khan" not in page and "Ms Rossi" in page
     assert "9,000" in page and "7,000" in page
 
 

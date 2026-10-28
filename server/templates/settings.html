@@ -3,7 +3,10 @@
 {% block content %}
 
 {% call m.page_head("Your", "settings", me.display_name ~ " · @" ~ me.username ~ " · " ~ me.department) %}
-  <a class="btn btn-outline" href="{{ url_for('logout') }}">{{ m.icon('logout', 18) }} Log out</a>
+  <form method="post" action="{{ url_for('logout') }}" class="inline-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="btn btn-outline" type="submit">{{ m.icon('logout', 18) }} Log out</button>
+  </form>
 {% endcall %}
 
 <div class="row row-even" style="margin-top:0">
@@ -241,6 +244,20 @@
     </div>
     {% else %}<input type="hidden" name="department" value="{{ me.department or '' }}">{% endif %}
     <button class="btn btn-outline" type="submit">Save my details</button>
+  </form>
+
+  <form method="post" class="form board-name-form" id="board-name">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="board_name">
+    <fieldset class="choice-list">
+      <legend class="data-sub">Your name on the leaderboards</legend>
+      {% for key, label, example in name_choices %}
+      <label class="choice"><input type="radio" name="board_name" value="{{ key }}" {% if key == board_name %}checked{% endif %}>
+        <span><strong>{{ label }}</strong><span class="small muted">{{ example }}</span></span></label>
+      {% endfor %}
+    </fieldset>
+    <p class="hint">Hidden: your steps still count for your {{ 'class' if me.role == 'student' else 'department' }}, but your name and avatar aren't shown. You always see your own full name.</p>
+    <button class="btn btn-outline" type="submit">Save</button>
   </form>
 
   <div class="data-row">

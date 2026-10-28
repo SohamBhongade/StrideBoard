@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Time's up for today{% endblock %}
+{% block content %}
+{# A parent set a daily time limit (UAE Child Digital Safety Law). Steps keep syncing from the
+   phone in the background; only the app's pages wait until tomorrow. #}
+<div class="card card-soft time-up" style="max-width:560px">
+  {{ m.empty("Time's up for today", "You've used your " ~ limit ~ " minutes on StrideBoard today, the limit your parent or guardian set. Your steps still sync from your phone, so keep walking. See you tomorrow!", 'stand') }}
+  <p class="small muted" lang="ar" dir="rtl">انتهى وقتك لهذا اليوم. ستستمر خطواتك في المزامنة من هاتفك. نراك غدًا!</p>
+  <form method="post" action="{{ url_for('logout') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="btn btn-outline" type="submit">{{ m.icon('logout', 18) }} Log out</button>
+  </form>
+</div>
+{% endblock %}
