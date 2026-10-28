@@ -211,7 +211,7 @@ AVATAR_ITEMS = {
     "shoes_runners": ("shoes", "Red runners", 50), "shoes_sky": ("shoes", "Sky trainers", 50),
     "shoes_neon": ("shoes", "Neon", 150), "shoes_pink": ("shoes", "Pink pops", 150),
     "shoes_court": ("shoes", "Court classics", 150), "shoes_black": ("shoes", "Midnight", 400),
-    "shoes_rainbow": ("shoes", "Rainbow", 400), "shoes_gold": ("shoes", "Gold sneakers", 1000),
+    "shoes_gold": ("shoes", "Gold sneakers", 1000),
 
     "bg_plain": ("bg", "Plain", 0), "bg_sage": ("bg", "Sage", 0), "bg_sky": ("bg", "Sky", 50),
     "bg_track": ("bg", "Running track", 150), "bg_sunrise": ("bg", "Sunrise", 400),

@@ -60,7 +60,6 @@ SHOES = {
     "shoes_sky": ("#8EC3F2", "#FFFFFF"), "shoes_neon": ("#C8F25A", INK),
     "shoes_pink": ("#F7A8CF", "#FFFFFF"), "shoes_court": ("#FFFFFF", "#3FA66B"),
     "shoes_black": ("#2A2B33", "#FFFFFF"), "shoes_gold": ("#E8C15A", "#FFFFFF"),
-    "shoes_rainbow": ("#FFFFFF", ["#E5574B", "#F2C94C", "#4C8FE5"]),
 }
 
 

@@ -78,3 +78,17 @@ def test_old_database_gets_avatar_columns(tmp_path):
     data.set_avatar(conn, 1, "fox", "blue")
     assert data.get_user(conn, 1)["avatar"] == "fox"
     conn.close()
+
+
+def test_retired_shoes_are_refunded_once(conn):
+    import db
+    uid = make_user(conn, "rae")
+    conn.execute("INSERT INTO avatar_owned (user_id, item_key, bought_at) VALUES (?, 'shoes_rainbow', '2026-10-01')", (uid,))
+    conn.execute("INSERT INTO avatar_equipped (user_id, slot, item_key) VALUES (?, 'shoes', 'shoes_rainbow')", (uid,))
+    conn.commit()
+    db.create_tables(conn)
+    db.create_tables(conn)                       # running again doesn't pay twice
+    assert conn.execute("SELECT COUNT(*) FROM avatar_owned WHERE item_key = 'shoes_rainbow'").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM avatar_equipped WHERE item_key = 'shoes_rainbow'").fetchone()[0] == 0
+    assert conn.execute("SELECT SUM(amount) FROM exp_ledger WHERE user_id = ?", (uid,)).fetchone()[0] == 400
+    assert "shoes_rainbow" not in data.config.SHOP_ITEMS

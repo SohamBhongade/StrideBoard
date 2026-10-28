@@ -58,6 +58,23 @@ ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT", "email_hash TEXT"
                  "pending_signups": ["parent_email TEXT"]}
 
 
+# Avatar items taken out of the shop. Anyone who bought one gets its price back as EXP once,
+# and stops wearing it (they go back to the default for that slot).
+RETIRED_ITEMS = {"shoes_rainbow": 400}
+
+
+def retire_avatar_items(conn):
+    for key, price in RETIRED_ITEMS.items():
+        owners = [r[0] for r in conn.execute("SELECT user_id FROM avatar_owned WHERE item_key = ?", (key,))]
+        now = datetime.now(ZoneInfo(config.TIMEZONE)).isoformat(timespec="seconds")
+        for uid in owners:
+            if price:
+                conn.execute("INSERT INTO exp_ledger (user_id, amount, reason, created_at) VALUES (?, ?, ?, ?)",
+                             (uid, price, f"refund: {key} left the shop", now))
+        conn.execute("DELETE FROM avatar_owned WHERE item_key = ?", (key,))
+        conn.execute("DELETE FROM avatar_equipped WHERE item_key = ?", (key,))
+
+
 def create_tables(conn):
     """Create any missing tables and columns. Safe to run again: it never drops data."""
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
@@ -70,6 +87,7 @@ def create_tables(conn):
                     # Fill it in once from the steps already saved (the admin People list reads it).
                     conn.execute("UPDATE users SET last_sync = (SELECT MAX(updated_at) FROM steps "
                                  "WHERE steps.user_id = users.id)")
+    retire_avatar_items(conn)
     # One account per email address (people made by an admin have none, which is fine).
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email_hash)")
     conn.commit()
