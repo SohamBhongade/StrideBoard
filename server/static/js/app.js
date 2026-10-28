@@ -307,7 +307,10 @@
     clocks.forEach(function (c) { c.textContent = shown; });
     if (done && done.disabled) {
       var left = Math.ceil((unlockAt - Date.now()) / 1000);
-      if (left <= 0) { done.disabled = false; if (label) label.textContent = "Done"; }
+      if (left <= 0) {
+        done.disabled = false; if (label) label.textContent = "Done";
+        if (wait) done.classList.add("unlocked");    // a soft glow so they notice it's ready
+      }
       else if (label) label.textContent = "Done in " + left + "s";
     }
   }
@@ -418,12 +421,21 @@ document.querySelectorAll("button[data-confirm]").forEach(function (btn) {
       var p = Math.max(0, Math.min(1, (t - start) / 900));
       out.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
       if (p < 1) requestAnimationFrame(step);
+      else if (out.parentNode) out.parentNode.classList.add("landed");   // a little bump on the final number
     };
     requestAnimationFrame(step);
   }
   var close = function () {
+    if (still) { win.remove(); return; }
     win.classList.add("closing");
-    setTimeout(function () { win.remove(); }, still ? 0 : 300);
+    setTimeout(function () {          // then fold the gap away so the list slides up smoothly
+      win.style.height = win.offsetHeight + "px";
+      win.classList.add("folding");
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { win.style.height = "0px"; win.style.marginBottom = "0px"; });
+      });
+      setTimeout(function () { win.remove(); }, 360);
+    }, 260);
   };
   var btn = win.querySelector("[data-win-close]");
   if (btn) btn.addEventListener("click", close);
@@ -454,13 +466,16 @@ if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").m
   var at = get(), target = parseInt(game.getAttribute("data-reached"), 10) || 0, busy = false, done = null;
   if (isNaN(at) || at > target) at = 0;
 
-  function mark() {
+  function mark(hop) {
     game.querySelectorAll(".g-cp").forEach(function (cp) {
-      cp.classList.toggle("passed", parseInt(cp.getAttribute("data-cp"), 10) <= at);
+      var on = parseInt(cp.getAttribute("data-cp"), 10) <= at;
+      if (hop && on && !cp.classList.contains("passed")) cp.classList.add("just-passed");
+      cp.classList.toggle("passed", on);
     });
   }
   function place(k, ms) {
-    walker.style.transition = ms ? "transform " + ms + "ms linear" : "none";
+    // eases in and out of each checkpoint instead of starting and stopping dead
+    walker.style.transition = ms ? "transform " + ms + "ms cubic-bezier(.4, 0, .4, 1)" : "none";
     walker.style.transform = "translateX(" + xs[k] + "px)";
   }
   function step() {
@@ -473,7 +488,7 @@ if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").m
     if (still) { place(at, 0); step(); return; }
     walker.classList.add("walking");
     place(at, 1900);
-    setTimeout(function () { mark(); step(); }, 1950);
+    setTimeout(function () { mark(true); step(); }, 1950);
   }
   place(at, 0); mark();
   requestAnimationFrame(function () { setTimeout(step, 600); });

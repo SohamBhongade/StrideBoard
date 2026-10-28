@@ -997,7 +997,7 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 @keyframes g-fall { to { transform: translateY(200px) rotate(600deg); } }
 
 /* The celebration card above the challenge list */
-.win { position: relative; margin-bottom: 14px; border-radius: 22px; overflow: hidden; animation: pop .35s ease both; }
+.win { position: relative; margin-bottom: 14px; border-radius: 22px; overflow: hidden; animation: ch-arrive .5s cubic-bezier(.2, .9, .3, 1.15) both; }
 .win .game { border-radius: 0; }
 .win-text {
   position: absolute; left: 0; right: 0; top: 4%; display: flex; flex-direction: column; align-items: center;
@@ -1011,8 +1011,12 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .win-close { bottom: 6px; }
 @keyframes win-pop { from { transform: scale(.4); opacity: 0; } }
 .win-close { position: absolute; right: 10px; }
-.win.closing { animation: win-out .3s ease both; }
-@keyframes win-out { to { opacity: 0; transform: scale(.97); } }
+/* Closing: fade and shrink, then app.js folds the space away so the list below slides up, not jumps */
+.win.closing { animation: win-out .28s cubic-bezier(.4, 0, 1, 1) both; }
+@keyframes win-out { to { opacity: 0; transform: scale(.95); } }
+.win.folding { transition: height .32s cubic-bezier(.4, 0, .2, 1), margin .32s cubic-bezier(.4, 0, .2, 1); }
+.win-exp.landed { animation: win-land .45s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes win-land { 40% { transform: scale(1.14); } }
 .mini-live .game { margin-bottom: 2px; }
 /* Phone-sized on big screens: the scene and celebration stay a comfortable size, centred */
 .mini-live .game, .win { width: 100%; max-width: 520px; margin-left: auto; margin-right: auto; }
@@ -1038,18 +1042,45 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .walker.walking .w-walk { display: inline; }
 .walker.walking .w-stand { display: none; }
 /* Over the finish line: walk on past the flag and off the screen */
-.game-finish .walker { animation: w-exit 3.3s linear forwards; }
+.game-finish .walker { animation: w-exit 3.3s cubic-bezier(.4, 0, .9, .6) forwards; }   /* speeds up off screen */
 @keyframes w-exit { from { transform: translateX(224.6px); } to { transform: translateX(372px); } }
 /* A finished walk: the finish line first, then the celebration */
 .win-walk .win-stage2 { position: absolute; top: 0; left: 0; right: 0; opacity: 0; pointer-events: none;
-  animation: win-in .45s ease 3.4s forwards; }
-.win-walk .win-stage1 { animation: win-fade .35s ease 3.3s forwards; }
-@keyframes win-in { to { opacity: 1; } }
+  animation: win-in .6s cubic-bezier(.2, .8, .2, 1) 3.15s forwards; }
+.win-walk .win-stage1 { animation: win-fade .6s ease 3.15s forwards; }   /* a true cross-fade */
+@keyframes win-in { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: none; } }
 @keyframes win-fade { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .win-walk .win-stage1 { display: none; }
   .win-walk .win-stage2 { position: static; opacity: 1; }
 }
+
+/* ---------- Challenges page motion: one easing family, short staggers, nothing longer than ~0.7s.
+   Entrances play on the first visit only (.no-intro after a save); "Reduce motion" and Lite mode
+   switch all of it off through the global rules. */
+@keyframes ch-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes ch-arrive { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes ch-chip { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes ch-pulse { 0% { box-shadow: 0 0 0 0 rgba(108, 125, 255, .45); } 100% { box-shadow: 0 0 0 12px rgba(108, 125, 255, 0); } }
+.mini-tile { animation: ch-rise .45s cubic-bezier(.2, .8, .2, 1) calc(var(--i, 0) * 50ms + 60ms) backwards;
+  transition: transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .2s ease; }
+@media (hover: hover) { .mini-tile:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(29, 33, 64, .10); } }
+.mini-tile:nth-child(2) { --i: 1; } .mini-tile:nth-child(3) { --i: 2; } .mini-tile:nth-child(4) { --i: 3; }
+.mini-tile:nth-child(5) { --i: 4; } .mini-tile:nth-child(6) { --i: 5; } .mini-tile:nth-child(n+7) { --i: 6; }
+.track { animation: ch-rise .5s cubic-bezier(.2, .8, .2, 1) calc(var(--i, 0) * 70ms + 120ms) backwards; }
+.track:nth-child(2) { --i: 1; } .track:nth-child(3) { --i: 2; } .track:nth-child(4) { --i: 3; } .track:nth-child(n+5) { --i: 4; }
+/* The bar fills and the earned levels pop in one after another, once the card has arrived */
+.track .bar > span { animation-duration: 1.1s; animation-delay: calc(var(--i, 0) * 70ms + 350ms); }
+.track .level.earned { animation: ch-chip .38s cubic-bezier(.3, 1.5, .5, 1) calc(var(--i, 0) * 70ms + 380ms + var(--n, 0) * 45ms) both; }
+.level:nth-child(2) { --n: 1; } .level:nth-child(3) { --n: 2; } .level:nth-child(4) { --n: 3; } .level:nth-child(5) { --n: 4; }
+.level:nth-child(6) { --n: 5; } .level:nth-child(7) { --n: 6; } .level:nth-child(8) { --n: 7; } .level:nth-child(n+9) { --n: 8; }
+.mini-live { animation: ch-arrive .45s cubic-bezier(.2, .8, .2, 1) both; }
+.mini-live [data-mini-done].unlocked { animation: ch-pulse .9s ease-out 2; }
+/* A checkpoint post that has just been passed gives a little hop */
+.g-cp { transform-box: fill-box; transform-origin: center bottom; }
+.g-cp.just-passed { animation: cp-hop .55s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes cp-hop { 35% { transform: translateY(-5px) scale(1.12); } }
+.no-intro .mini-tile, .no-intro .track, .no-intro .track .level.earned { animation: none; }
 
 /* ---------- Leaderboard screen (/board): Students and Teachers side by side, for a big screen */
 .board {
