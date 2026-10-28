@@ -50,7 +50,12 @@ def connect(path=None):
 # change a table that already exists, so older databases get them here.
 ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT", "email_hash TEXT",
                            "blocked_until TEXT", "block_reason TEXT", "rename_notice TEXT",
-                           "last_sync TEXT"]}
+                           "last_sync TEXT",
+                           # Under-13s who sign up themselves: a parent approves first.
+                           # parent_status NULL = not needed (13+, or made by an admin).
+                           "parent_status TEXT", "parent_email TEXT", "parent_token_hash TEXT",
+                           "parent_asked_at TEXT"],
+                 "pending_signups": ["parent_email TEXT"]}
 
 
 def create_tables(conn):

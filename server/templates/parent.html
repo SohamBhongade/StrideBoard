@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Parent approval{% endblock %}
+{% block content %}
+{# For a parent or guardian of an under-13 (UAE Child Digital Safety Law): approve, decline,
+   or later withdraw consent. Reached only through the link emailed to them. #}
+<div class="login-wrap parent-wrap">
+  <div class="login-brand"><span class="mark">{{ m.logo(34) }}</span> StrideBoard</div>
+
+  {% if done == "removed" %}
+  <section class="card card-soft form">
+    <h1 class="card-title">Account deleted</h1>
+    <p>{{ name or "The" }}{{ "’s" if name }} StrideBoard account and everything in it have been deleted. Nothing more will be collected.</p>
+    <p class="small muted" lang="ar" dir="rtl">تم حذف الحساب وكل بياناته. لن يتم جمع أي شيء بعد الآن.</p>
+  </section>
+
+  {% elif not child %}
+  <section class="card card-soft form">
+    <h1 class="card-title">This link doesn’t work any more</h1>
+    <p>The account may already have been deleted, or the link was replaced by a newer email. Use the newest StrideBoard email you received.</p>
+  </section>
+
+  {% elif child.status == "pending" %}
+  <div>
+    <h1 class="hero"><span class="light">Approve</span> {{ child.name }}?</h1>
+    <p class="muted hero-sub">{{ child.name }} signed up for StrideBoard, our school’s step-count game, and said they are under 13. Their account stays off until you decide.</p>
+  </div>
+  <section class="card card-soft form parent-card">
+    <h2 class="card-title">What StrideBoard collects</h2>
+    <ul class="parent-list">
+      <li><b>Name and class</b>, shown on the school leaderboards.</li>
+      <li><b>Daily step total</b> from their phone (only if they connect it), and anything they choose to log: water, mood, activities.</li>
+      <li><b>Never:</b> location, photos, contacts, date of birth, health readings or ads. Nothing is sold or shared.</li>
+      <li>Data is stored on servers <b>outside the UAE</b>.</li>
+    </ul>
+    <p class="small"><a href="{{ url_for('privacy') }}" target="_blank" rel="noopener">Full privacy policy and terms</a> · <a href="{{ url_for('privacy', lang='ar') }}" target="_blank" rel="noopener" lang="ar">السياسة بالعربية</a></p>
+    <p class="small muted" lang="ar" dir="rtl">سجّل {{ child.name }} في StrideBoard، لعبة عدّ الخطوات في المدرسة، وذكر أن عمره أقل من 13 عامًا. يبقى الحساب متوقفًا حتى توافق. يجمع التطبيق الاسم والصف وعدد الخطوات اليومي فقط، ولا يجمع الموقع أو الصور، ولا يعرض إعلانات، ولا يبيع البيانات.</p>
+
+    <form method="post" class="parent-form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <label class="agree"><input type="checkbox" name="agree" value="1" required>
+        <span>I am {{ child.name }}’s parent or guardian, and I agree to StrideBoard using their data as described. <span lang="ar">أنا ولي الأمر وأوافق.</span></span></label>
+      <button class="btn btn-dark btn-block" type="submit" name="choice" value="approve">Approve · موافق</button>
+    </form>
+    <form method="post">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="btn btn-outline btn-block" type="submit" name="choice" value="decline">Don’t approve, delete the account · لا أوافق</button>
+    </form>
+    <p class="small muted">If nobody answers within {{ wait_days }} days, the account is deleted automatically.</p>
+  </section>
+
+  {% else %}
+  <div>
+    <h1 class="hero"><span class="light">Thank</span> you.</h1>
+    <p class="muted hero-sub">{% if done == "approved" %}You approved {{ child.name }}’s account. They can log in now.{% else %}You approved {{ child.name }}’s account.{% endif %} Keep the email: this link lets you withdraw consent at any time.</p>
+  </div>
+  <section class="card card-soft form parent-card">
+    <h2 class="card-title">Withdraw consent</h2>
+    <p>This deletes {{ child.name }}’s account and everything in it straight away. It can’t be undone. <span lang="ar" dir="rtl">سحب الموافقة يحذف الحساب وكل بياناته فورًا.</span></p>
+    <form method="post">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="btn btn-delete btn-block" type="submit" name="choice" value="withdraw">Withdraw consent and delete · سحب الموافقة والحذف</button>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

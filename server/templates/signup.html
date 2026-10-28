@@ -1,5 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Create an account{% endblock %}
+
+{% block scripts %}
+<script>
+  // Show the parent's email box only when "Under 13" is picked (the server checks it too).
+  (function () {
+    var band = document.getElementById("age_band"), box = document.querySelector("[data-under13]");
+    if (!band || !box) return;
+    function update() { box.hidden = band.value !== "under_13"; document.getElementById("parent_email").required = !box.hidden; }
+    band.addEventListener("change", update); update();
+  })();
+</script>
+{% endblock %}
 {% block content %}
 <div class="login-wrap">
   <div class="login-brand"><span class="mark">{{ m.logo(34) }}</span> StrideBoard</div>
@@ -62,6 +74,12 @@
         {% endfor %}
       </select>
       <span class="hint">Everyone starts with a goal of 6,000 steps a day. After two weeks it adapts to you.</span>
+    </div>
+    <div class="field for-under13" data-under13 {% if form.get('age_band') != 'under_13' %}hidden{% endif %}>
+      <label for="parent_email">Parent or guardian’s email</label>
+      <input class="input" id="parent_email" name="parent_email" type="email" value="{{ form.get('parent_email', '') }}"
+             autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      <span class="hint">Under 13s need a parent’s yes first. We email them a link to approve your account; until then you can’t log in.</span>
     </div>
     <div class="field">
       <label for="email">Email</label>

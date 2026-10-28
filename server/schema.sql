@@ -194,3 +194,18 @@ CREATE TABLE IF NOT EXISTS daily_rewards (
   created_at TEXT NOT NULL,
   PRIMARY KEY (user_id, date)
 );
+
+-- Reports: anyone can flag a name, avatar or behaviour on the leaderboards for the admins to
+-- check (UAE Child Digital Safety Law: an easy way to report harmful content).
+CREATE TABLE IF NOT EXISTS reports (
+  id INTEGER PRIMARY KEY,
+  reporter_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  target_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL CHECK (reason IN ('name','avatar','cheating','bullying','other')),
+  note TEXT,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','done','dismissed')),
+  created_at TEXT NOT NULL,
+  handled_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  handled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
