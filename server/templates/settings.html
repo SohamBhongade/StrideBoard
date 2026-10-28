@@ -212,6 +212,66 @@
   <p class="small muted" style="margin-top:14px">{{ m.icon('info', 14) }} Earn EXP by finishing <a href="{{ url_for('challenges') }}#mini">mini challenges</a>.</p>
 </section>
 
+{# ---- Your data and privacy (UAE PDPL): see, correct, download or delete your own data ---- #}
+<section class="card card-soft data-card" id="your-data" aria-labelledby="data-h" style="margin-top:16px">
+  <div class="card-head">
+    <span class="icon-circle">{{ m.icon('lock') }}</span>
+    <h2 id="data-h">Your data and privacy</h2>
+  </div>
+  <p class="small muted">You can correct, download or delete everything StrideBoard holds about you.
+    <a href="{{ url_for('privacy') }}">Read the privacy policy and terms</a>.</p>
+
+  <form method="post" class="form data-details">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="my_details">
+    <h3 class="data-sub">Correct your details</h3>
+    <div class="field">
+      <label for="my_name">Full name</label>
+      <input class="input" id="my_name" name="display_name" value="{{ me.display_name }}" maxlength="50" autocomplete="name" autocapitalize="words" required>
+      <span class="hint">This is also the name you log in with.</span>
+    </div>
+    {% set choices = classes if me.role == 'student' else (departments if me.role == 'teacher' else none) %}
+    {% if choices %}
+    <div class="field">
+      <label for="my_dept">{{ 'Class' if me.role == 'student' else 'Department' }}</label>
+      <select class="input" id="my_dept" name="department">
+        {% if me.department and me.department not in choices %}<option value="{{ me.department }}" selected>{{ me.department }}</option>{% endif %}
+        {% for c in choices %}<option value="{{ c }}" {% if c == me.department %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    {% else %}<input type="hidden" name="department" value="{{ me.department or '' }}">{% endif %}
+    <button class="btn btn-outline" type="submit">Save my details</button>
+  </form>
+
+  <div class="data-row">
+    <div>
+      <h3 class="data-sub">Download my data</h3>
+      <p class="small muted">A file with your account details, steps, water, mood, activities, badges and rewards (JSON, opens in any text editor).</p>
+    </div>
+    <a class="btn btn-outline" href="{{ url_for('my_data') }}" download>{{ m.icon('download', 18) }} Download</a>
+  </div>
+
+  <details class="data-delete">
+    <summary><span class="data-sub">Delete my account</span></summary>
+    {% if is_owner %}
+    <p class="small muted">You're the site owner, so your account can't be deleted from here.</p>
+    {% else %}
+    <p class="small">This permanently deletes your account and everything in it: steps, water, mood, activities, badges, EXP, rewards and avatar items. It can't be undone. Backup copies are cleared within the times in the privacy policy.</p>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="delete_me">
+      <div class="field">
+        <label for="del_pin">Your PIN</label>
+        <input class="input" id="del_pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
+      </div>
+      <label class="agree"><input type="checkbox" name="confirm" value="1" required>
+        <span>I understand everything will be deleted for good.</span></label>
+      <button class="btn btn-delete" type="submit">Delete my account</button>
+    </form>
+    {% endif %}
+  </details>
+</section>
+
 {# ---- Phone setup (Agent 2): matches ios/README.md and android/README.md ---- #}
 <div class="row row-even">
   <section class="card card-soft" aria-labelledby="ios-h">

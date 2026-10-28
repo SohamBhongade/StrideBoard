@@ -5,6 +5,7 @@ writes SQL. Run from the server folder with:  flask run
 """
 import gzip
 import io
+import json
 import os
 import re
 import secrets
@@ -62,7 +63,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "52"
+ASSET_VERSION = "53"
 
 PUBLIC_ENDPOINTS = {"privacy", "login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -96,6 +97,7 @@ def create_app():
     app = Flask(__name__)
     # No SECRET_KEY here: db.init_app() sets it from the server's environment.
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
+                      PERMANENT_SESSION_LIFETIME=timedelta(days=config.SESSION_IDLE_DAYS),
                       SEND_CODE=mailer.send_code)   # tests swap this out
 
     moved_to = config.MOVED_TO
@@ -418,6 +420,16 @@ def add_security(app):
             return  # phones use their token, not a login session
         user_id = session.get("user_id")
         if user_id is not None:
+            # Auto log-out after SESSION_IDLE_DAYS without using the site (checked here too,
+            # not only by the cookie's expiry). "seen" is refreshed at most every 10 minutes.
+            now_ts, seen = int(datetime.now().timestamp()), session.get("seen")
+            if seen and now_ts - seen > config.SESSION_IDLE_DAYS * 86400:
+                session.clear()
+                flash(f"You were logged out after {config.SESSION_IDLE_DAYS} days away. Log in again.", "ok")
+                user_id = None
+            elif not seen or now_ts - seen > 600:
+                session["seen"] = now_ts
+        if user_id is not None:
             g.user = data.get_user(db.get_db(), user_id)
             if g.user is None:
                 session.clear()
@@ -571,8 +583,10 @@ def add_routes(app):
             try:
                 if config.JOIN_CODE and form.get("code", "").strip().lower() != config.JOIN_CODE.lower():
                     raise ValueError("that school code isn't right. Ask your teacher for it")
-                if form.get("agree") != "1":
-                    raise ValueError("please read and agree to the privacy policy and terms of use")
+                if form.get("agree_terms") != "1":
+                    raise ValueError("please read and agree to the terms of use")
+                if form.get("agree_privacy") != "1":
+                    raise ValueError("please read and agree to the privacy policy")
                 if too_many_signups(request.remote_addr):
                     raise ValueError("too many sign-ups from here. Try again in an hour")
                 dept = form.get("class") if form.get("role") == "student" else form.get("department")
@@ -684,6 +698,8 @@ def add_routes(app):
     @app.route("/logout", methods=["GET", "POST"])
     def logout():
         session.clear()
+        if request.args.get("deleted") == "1":   # after "Delete my account" (going via here clears the offline copy too)
+            flash("Your account and everything in it has been deleted.", "ok")
         return redirect(url_for("login"))
 
     # ---------- Stage 1-3: dashboard
@@ -866,7 +882,19 @@ def add_routes(app):
         if request.method == "POST":
             action = request.form.get("action")
             try:
-                if action == "new_token":
+                if action == "my_details":
+                    data.update_my_details(conn, uid, request.form.get("display_name"),
+                                           request.form.get("department"))
+                    clear_leaderboard_cache()
+                    flash("Your details are saved.", "ok")
+                elif action == "delete_me":
+                    if request.form.get("confirm") != "1":
+                        raise ValueError("tick the box to confirm you want to delete everything")
+                    data.delete_my_account(conn, uid, request.form.get("pin"))
+                    clear_leaderboard_cache()
+                    session.clear()
+                    return redirect(url_for("logout", deleted=1))
+                elif action == "new_token":
                     data.regenerate_token(conn, uid)
                     flash("New token made. Update it in your phone's Shortcut or app.", "ok")
                 elif action == "age_band":
@@ -937,17 +965,31 @@ def add_routes(app):
                 return redirect(url_for("settings", slot=slot, _anchor="studio"))
             if action and action.startswith("email_"):
                 return redirect(url_for("settings", _anchor="recovery"))
+            if action in ("my_details", "delete_me"):
+                return redirect(url_for("settings", _anchor="your-data"))
             return redirect(url_for("settings"))
         slot = request.args.get("slot")
         if slot not in dict(config.AVATAR_SLOTS):
             slot = config.AVATAR_SLOTS[0][0]
         return render_template("settings.html", me=data.get_user(conn, uid), age_bands=AGE_BANDS,
+                               classes=config.SIGNUP_CLASSES, departments=config.SIGNUP_DEPARTMENTS,
+                               is_owner=g.user["username"] == config.OWNER_USERNAME,
                                shop=data.avatar_shop(conn, uid), slot=slot, slots=config.AVATAR_SLOTS,
                                server_url=request.url_root.rstrip("/"),
                                email_linked=data.has_email(conn, uid), mail_ready=mailer.ready(),
                                shortcut_link=iphone_shortcut_link(conn),
                                email_pending=(data.email_code_info(conn, session["email_link_id"], "link")
                                               if session.get("email_link_id") else None))
+
+    @app.route("/settings/my-data.json")
+    def my_data():
+        """Download my data: everything StrideBoard holds about me, as a JSON file."""
+        body = json.dumps(data.export_my_data(db.get_db(), g.user["id"]), indent=2, ensure_ascii=False)
+        stamp = today().isoformat() if hasattr(today(), "isoformat") else str(today())
+        resp = current_app.response_class(body, mimetype="application/json")
+        resp.headers["Content-Disposition"] = f'attachment; filename="strideboard-my-data-{stamp}.json"'
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
 
     # ---------- Leaderboard screen (the Mac app, or any browser on a school TV)
     @app.route("/board")

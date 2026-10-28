@@ -1906,3 +1906,76 @@ def claim_daily_reward(conn, user_id, today=None):
         return s["today"]
     add_exp(conn, user_id, value, reason)
     return s["today"]
+
+
+# ---------------------------------------------------------------- Your data (UAE PDPL rights)
+
+# Columns never handed out, even to the person themself: they only work as secrets.
+_SECRET_COLUMNS = {"pin_hash", "email_hash", "api_token"}
+
+
+def export_my_data(conn, user_id):
+    """Everything StrideBoard holds about one person, as plain data (for 'Download my data').
+
+    The account row (without the PIN, email fingerprint or phone token, which are secrets)
+    plus every row of theirs in each personal table, oldest first.
+    """
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if user is None:
+        raise ValueError("user not found")
+    account = {k: user[k] for k in user.keys() if k not in _SECRET_COLUMNS}
+    account["has_recovery_email"] = bool(user["email_hash"])
+    out = {"exported_at": local_now_iso(), "app": "StrideBoard", "account": account}
+    for table in PERSONAL_TABLES:
+        cols = [r["name"] for r in conn.execute(f"PRAGMA table_info({table})")
+                if r["name"] not in ("id", "user_id")]
+        order = "date" if "date" in cols else cols[0]
+        rows = conn.execute(f"SELECT {', '.join(cols)} FROM {table} WHERE user_id = ? ORDER BY {order}",
+                            (user_id,)).fetchall()
+        out[table] = [dict(r) for r in rows]
+    return out
+
+
+def update_my_details(conn, user_id, display_name, department):
+    """Let a person correct their own name and class/department (PDPL: right to correct).
+
+    The name is also the login name, so it stays unique. The class or department must be
+    one from the sign-up lists (admins may leave it empty).
+    """
+    user = _require_user(conn, user_id)
+    name = clean_name(display_name)
+    if not 1 <= len(name) <= 50:
+        raise ValueError("your name must be 1-50 characters")
+    if conn.execute("SELECT 1 FROM users WHERE lower(display_name) = lower(?) AND id != ?",
+                    (name, user_id)).fetchone():
+        raise ValueError("someone already uses that name. Add your last name or initial")
+    choices = {"student": list(config.SIGNUP_CLASSES), "teacher": list(config.SIGNUP_DEPARTMENTS)}
+    dept = (department or "").strip() or None
+    allowed = choices.get(user["role"])
+    if allowed is not None:
+        if dept not in allowed and dept != user["department"]:
+            raise ValueError("choose your class or department from the list")
+    elif dept and len(dept) > 50:
+        raise ValueError("department must be at most 50 characters")
+    conn.execute("UPDATE users SET display_name = ?, department = ? WHERE id = ?", (name, dept, user_id))
+    conn.commit()
+
+
+def delete_my_account(conn, user_id, pin):
+    """A person deletes their own account and everything in it (PDPL: right to erasure).
+
+    Needs their PIN. Unlike a moderator's delete, their email is not blocked: they may
+    come back. The site owner can't delete themself (there'd be no one left to run it).
+    Returns the name that was deleted.
+    """
+    row = conn.execute("SELECT username, display_name, pin_hash FROM users WHERE id = ?",
+                       (user_id,)).fetchone()
+    if row is None:
+        raise ValueError("user not found")
+    if row["username"] == config.OWNER_USERNAME:
+        raise ValueError("the site owner's account can't be deleted from here")
+    if not check_password_hash(row["pin_hash"], str(pin or "").strip()):
+        raise ValueError("that PIN isn't right")
+    conn.execute("DELETE FROM users WHERE id = ?", (user_id,))   # personal rows go with it (ON DELETE CASCADE)
+    conn.commit()
+    return row["display_name"]

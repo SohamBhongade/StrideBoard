@@ -363,6 +363,21 @@ button { cursor: pointer; }
 .agree a { color: var(--ink); font-weight: 600; }
 .footer a { color: inherit; text-decoration: underline; }
 
+/* Settings: Your data and privacy */
+.data-card { display: flex; flex-direction: column; gap: 18px; }
+.data-card > p a, .data-delete a { color: var(--ink); font-weight: 600; }
+.data-sub { font-size: 18px; font-weight: 600; }
+.data-details { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.data-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--line); }
+.data-row > div { flex: 1; min-width: 220px; }
+.data-delete { padding-top: 16px; border-top: 1px solid var(--line); }
+.data-delete summary { cursor: pointer; color: var(--bad, #B3261E); }
+.data-delete summary .data-sub { color: inherit; }
+.data-delete[open] { display: flex; flex-direction: column; gap: 12px; }
+.data-delete .form { display: flex; flex-direction: column; gap: 12px; }
+.btn-delete { background: var(--bad); color: #fff; border: 0; }
+.btn-delete:hover { filter: brightness(.85); }
+
 /* Progress ring */
 .ring { position: relative; width: 92px; height: 92px; flex: none; }
 .ring > svg { transform: rotate(-90deg); }  /* not the tick icon inside */

@@ -77,12 +77,12 @@
 
 <section class="card card-soft" aria-labelledby="p-where">
   <h2 id="p-where" class="card-title">Where data is stored and how it is protected</h2>
-  <p>StrideBoard runs on <b>PythonAnywhere</b>, a web hosting service whose servers are outside the UAE. All data is in one database on that server.</p>
+  <p>StrideBoard runs on <b>PythonAnywhere</b>, a web hosting service whose servers are outside the UAE. All data is in one database on that server. <b>This means your data is transferred to, and stored, outside the UAE.</b> You agree to this separately when you sign up.</p>
   <ul>
     <li><b>Encrypted connection.</b> The site is served over HTTPS, so data is encrypted between your device and the server.</li>
     <li><b>Protected logins.</b> PINs and email fingerprints are stored only in one-way scrambled form. Wrong PIN attempts are limited, and sign-up and reset codes expire after 15 minutes.</li>
-    <li><b>Cookies.</b> Three small cookies: one keeps you logged in, and two remember your theme and Fast mode. Scripts can’t read them, and there are no advertising or tracking cookies.</li>
-    <li><b>Phones.</b> The Android app keeps steps on the phone only until it can send them (for example after a trip with no signal). The iPhone Shortcut sends the day’s step total and nothing else.</li>
+    <li><b>Cookies and log-out.</b> Three small cookies: one keeps you logged in, and two remember your theme and Fast mode. Scripts can’t read them, and there are no advertising or tracking cookies. You are logged out automatically after 30 days without using StrideBoard.</li>
+    <li><b>Phones.</b> The Android app only asks for step access when you tap <b>Allow step access</b>, and it keeps its link to your account encrypted on the phone. The iPhone Shortcut sends the day’s step total and nothing else.</li>
     <li><b>Other services.</b> Gmail sends sign-up and PIN reset codes. The Weekly Wrap-Up chart loads a drawing library (Chart.js) from jsDelivr, which sees your internet address but no StrideBoard data. No other outside service receives anything.</li>
   </ul>
 </section>
@@ -101,8 +101,22 @@
       </tbody>
     </table>
   </div>
-  <p><b>To delete your account,</b> ask {{ contact }}. Deleting removes the account and everything linked to it straight away: steps, water, mood, activities, badges, rewards and avatar items. Backup copies made before that drop off within the times above.</p>
+  <p><b>To delete your account,</b> go to Settings → Your data and privacy → Delete my account, or ask {{ contact }}. Deleting removes the account and everything linked to it straight away: steps, water, mood, activities, badges, rewards and avatar items. Backup copies made before that drop off within the times above.</p>
   <p>At the end of each school year, {{ school }} decides whether accounts are kept for the next year, archived or deleted.</p>
+</section>
+
+<section class="card card-soft" aria-labelledby="p-rights">
+  <h2 id="p-rights" class="card-title">Your rights</h2>
+  <p>Under the UAE Personal Data Protection Law you can do all of these yourself, in Settings → Your data and privacy:</p>
+  <ul>
+    <li><b>See your data.</b> Everything is on your Home page, the Weekly Wrap-Up and Settings.</li>
+    <li><b>Correct it.</b> Change your name and class or department, your goal and your age band.</li>
+    <li><b>Download it.</b> Get a copy of all your data as a file (JSON) that any computer can open.</li>
+    <li><b>Delete it.</b> Delete your account and everything in it, straight away.</li>
+    <li><b>Withdraw consent.</b> Stop logging water, mood or activities at any time, or delete your account.</li>
+    <li><b>Ask or complain.</b> Contact the data protection contact below. You can also contact the UAE Data Office.</li>
+  </ul>
+  <p>StrideBoard has no marketing messages, analytics or data sharing, so there are no extra consents to switch on or off.</p>
 </section>
 
 <section class="card card-soft" aria-labelledby="p-terms">
@@ -123,7 +137,7 @@
   <h2 id="p-contact" class="card-title">Health, changes and contact</h2>
   <p><b>Not medical advice.</b> Step goals, reminders and the Weekly Wrap-Up are general suggestions to move more. Anyone with a health condition or injury should follow their doctor’s or the school nurse’s guidance.</p>
   <p><b>Changes.</b> If StrideBoard starts collecting anything new, this page is updated first and users are told on the Home page. The date at the top shows the latest version.</p>
-  <p><b>Questions or requests.</b> For a copy of your data, a correction, deletion or any privacy question, contact {{ contact }}.</p>
+  <p><b>Data protection contact.</b> {{ contact }}. Ask them about anything in this policy, or for help with your data.</p>
 </section>
 
 {% if not user %}<p class="login-switch">{% if signup_open %}<a href="{{ url_for('signup') }}">Create an account</a> · {% endif %}<a href="{{ url_for('login') }}">Log in</a></p>{% endif %}
