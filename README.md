@@ -423,10 +423,10 @@ The suite covers week boundaries (Sunday night vs Monday morning), tier edges (e
 
 ## 👥 Team
 
-StrideBoard was created by **Mohammed Aneeq Ahmed**, **Ameesh Raj** and **Nithik Dev Daniel**,
+StrideBoard was created by **the StrideBoard team** (its members are named in [LICENSE](LICENSE)),
 supervised by **Ahamed Kaleel**.
 
-© 2026 Mohammed Aneeq Ahmed, Ameesh Raj and Nithik Dev Daniel. All rights reserved. See [LICENSE](LICENSE): no part of StrideBoard may be copied,
+© 2026 The StrideBoard team. All rights reserved. See [LICENSE](LICENSE): no part of StrideBoard may be copied,
 reused or hosted elsewhere without the team's written permission.
 
 Built with AI coding assistants, as the competition category intends. The team planned the design, split the work into three parts with fixed interfaces, reviewed and tested the code, and ran it with real users.

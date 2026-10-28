@@ -30,8 +30,8 @@ SESSION_IDLE_DAYS = 30
 # Privacy policy and terms (/privacy): who runs it and who to contact. Set these on the server.
 SCHOOL_NAME = os.environ.get("STRIDEBOARD_SCHOOL_NAME", "").strip() or "our school"
 PRIVACY_CONTACT = os.environ.get("STRIDEBOARD_PRIVACY_CONTACT", "").strip() or "a StrideBoard admin at school"
-TEAM_NAMES = os.environ.get("STRIDEBOARD_TEAM_NAMES", "").strip() or "Mohammed Aneeq Ahmed, Ameesh Raj and Nithik Dev Daniel"
-COPYRIGHT = "© 2026 Mohammed Aneeq Ahmed, Ameesh Raj and Nithik Dev Daniel. All rights reserved."
+TEAM_NAMES = os.environ.get("STRIDEBOARD_TEAM_NAMES", "").strip() or "the StrideBoard team"
+COPYRIGHT = "© 2026 The StrideBoard team. All rights reserved."   # members: see LICENSE
 PRIVACY_UPDATED = "28 October 2026"   # change when the policy changes
 # The one account that can time out, ban, rename and remove steps (Admin > Moderation).
 # STRIDEBOARD_OWNER can change it on the server without editing code.

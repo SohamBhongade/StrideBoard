@@ -37,7 +37,8 @@ def test_create_get_and_authenticate(conn):
 def test_pin_is_hashed(conn):
     make_user(conn, "sam", pin="1234")
     stored = conn.execute("SELECT pin_hash FROM users").fetchone()[0]
-    assert "1234" not in stored
+    # A real hash (method:salt$digest), never the PIN. (A random digest can contain "1234" by chance.)
+    assert stored != "1234" and stored.startswith(("scrypt:", "pbkdf2:")) and "$" in stored
 
 
 @pytest.mark.parametrize("kwargs, message", [
