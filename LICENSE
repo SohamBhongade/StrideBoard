@@ -1,0 +1,23 @@
+Copyright (c) 2026 Mohammed Aneeq Ahmed, Ameesh Raj and Nithik Dev Daniel.
+All rights reserved.
+
+StrideBoard (the website, the Android app, the Leaderboard app, the iPhone Shortcut and all
+other code, designs, text and graphics in this repository) is the work of the people named
+above and is protected by copyright, including under UAE Federal Decree-Law No. 38 of 2021 on
+Copyright and Neighbouring Rights.
+
+Supervising teacher: Ahamed Kaleel. The supervising teacher is not a copyright holder.
+
+No licence is granted. Without the written permission of the copyright holders, you may not
+copy, modify, publish, distribute, sell, host or otherwise use any part of this work, except
+that you may view it and that the competition organisers and judges of AL SOUT (RAKDOK) may
+review and run it for judging.
+
+Third-party parts keep their own licences:
+- Chart.js 4.4.1 (server/static/js/vendor/chart.umd.min.js), MIT licence: see
+  server/static/js/vendor/chart.js-LICENSE.md
+- The Outfit typeface (server/static/fonts/outfit.woff2), SIL Open Font Licence: see
+  server/static/fonts/OFL-LICENSE.txt
+- AndroidX and Electron libraries used to build the apps, under their own licences.
+
+For permission, contact the copyright holders.
