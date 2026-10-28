@@ -57,7 +57,7 @@ def test_every_pair_of_shoes_draws(key):
 
 
 def test_there_are_more_sneakers_now():
-    assert sum(1 for v in config.AVATAR_ITEMS.values() if v[0] == "shoes") >= 10
+    assert sum(1 for v in config.AVATAR_ITEMS.values() if v[0] == "shoes") >= 9   # 10 until the rainbow pair was retired
 
 
 @pytest.fixture()
