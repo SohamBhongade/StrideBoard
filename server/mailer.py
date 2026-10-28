@@ -95,3 +95,34 @@ def send_backup(filename, data):
         log.exception("could not email the backup")
         raise ValueError("Gmail didn't accept the email just now") from None
     return user
+
+
+def send_parent_request(to, child_name, link):
+    """Ask a parent to approve their under-13's StrideBoard account. Raises ValueError if not sent."""
+    subject = f"Please approve {child_name}'s StrideBoard account"
+    body = (f"Hello,\n\n{child_name} signed up for StrideBoard, the school step-count game, and said "
+            f"they are under 13. Their account stays switched off until you say yes.\n\n"
+            f"Open this link to see what StrideBoard collects and to approve or decline:\n{link}\n\n"
+            "StrideBoard only stores your child's name, class, daily step total and anything they "
+            "choose to log (water, mood, activities). No location, no photos, no ads, never sold.\n\n"
+            f"Keep this email: the same link lets you withdraw consent and delete the account at any "
+            f"time. If nobody answers within {config.PARENT_WAIT_DAYS} days, the account is deleted.\n\n"
+            "If you don't know what this is, you can ignore this email.\n")
+    if debug_mode():
+        log.warning("MAIL DEBUG: parent link for %s: %s", to, link)
+        print(f"MAIL DEBUG: parent link for {to}: {link}", flush=True)
+        return
+    user, password = gmail_login()
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = f"StrideBoard <{user}>"
+    msg["To"] = to
+    msg.set_content(body)
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as smtp:
+            smtp.starttls()
+            smtp.login(user, password)
+            smtp.send_message(msg)
+    except (smtplib.SMTPException, OSError):
+        log.exception("could not send the parent email")
+        raise ValueError("we couldn't email your parent just now. Check their address and try again") from None

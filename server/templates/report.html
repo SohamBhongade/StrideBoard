@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Report {{ target.display_name }}{% endblock %}
+{% block content %}
+{{ m.page_head("Report", target.display_name, "Tell the StrideBoard admins if something isn’t right. Your name isn’t shown to the person you report.") }}
+
+<form method="post" class="card card-soft form report-form" style="max-width:640px">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <fieldset class="report-reasons">
+    <legend class="label-text">What’s wrong?</legend>
+    {% for key, label in reasons %}
+    <label><input type="radio" name="reason" value="{{ key }}" required> {{ label }}</label>
+    {% endfor %}
+  </fieldset>
+  <div class="field">
+    <label for="note">Anything else? (optional)</label>
+    <textarea class="input" id="note" name="note" maxlength="300" rows="3" placeholder="What happened, in a few words"></textarea>
+  </div>
+  <button class="btn btn-dark btn-block" type="submit">{{ m.icon('flag', 18) }} Send report</button>
+  <p class="small muted">If someone is in danger or being hurt, tell a teacher straight away.</p>
+</form>
+{% endblock %}

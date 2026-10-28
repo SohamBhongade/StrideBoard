@@ -368,6 +368,29 @@ button { cursor: pointer; }
 .footer a { color: inherit; text-decoration: underline; }
 .footer .copyright { margin-top: 4px; font-size: 12px; opacity: .75; }
 
+/* Reports */
+.rank-report { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+  margin: -6px 0 -6px 2px; vertical-align: middle; border-radius: 50%; color: var(--muted); opacity: .45; }
+.rank-report:hover, .rank-report:focus-visible { opacity: 1; background: var(--line); color: var(--bad); }
+.report-list { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 10px; }
+.report-row { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap;
+  padding: 12px 14px; border-radius: 16px; background: var(--white); }
+.report-what { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 4px; }
+.report-what .chip { align-self: flex-start; }
+.report-actions { display: flex; gap: 8px; }
+.report-reasons { display: flex; flex-direction: column; gap: 8px; border: 0; padding: 0; margin: 0; }
+.report-reasons label { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 14px;
+  background: var(--white); border: 1.5px solid var(--line); cursor: pointer; font-size: 16px; }
+.report-reasons label:has(input:checked) { border-color: var(--ink); }
+
+/* Parent approval page (under 13s) */
+.parent-card { display: flex; flex-direction: column; gap: 14px; }
+.parent-list { padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.5; }
+.parent-card a { color: var(--ink); font-weight: 600; }
+.parent-form { display: flex; flex-direction: column; gap: 12px; }
+/* Sign-up: the parent's email box appears only for Under 13 */
+.signup-form .for-under13[hidden] { display: none; }
+
 /* Settings: Your data and privacy */
 .data-card { display: flex; flex-direction: column; gap: 18px; }
 .data-card > p a, .data-delete a { color: var(--ink); font-weight: 600; }

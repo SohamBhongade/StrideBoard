@@ -27,6 +27,10 @@ SIGNUP_OPEN = os.environ.get("STRIDEBOARD_SIGNUP_OPEN", "").strip() == "1"
 # Logged out after this many days without opening StrideBoard (phones' step syncing, which
 # uses the phone token, carries on regardless).
 SESSION_IDLE_DAYS = 30
+# Under-13s (UAE Child Digital Safety Law): a parent must approve the account within this many
+# days, or it's deleted. The parent's email is only kept until they answer.
+PARENT_WAIT_DAYS = 7
+PARENT_RESEND_MINUTES = 60
 # Privacy policy and terms (/privacy): who runs it and who to contact. Set these on the server.
 SCHOOL_NAME = os.environ.get("STRIDEBOARD_SCHOOL_NAME", "").strip() or "our school"
 PRIVACY_CONTACT = os.environ.get("STRIDEBOARD_PRIVACY_CONTACT", "").strip() or "a StrideBoard admin at school"

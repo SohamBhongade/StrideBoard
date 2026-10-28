@@ -7,6 +7,7 @@ for bad input. All SQL uses ? placeholders, never string formatting of values.
 """
 import csv
 import io
+import hashlib
 import re
 import secrets
 import sqlite3
@@ -15,13 +16,14 @@ from datetime import date, datetime, timedelta
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import calc
+import wordfilter
 import config
 from db import local_now_iso, local_today
 
 USERNAME_RE = re.compile(r"^[a-z0-9_.-]{3,30}$")
 # pin_hash is never selected for anything that leaves this file.
 USER_FIELDS = ("id, username, display_name, role, department, age_band, api_token, "
-               "daily_goal, goal_is_custom, created_at, avatar, avatar_color, rename_notice")
+               "daily_goal, goal_is_custom, created_at, avatar, avatar_color, rename_notice, parent_status")
 PLAYER_ROLES = ("teacher", "student")   # admins never appear on boards or in stats
 # Someone timed out or banned (Admin > Moderation) is left off the boards until it ends.
 NOT_BLOCKED = "(u.blocked_until IS NULL OR u.blocked_until <= ?)"
@@ -174,6 +176,7 @@ def _check_new_user(conn, username, display_name, role, department, age_band):
     display_name = (display_name or "").strip()
     if not 1 <= len(display_name) <= 50:
         raise ValueError("display name must be 1-50 characters")
+    wordfilter.check(display_name, "That name")
     role = (role or "").strip().lower()
     if role not in config.ROLES:
         raise ValueError("role must be student, teacher or admin")
@@ -290,8 +293,11 @@ def _refuse_blocked_email(conn, fingerprint):
         raise ValueError("this email can't be used on StrideBoard. Talk to your teacher")
 
 
+EMAIL_SHAPE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
 def start_signup(conn, secret, email, display_name, role, department, age_band, pin, pin_again,
-                 now=None):
+                 now=None, parent_email=None):
     """Check a sign-up form and hold it until the email code is entered.
 
     Only student or teacher. Returns (pending_id, email_to_send_to, code).
@@ -313,6 +319,14 @@ def start_signup(conn, secret, email, display_name, role, department, age_band, 
     pin = clean_pin(pin)
     if pin != str(pin_again or "").strip():
         raise ValueError("the two PINs don't match")
+    parent_email = (parent_email or "").strip()
+    if details[4] == "under_13":
+        if role != "student":
+            raise ValueError("teachers can't choose Under 13")
+        if not EMAIL_SHAPE.match(parent_email) or len(parent_email) > 200:
+            raise ValueError("under 13s need a parent or guardian's email, so they can say yes first")
+    else:
+        parent_email = ""
     fingerprint = email_fingerprint(email, secret)
     _refuse_blocked_email(conn, fingerprint)
     if conn.execute("SELECT 1 FROM users WHERE email_hash = ?", (fingerprint,)).fetchone():
@@ -324,10 +338,10 @@ def start_signup(conn, secret, email, display_name, role, department, age_band, 
     import json
     stamp = now.isoformat(timespec="seconds")
     cur = conn.execute(
-        "INSERT INTO pending_signups (email, email_hash, code_hash, details, sent_at, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO pending_signups (email, email_hash, code_hash, details, sent_at, created_at, parent_email) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         ((email or "").strip(), fingerprint, generate_password_hash(code),
-         json.dumps(list(details) + [generate_password_hash(pin)]), stamp, stamp))
+         json.dumps(list(details) + [generate_password_hash(pin)]), stamp, stamp, parent_email or None))
     conn.commit()
     return cur.lastrowid, (email or "").strip(), code
 
@@ -386,6 +400,9 @@ def finish_signup(conn, pending_id, code, now=None):
     if conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
         username = _hidden_username(conn, role)
     uid = _insert_user(conn, username, display_name, role, department, age_band, pin_hash, row["email_hash"])
+    if row["parent_email"]:   # under 13: the account waits for a parent's yes
+        conn.execute("UPDATE users SET parent_status = 'pending', parent_email = ? WHERE id = ?",
+                     (row["parent_email"], uid))
     conn.execute("DELETE FROM pending_signups WHERE id = ?", (pending_id,))
     conn.commit()
     return uid
@@ -1222,6 +1239,8 @@ def create_challenge(conn, title, description, kind, target_steps, start_date, e
     description = (description or "").strip() or None
     if description and len(description) > 500:
         raise ValueError("description must be at most 500 characters")
+    wordfilter.check(title, "The title")
+    wordfilter.check(description or "", "The description")
     if kind not in ("department", "school_distance"):
         raise ValueError("kind must be department or school_distance")
     if target_steps in (None, ""):
@@ -1725,6 +1744,7 @@ def rename_person(conn, user_id, new_name, acting_id=None):
     new_name = clean_name(new_name)
     if not 1 <= len(new_name) <= 50:
         raise ValueError("the new name must be 1-50 characters")
+    wordfilter.check(new_name, "That name")
     taken = conn.execute("SELECT id FROM users WHERE lower(display_name) = lower(?) AND id != ?",
                          (new_name, user_id)).fetchone()
     if taken:
@@ -1946,6 +1966,7 @@ def update_my_details(conn, user_id, display_name, department):
     name = clean_name(display_name)
     if not 1 <= len(name) <= 50:
         raise ValueError("your name must be 1-50 characters")
+    wordfilter.check(name, "That name")
     if conn.execute("SELECT 1 FROM users WHERE lower(display_name) = lower(?) AND id != ?",
                     (name, user_id)).fetchone():
         raise ValueError("someone already uses that name. Add your last name or initial")
@@ -1979,3 +2000,132 @@ def delete_my_account(conn, user_id, pin):
     conn.execute("DELETE FROM users WHERE id = ?", (user_id,))   # personal rows go with it (ON DELETE CASCADE)
     conn.commit()
     return row["display_name"]
+
+
+# ---------------------------------------------------------------- Parent consent (under 13)
+#
+# UAE Child Digital Safety Law: an under-13's data needs a parent's verifiable consent, which
+# they can withdraw easily. A child who signs up as Under 13 gets an account that can't be used
+# until a parent opens the emailed link and taps Approve. The same link later lets the parent
+# withdraw consent, which deletes the account. Admin-made accounts are the school's
+# responsibility and don't need this (parent_status stays NULL).
+
+def _token_hash(token):
+    return hashlib.sha256(("parent|" + str(token or "")).encode()).hexdigest()
+
+
+def parent_request(conn, user_id, now=None, force=False):
+    """A fresh approval link for the parent. Returns (parent_email, token), or None when it
+    was sent less than PARENT_RESEND_MINUTES ago (unless force) or isn't needed."""
+    now = _now(now)
+    row = conn.execute("SELECT parent_status, parent_email, parent_asked_at FROM users WHERE id = ?",
+                       (user_id,)).fetchone()
+    if row is None or row["parent_status"] != "pending" or not row["parent_email"]:
+        return None
+    if row["parent_asked_at"] and not force:
+        waited = (now - datetime.fromisoformat(row["parent_asked_at"])).total_seconds()
+        if waited < config.PARENT_RESEND_MINUTES * 60:
+            return None
+    token = secrets.token_urlsafe(32)
+    conn.execute("UPDATE users SET parent_token_hash = ?, parent_asked_at = ? WHERE id = ?",
+                 (_token_hash(token), now.isoformat(timespec="seconds"), user_id))
+    conn.commit()
+    return row["parent_email"], token
+
+
+def parent_lookup(conn, token):
+    """The child account an approval link belongs to: {id, name, status, asked_at}, or None."""
+    if not token or len(str(token)) > 100:
+        return None
+    row = conn.execute("SELECT id, display_name, parent_status, parent_asked_at, created_at FROM users "
+                       "WHERE parent_token_hash = ?", (_token_hash(token),)).fetchone()
+    if row is None:
+        return None
+    return {"id": row["id"], "name": row["display_name"], "status": row["parent_status"],
+            "asked_at": row["parent_asked_at"], "created_at": row["created_at"]}
+
+
+def parent_approve(conn, token, now=None):
+    """The parent says yes. Their email is deleted now; the link stays valid for withdrawing."""
+    child = parent_lookup(conn, token)
+    if child is None:
+        raise ValueError("this link isn't valid any more")
+    if child["status"] == "pending":
+        conn.execute("UPDATE users SET parent_status = 'given', parent_email = NULL, parent_asked_at = ? "
+                     "WHERE id = ?", (_now(now).isoformat(timespec="seconds"), child["id"]))
+        conn.commit()
+    return child["name"]
+
+
+def parent_remove(conn, token):
+    """The parent says no, or withdraws consent later: the account and all its data are deleted."""
+    child = parent_lookup(conn, token)
+    if child is None:
+        raise ValueError("this link isn't valid any more")
+    conn.execute("DELETE FROM users WHERE id = ?", (child["id"],))
+    conn.commit()
+    return child["name"]
+
+
+def clear_unapproved_children(conn, now=None):
+    """Delete under-13 accounts whose parent hasn't answered within PARENT_WAIT_DAYS."""
+    cutoff = (_now(now) - timedelta(days=config.PARENT_WAIT_DAYS)).isoformat(timespec="seconds")
+    cur = conn.execute("DELETE FROM users WHERE parent_status = 'pending' AND created_at < ?", (cutoff,))
+    conn.commit()
+    return cur.rowcount
+
+
+# ---------------------------------------------------------------- Reports
+
+REPORT_REASONS = (("name", "Rude or fake name"), ("avatar", "Rude avatar"),
+                  ("cheating", "Cheating on steps"), ("bullying", "Bullying or unkind behaviour"),
+                  ("other", "Something else"))
+REPORTS_PER_DAY = 10
+
+
+def report_person(conn, reporter_id, target_id, reason, note=None, now=None):
+    """Flag someone for the admins. One open report per person you report; 10 a day."""
+    now = _now(now)
+    try:
+        target_id = int(target_id)
+    except (TypeError, ValueError):
+        raise ValueError("that person doesn't exist") from None
+    if target_id == reporter_id:
+        raise ValueError("you can't report yourself")
+    if conn.execute("SELECT 1 FROM users WHERE id = ?", (target_id,)).fetchone() is None:
+        raise ValueError("that person doesn't exist")
+    if reason not in dict(REPORT_REASONS):
+        raise ValueError("please choose what's wrong")
+    note = " ".join((note or "").split())[:300] or None
+    wordfilter.check(note or "", "Your note")
+    if conn.execute("SELECT 1 FROM reports WHERE reporter_id = ? AND target_id = ? AND status = 'open'",
+                    (reporter_id, target_id)).fetchone():
+        raise ValueError("you've already reported this person. The admins will check it")
+    since = (now - timedelta(days=1)).isoformat(timespec="seconds")
+    if conn.execute("SELECT COUNT(*) FROM reports WHERE reporter_id = ? AND created_at > ?",
+                    (reporter_id, since)).fetchone()[0] >= REPORTS_PER_DAY:
+        raise ValueError("you've sent a lot of reports today. Please talk to a teacher instead")
+    conn.execute("INSERT INTO reports (reporter_id, target_id, reason, note, created_at) VALUES (?, ?, ?, ?, ?)",
+                 (reporter_id, target_id, reason, note, now.isoformat(timespec="seconds")))
+    conn.commit()
+
+
+def open_reports(conn):
+    """Reports waiting for an admin, newest first, with names."""
+    rows = conn.execute(
+        "SELECT r.id, r.reason, r.note, r.created_at, t.id AS target_id, t.display_name AS target, "
+        "t.department AS target_dept, p.display_name AS reporter "
+        "FROM reports r JOIN users t ON t.id = r.target_id LEFT JOIN users p ON p.id = r.reporter_id "
+        "WHERE r.status = 'open' ORDER BY r.created_at DESC").fetchall()
+    labels = dict(REPORT_REASONS)
+    return [dict(r, reason_label=labels.get(r["reason"], r["reason"])) for r in rows]
+
+
+def handle_report(conn, report_id, admin_id, status, now=None):
+    if status not in ("done", "dismissed"):
+        raise ValueError("choose done or dismissed")
+    cur = conn.execute("UPDATE reports SET status = ?, handled_by = ?, handled_at = ? WHERE id = ? AND status = 'open'",
+                       (status, admin_id, _now(now).isoformat(timespec="seconds"), report_id))
+    conn.commit()
+    if not cur.rowcount:
+        raise ValueError("that report was already handled")

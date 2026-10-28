@@ -65,9 +65,9 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "57"
+ASSET_VERSION = "58"
 
-PUBLIC_ENDPOINTS = {"privacy", "login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
+PUBLIC_ENDPOINTS = {"privacy", "parent", "login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
 
 
@@ -106,6 +106,7 @@ def create_app():
     app = Flask(__name__)
     app.session_interface = HttpsOnlyCookies()
     # No SECRET_KEY here: db.init_app() sets it from the server's environment.
+    app.config.update(SEND_PARENT=mailer.send_parent_request)
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
                       PERMANENT_SESSION_LIFETIME=timedelta(days=config.SESSION_IDLE_DAYS),
                       SEND_CODE=mailer.send_code)   # tests swap this out
@@ -619,6 +620,16 @@ def add_routes(app):
             if block:
                 flash(block_message(block), "blocked")
                 return render_template("login.html", username=username)
+            if user and user.get("parent_status") == "pending":
+                data.clear_unapproved_children(db.get_db())
+                if data.get_user(db.get_db(), user["id"]) is None:
+                    flash("Your parent didn't approve in time, so that account was removed. "
+                          "You can sign up again.", "error")
+                else:
+                    ask_parent(user["id"])
+                    flash("Your account is waiting for your parent or guardian to approve it. "
+                          "Ask them to open the StrideBoard email and tap Approve.", "error")
+                return render_template("login.html", username=username)
             if user:
                 session.clear()
                 session.permanent = True  # stay signed in on phones
@@ -645,10 +656,12 @@ def add_routes(app):
                 if too_many_signups(request.remote_addr):
                     raise ValueError("too many sign-ups from here. Try again in an hour")
                 dept = form.get("class") if form.get("role") == "student" else form.get("department")
+                data.clear_unapproved_children(db.get_db())
                 pending, email, code = data.start_signup(
                     db.get_db(), app.config["SECRET_KEY"], form.get("email"),
                     form.get("display_name"), form.get("role"), dept,
-                    form.get("age_band"), form.get("pin"), form.get("pin_again"))
+                    form.get("age_band"), form.get("pin"), form.get("pin_again"),
+                    parent_email=form.get("parent_email"))
                 app.config["SEND_CODE"](email, code)
             except ValueError as e:
                 flash(first_upper(str(e)), "error")
@@ -674,6 +687,60 @@ def add_routes(app):
         return render_template("privacy.html", school=school, contact=contact, team=team,
                                updated=config.PRIVACY_UPDATED)
 
+    def ask_parent(uid, force=False):
+        """Email the parent the approval link (at most once an hour). Returns where it went."""
+        conn = db.get_db()
+        req = data.parent_request(conn, uid, force=force)
+        if not req:
+            return None
+        to, token = req
+        try:
+            app.config["SEND_PARENT"](to, data.get_user(conn, uid)["display_name"],
+                                      url_for("parent", token=token, _external=True))
+        except ValueError:
+            return None
+        return to
+
+    @app.route("/report/<int:uid>", methods=["GET", "POST"])
+    def report(uid):
+        """Report someone on the leaderboards to the admins."""
+        conn = db.get_db()
+        target = data.get_user(conn, uid)
+        if target is None or target["role"] == "admin":
+            abort(404)
+        if request.method == "POST":
+            try:
+                data.report_person(conn, g.user["id"], uid, request.form.get("reason"), request.form.get("note"))
+            except ValueError as e:
+                flash(first_upper(str(e)), "error")
+                return redirect(url_for("report", uid=uid))
+            flash("Thanks for telling us. An admin will check it. Your name isn't shown to the person you reported.", "ok")
+            return redirect(url_for("leaderboard"))
+        return render_template("report.html", target=target, reasons=data.REPORT_REASONS)
+
+    @app.route("/parent/<token>", methods=["GET", "POST"])
+    def parent(token):
+        """For a parent: approve, decline, or later withdraw consent for an under-13's account."""
+        conn = db.get_db()
+        data.clear_unapproved_children(conn)
+        child = data.parent_lookup(conn, token)
+        if child is None:
+            return render_template("parent.html", child=None, done=request.args.get("done")), 404
+        if request.method == "POST":
+            choice = request.form.get("choice")
+            if choice == "approve" and request.form.get("agree") == "1":
+                data.parent_approve(conn, token)
+                clear_leaderboard_cache()
+                return redirect(url_for("parent", token=token, done="approved"))
+            if choice in ("decline", "withdraw"):
+                name = data.parent_remove(conn, token)
+                clear_leaderboard_cache()
+                return render_template("parent.html", child=None, done="removed", name=name)
+            flash("Tick the box to confirm, then tap Approve.", "error")
+            return redirect(url_for("parent", token=token))
+        return render_template("parent.html", child=child, token=token, done=request.args.get("done"),
+                               wait_days=config.PARENT_WAIT_DAYS)
+
     @app.route("/signup/verify", methods=["GET", "POST"])
     def signup_verify():
         """Type the 6-digit code from the email; then the account is made and you're logged in."""
@@ -696,6 +763,13 @@ def add_routes(app):
                     flash(f"New code sent to {to}.", "ok")
                 else:
                     uid = data.finish_signup(conn, pending, request.form.get("verify_code"))
+                    if (data.get_user(conn, uid) or {}).get("parent_status") == "pending":
+                        session.clear()
+                        sent_to = ask_parent(uid, force=True)
+                        flash("Your account is made! It switches on when your parent or guardian approves it"
+                              + (f": we emailed {sent_to}." if sent_to else ". We'll email them when you log in.")
+                              + " Then log in with your full name and PIN.", "ok")
+                        return redirect(url_for("login"))
                     session.clear()
                     session.permanent = True
                     session["user_id"] = uid
@@ -963,6 +1037,9 @@ def add_routes(app):
                     band = request.form.get("age_band")
                     if band not in dict(AGE_BANDS):
                         raise ValueError("please choose an age band")
+                    if band == "under_13" and g.user["age_band"] != "under_13" and g.user["role"] != "admin":
+                        raise ValueError("under 13s need a parent's permission. Ask your teacher to change "
+                                         "your age band for you")
                     data.set_age_band(conn, uid, band)
                     flash("Age band saved.", "ok")
                 elif action == "goal":
@@ -1119,7 +1196,12 @@ def add_routes(app):
             clear_leaderboard_cache()  # ...and fresh leaderboards (bans, renames, resets)
             action = request.form.get("action")
             try:
-                if action == "add_users":
+                if action in ("report_done", "report_dismiss"):
+                    data.handle_report(conn, to_int(request.form.get("report_id"), "report"), g.user["id"],
+                                       "done" if action == "report_done" else "dismissed")
+                    flash("Report marked as handled." if action == "report_done" else "Report dismissed.", "ok")
+                    return redirect(url_for("admin", _anchor="reports"))
+                elif action == "add_users":
                     result = data.bulk_create_users(conn, request.form.get("csv", ""))
                     flash(f"Added {result['created']} user(s).", "ok" if not result["errors"] else "error")
                 elif action == "create_challenge":
@@ -1222,7 +1304,7 @@ def add_routes(app):
                      or (people_role == "blocked" and u["blocked"]))
                  and (not needle or needle in f"{u['display_name']} {u['username']} {u['department'] or ''}".lower())]
         per_day = data.suggested_distance_target(conn, 1)
-        return render_template("admin.html", board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
+        return render_template("admin.html", reports=data.open_reports(conn), board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
                                users=users, shown=shown, people_role=people_role,
                                people_q=people_q, role_counts=role_counts,
                                challenges=data.active_challenges(conn, today()),
