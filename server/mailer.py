@@ -82,9 +82,10 @@ def send_backup(filename, data):
         msg.set_content("This week's StrideBoard backup is too big to attach to an email. Please log in, "
                         "open Admin > Backups and click Download a backup to keep a copy on your computer.\n")
     else:
-        msg.set_content("This week's copy of the StrideBoard database is attached. Keep this email: "
-                        "if anything ever goes wrong, the site can be restored from it (see README).\n")
-        msg.add_attachment(data, maintype="application", subtype="gzip", filename=filename)
+        msg.set_content("This week's copy of the StrideBoard database is attached, encrypted. Keep this "
+                        "email for up to 4 weeks: if anything goes wrong, the site can be restored from it "
+                        "(see README, 'Backups and restoring').\n")
+        msg.add_attachment(data, maintype="application", subtype="octet-stream", filename=filename)
     try:
         with smtplib.SMTP("smtp.gmail.com", 587, timeout=60) as smtp:
             smtp.starttls()

@@ -9,7 +9,12 @@
     <p class="muted hero-sub">Takes a minute. Then link your phone and your steps count automatically.</p>
   </div>
 
-  {% if not open_now %}
+  {% if not signup_open %}
+  <section class="card card-soft">
+    <h2 class="card-title">Sign-up is closed</h2>
+    <p class="small muted" style="margin-top:8px">StrideBoard isn't taking new accounts at the moment. If you already have an account, you can still log in.</p>
+  </section>
+  {% elif not open_now %}
   <section class="card card-soft">
     <h2 class="card-title">Sign-up isn't open yet</h2>
     <p class="small muted" style="margin-top:8px">Ask your teacher or the StrideBoard admin to make your account for you.</p>
@@ -82,9 +87,14 @@
       <span class="hint">Your teacher has this.</span>
     </div>
     {% endif %}
+    {# Two separate agreements (UAE PDPL: consent is explicit and not bundled). Never pre-ticked. #}
     <label class="agree">
-      <input type="checkbox" name="agree" value="1" required {% if form.get('agree') == '1' %}checked{% endif %}>
-      <span>I have read and agree to the <a href="{{ url_for('privacy') }}" target="_blank" rel="noopener">privacy policy and terms of use</a>.</span>
+      <input type="checkbox" name="agree_terms" value="1" required {% if form.get('agree_terms') == '1' %}checked{% endif %}>
+      <span>I agree to the <a href="{{ url_for('privacy') }}#p-terms" target="_blank" rel="noopener">terms of use</a> (real name, play fair, be kind).</span>
+    </label>
+    <label class="agree">
+      <input type="checkbox" name="agree_privacy" value="1" required {% if form.get('agree_privacy') == '1' %}checked{% endif %}>
+      <span>I agree to StrideBoard storing my data, including my step counts (activity data), as the <a href="{{ url_for('privacy') }}" target="_blank" rel="noopener">privacy policy</a> explains, on servers outside the UAE.</span>
     </label>
     <button class="btn btn-dark btn-block" type="submit">Send me a code {{ m.icon('play', 16) }}</button>
   </form>

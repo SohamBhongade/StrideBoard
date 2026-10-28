@@ -7,7 +7,8 @@ import androidx.core.content.edit
 
 /**
  * Everything the app remembers, kept in private app storage.
- * The token is a password: it is never logged, and backups are turned off in the manifest.
+ * The token is a password: it is saved encrypted with a Keystore key (SecretBox), never
+ * logged, and backups are turned off in the manifest.
  */
 object Prefs {
     /** The live StrideBoard server (Agent 1). Pre-filled on the setup screen; can be changed there. */
@@ -27,7 +28,18 @@ object Prefs {
     private fun sp(c: Context) = c.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     fun serverUrl(c: Context): String = sp(c).getString(KEY_SERVER, "") ?: ""
-    fun token(c: Context): String = sp(c).getString(KEY_TOKEN, "") ?: ""
+    /** The phone token. Saved encrypted; a token saved by an older version (plain) is
+     *  encrypted the first time it's read. */
+    fun token(c: Context): String {
+        val saved = sp(c).getString(KEY_TOKEN, "") ?: ""
+        if (saved.isEmpty()) return ""
+        if (SecretBox.isSealed(saved)) return SecretBox.open(saved)
+        SecretBox.seal(saved)?.let { sealed -> sp(c).edit { putString(KEY_TOKEN, sealed) } }
+        return saved
+    }
+
+    private fun sealToken(token: String): String =
+        if (token.isEmpty()) "" else SecretBox.seal(token) ?: token   // no Keystore: still private app storage
     fun isConfigured(c: Context) = serverUrl(c).isNotBlank() && token(c).isNotBlank()
 
     /** First run: use the school's website without asking. A phone set to an old address moves
@@ -56,9 +68,10 @@ object Prefs {
 
     fun saveSetup(c: Context, server: String, token: String) {
         val changed = server != serverUrl(c) || token != token(c)
+        val saved = sealToken(token)
         sp(c).edit {
             putString(KEY_SERVER, server)
-            putString(KEY_TOKEN, token)
+            putString(KEY_TOKEN, saved)
             if (changed) {
                 // Old sync results belonged to the old address/token.
                 remove(KEY_LAST_SUCCESS)
@@ -67,6 +80,12 @@ object Prefs {
                 remove(KEY_LAST_OK)
             }
         }
+    }
+
+    /** Forget everything saved on this phone (account link, sync history). */
+    fun clearAll(c: Context) {
+        sp(c).edit { clear() }
+        ensureServer(c)
     }
 
     /** Time of the last sync that fully worked (0 = never). */

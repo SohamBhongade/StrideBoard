@@ -1,11 +1,15 @@
 package com.strideboard.app
 
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.text.format.DateUtils
 import android.view.View
+import android.webkit.CookieManager
+import android.webkit.WebStorage
+import android.widget.Toast
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -76,9 +80,36 @@ class SetupActivity : ComponentActivity() {
                 finish()
             }
         }
+        findViewById<Button>(R.id.disconnect_button).setOnClickListener { confirmDisconnect() }
         findViewById<View>(R.id.privacy_link).setOnClickListener {
             startActivity(Intent(this, PrivacyActivity::class.java))
         }
+    }
+
+    /** Stop syncing, give back the Health Connect permission and wipe this phone's copy. */
+    private fun confirmDisconnect() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.disconnect_title)
+            .setMessage(R.string.disconnect_body)
+            .setPositiveButton(R.string.disconnect_yes) { _, _ -> lifecycleScope.launch { disconnect() } }
+            .setNegativeButton(R.string.consent_not_now, null)
+            .show()
+    }
+
+    private suspend fun disconnect() {
+        if (StepReader.sdkStatus(this) == HealthConnectClient.SDK_AVAILABLE) {
+            try {
+                HealthConnectClient.getOrCreate(this).permissionController.revokeAllPermissions()
+            } catch (e: Exception) {
+                // Already gone, or Health Connect busy: the user can still turn it off there.
+            }
+        }
+        SyncScheduler.update(this, backgroundAllowed = false)   // no more background jobs
+        Prefs.clearAll(this)                                     // token and sync history
+        CookieManager.getInstance().removeAllCookies(null)       // the website login in the app
+        WebStorage.getInstance().deleteAllData()
+        Toast.makeText(this, R.string.disconnect_done, Toast.LENGTH_LONG).show()
+        refreshStatus()
     }
 
     override fun onResume() {
@@ -104,10 +135,22 @@ class SetupActivity : ComponentActivity() {
         return true
     }
 
+    /**
+     * Before Health Connect's own permission window, explain (English and Arabic) what is read,
+     * why, and that it's never sold or used for ads. Health Connect is only asked after
+     * "Agree & Connect".
+     */
     private fun onAllowClicked() {
         when (StepReader.sdkStatus(this)) {
             HealthConnectClient.SDK_AVAILABLE ->
-                permissionLauncher.launch(StepReader.permissionsToRequest(this))
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.consent_title)
+                    .setMessage(getString(R.string.consent_body_en) + "\n\n— — —\n\n" + getString(R.string.consent_body_ar))
+                    .setPositiveButton(R.string.consent_agree) { _, _ ->
+                        permissionLauncher.launch(StepReader.permissionsToRequest(this))
+                    }
+                    .setNegativeButton(R.string.consent_not_now, null)
+                    .show()
             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> openPlayStore()
             else -> hcStatus.text = SyncRunner.healthConnectProblem(HealthConnectClient.SDK_UNAVAILABLE)
         }

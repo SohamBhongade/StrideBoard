@@ -5,6 +5,7 @@ writes SQL. Run from the server folder with:  flask run
 """
 import gzip
 import io
+import json
 import os
 import re
 import secrets
@@ -62,7 +63,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "52"
+ASSET_VERSION = "55"
 
 PUBLIC_ENDPOINTS = {"privacy", "login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -96,6 +97,7 @@ def create_app():
     app = Flask(__name__)
     # No SECRET_KEY here: db.init_app() sets it from the server's environment.
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
+                      PERMANENT_SESSION_LIFETIME=timedelta(days=config.SESSION_IDLE_DAYS),
                       SEND_CODE=mailer.send_code)   # tests swap this out
 
     moved_to = config.MOVED_TO
@@ -189,6 +191,11 @@ def clear_leaderboard_cache():
     _BOARD_CACHE.clear()
 
 
+CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+       "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; "
+       "manifest-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'")
+
+
 def add_speed(app):
     """Make pages load faster on phones and school Wi-Fi.
 
@@ -199,6 +206,13 @@ def add_speed(app):
     """
     @app.after_request
     def cache_and_compress(resp):
+        # Security: the browser may only load scripts, styles, fonts and images from StrideBoard
+        # itself and talk only to StrideBoard, so no outside code can read anyone's steps.
+        # (Inline scripts are allowed because the pages use small ones of their own.)
+        resp.headers.setdefault("Content-Security-Policy", CSP)
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("Referrer-Policy", "same-origin")
+        resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         if request.path.startswith("/static/") and resp.status_code == 200:
             if request.args.get("v"):
                 resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
@@ -263,6 +277,7 @@ def add_template_helpers(app):
     def globals_for_templates():
         now = datetime.now(TZ)
         return {"csrf_token": csrf_token, "user": g.get("user"), "TIERS": TIERS,
+                "signup_open": config.SIGNUP_OPEN,
                 "today_label": f"{now:%A} {now.day} {now:%B}",
                 "BADGES": BADGES, "MOODS": MOODS, "stand_due": stand_due(),
                 "INACTIVE_MINUTES": config.INACTIVE_MINUTES, "INACTIVE_MAX_STEPS": config.INACTIVE_MAX_STEPS,
@@ -417,6 +432,16 @@ def add_security(app):
             return  # phones use their token, not a login session
         user_id = session.get("user_id")
         if user_id is not None:
+            # Auto log-out after SESSION_IDLE_DAYS without using the site (checked here too,
+            # not only by the cookie's expiry). "seen" is refreshed at most every 10 minutes.
+            now_ts, seen = int(datetime.now().timestamp()), session.get("seen")
+            if seen and now_ts - seen > config.SESSION_IDLE_DAYS * 86400:
+                session.clear()
+                flash(f"You were logged out after {config.SESSION_IDLE_DAYS} days away. Log in again.", "ok")
+                user_id = None
+            elif not seen or now_ts - seen > 600:
+                session["seen"] = now_ts
+        if user_id is not None:
             g.user = data.get_user(db.get_db(), user_id)
             if g.user is None:
                 session.clear()
@@ -565,13 +590,15 @@ def add_routes(app):
         if g.user:
             return redirect(url_for("dashboard"))
         form = request.form if request.method == "POST" else {}
-        open_now = mailer.ready()
+        open_now = config.SIGNUP_OPEN and mailer.ready()
         if request.method == "POST" and open_now:
             try:
                 if config.JOIN_CODE and form.get("code", "").strip().lower() != config.JOIN_CODE.lower():
                     raise ValueError("that school code isn't right. Ask your teacher for it")
-                if form.get("agree") != "1":
-                    raise ValueError("please read and agree to the privacy policy and terms of use")
+                if form.get("agree_terms") != "1":
+                    raise ValueError("please read and agree to the terms of use")
+                if form.get("agree_privacy") != "1":
+                    raise ValueError("please read and agree to the privacy policy")
                 if too_many_signups(request.remote_addr):
                     raise ValueError("too many sign-ups from here. Try again in an hour")
                 dept = form.get("class") if form.get("role") == "student" else form.get("department")
@@ -593,14 +620,25 @@ def add_routes(app):
     @app.route("/privacy")
     def privacy():
         """Privacy policy and terms of use: open to everyone, linked from sign-up and every page."""
-        return render_template("privacy.html", school=config.SCHOOL_NAME, contact=config.PRIVACY_CONTACT,
-                               team=config.TEAM_NAMES, updated=config.PRIVACY_UPDATED)
+        school, contact, team = config.SCHOOL_NAME, config.PRIVACY_CONTACT, config.TEAM_NAMES
+        if request.args.get("lang") == "ar":
+            # The server settings are usually in English; their built-in defaults get Arabic ones.
+            defaults = {"our school": "مدرستنا", "a StrideBoard admin at school": "أحد مسؤولي StrideBoard في المدرسة",
+                        "the StrideBoard student team": "فريق طلاب StrideBoard"}
+            return render_template("privacy_ar.html", school=defaults.get(school, school),
+                                   contact=defaults.get(contact, contact), team=defaults.get(team, team),
+                                   updated=config.PRIVACY_UPDATED)
+        return render_template("privacy.html", school=school, contact=contact, team=team,
+                               updated=config.PRIVACY_UPDATED)
 
     @app.route("/signup/verify", methods=["GET", "POST"])
     def signup_verify():
         """Type the 6-digit code from the email; then the account is made and you're logged in."""
         if g.user:
             return redirect(url_for("dashboard"))
+        if not config.SIGNUP_OPEN:          # closed: a half-finished sign-up can't finish either
+            session.pop("signup_id", None)
+            return redirect(url_for("signup"))
         conn, pending = db.get_db(), session.get("signup_id")
         email = data.pending_email(conn, pending) if pending else None
         if not email:
@@ -680,6 +718,8 @@ def add_routes(app):
     @app.route("/logout", methods=["GET", "POST"])
     def logout():
         session.clear()
+        if request.args.get("deleted") == "1":   # after "Delete my account" (going via here clears the offline copy too)
+            flash("Your account and everything in it has been deleted.", "ok")
         return redirect(url_for("login"))
 
     # ---------- Stage 1-3: dashboard
@@ -862,7 +902,19 @@ def add_routes(app):
         if request.method == "POST":
             action = request.form.get("action")
             try:
-                if action == "new_token":
+                if action == "my_details":
+                    data.update_my_details(conn, uid, request.form.get("display_name"),
+                                           request.form.get("department"))
+                    clear_leaderboard_cache()
+                    flash("Your details are saved.", "ok")
+                elif action == "delete_me":
+                    if request.form.get("confirm") != "1":
+                        raise ValueError("tick the box to confirm you want to delete everything")
+                    data.delete_my_account(conn, uid, request.form.get("pin"))
+                    clear_leaderboard_cache()
+                    session.clear()
+                    return redirect(url_for("logout", deleted=1))
+                elif action == "new_token":
                     data.regenerate_token(conn, uid)
                     flash("New token made. Update it in your phone's Shortcut or app.", "ok")
                 elif action == "age_band":
@@ -933,17 +985,46 @@ def add_routes(app):
                 return redirect(url_for("settings", slot=slot, _anchor="studio"))
             if action and action.startswith("email_"):
                 return redirect(url_for("settings", _anchor="recovery"))
+            if action in ("my_details", "delete_me"):
+                return redirect(url_for("settings", _anchor="your-data"))
             return redirect(url_for("settings"))
         slot = request.args.get("slot")
         if slot not in dict(config.AVATAR_SLOTS):
             slot = config.AVATAR_SLOTS[0][0]
         return render_template("settings.html", me=data.get_user(conn, uid), age_bands=AGE_BANDS,
+                               classes=config.SIGNUP_CLASSES, departments=config.SIGNUP_DEPARTMENTS,
+                               is_owner=g.user["username"] == config.OWNER_USERNAME,
                                shop=data.avatar_shop(conn, uid), slot=slot, slots=config.AVATAR_SLOTS,
                                server_url=request.url_root.rstrip("/"),
                                email_linked=data.has_email(conn, uid), mail_ready=mailer.ready(),
                                shortcut_link=iphone_shortcut_link(conn),
                                email_pending=(data.email_code_info(conn, session["email_link_id"], "link")
                                               if session.get("email_link_id") else None))
+
+    @app.route("/settings/my-data.json")
+    def my_data():
+        """Download my data: everything StrideBoard holds about me, as a JSON file."""
+        body = json.dumps(data.export_my_data(db.get_db(), g.user["id"]), indent=2, ensure_ascii=False)
+        stamp = today().isoformat() if hasattr(today(), "isoformat") else str(today())
+        resp = current_app.response_class(body, mimetype="application/json")
+        resp.headers["Content-Disposition"] = f'attachment; filename="strideboard-my-data-{stamp}.json"'
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+
+    @app.route("/settings/my-steps.csv")
+    def my_steps_csv():
+        """Download my step history as a spreadsheet file (date, steps, where it came from)."""
+        import csv
+        rows = data.export_my_data(db.get_db(), g.user["id"])["steps"]
+        out = io.StringIO()
+        w = csv.writer(out)
+        w.writerow(["date", "steps", "source", "updated_at"])
+        for r in rows:
+            w.writerow([r["date"], r["steps"], r["source"], r["updated_at"]])
+        resp = current_app.response_class(out.getvalue(), mimetype="text/csv")
+        resp.headers["Content-Disposition"] = f'attachment; filename="strideboard-my-steps-{today()}.csv"'
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
 
     # ---------- Leaderboard screen (the Mac app, or any browser on a school TV)
     @app.route("/board")

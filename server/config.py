@@ -20,11 +20,18 @@ DATABASE = os.environ.get(
 # STRIDEBOARD_JOIN_CODE: optional. If set, people need this code to make their own
 # account on the sign-up page (stops strangers joining). Leave unset for no code.
 JOIN_CODE = os.environ.get("STRIDEBOARD_JOIN_CODE", "").strip()
+# Sign-up is switched OFF (school data protection rules, October 2026). Everything for it is
+# kept: to open it again later, add STRIDEBOARD_SIGNUP_OPEN=1 to the server (WSGI file) and
+# reload. Existing accounts still log in either way; admins can still add people.
+SIGNUP_OPEN = os.environ.get("STRIDEBOARD_SIGNUP_OPEN", "").strip() == "1"
+# Logged out after this many days without opening StrideBoard (phones' step syncing, which
+# uses the phone token, carries on regardless).
+SESSION_IDLE_DAYS = 30
 # Privacy policy and terms (/privacy): who runs it and who to contact. Set these on the server.
 SCHOOL_NAME = os.environ.get("STRIDEBOARD_SCHOOL_NAME", "").strip() or "our school"
 PRIVACY_CONTACT = os.environ.get("STRIDEBOARD_PRIVACY_CONTACT", "").strip() or "a StrideBoard admin at school"
 TEAM_NAMES = os.environ.get("STRIDEBOARD_TEAM_NAMES", "").strip() or "the StrideBoard student team"
-PRIVACY_UPDATED = "27 October 2026"   # change when the policy changes
+PRIVACY_UPDATED = "28 October 2026"   # change when the policy changes
 # The one account that can time out, ban, rename and remove steps (Admin > Moderation).
 # STRIDEBOARD_OWNER can change it on the server without editing code.
 # STRIDEBOARD_MOVED_TO: set ONLY on an old copy of the site after moving it, e.g.
@@ -300,8 +307,8 @@ COMEBACK_MIN_LAST_WEEK = 10_000  # ...and last week had at least 10,000 steps
 
 # --- The Android app: the newest version on the Releases page. Bump this with versionCode in
 # android/app/build.gradle.kts, and Home shows older apps a small "Update" notice. ---
-ANDROID_APP_LATEST = {"code": 5, "name": "1.4",
-                      "news": "Days without signal now sync later, and the app updates itself from now on."}
+ANDROID_APP_LATEST = {"code": 6, "name": "1.5",
+                      "news": "Your account link is now stored encrypted on your phone."}
 ANDROID_APP_UPDATER_FROM = 5     # versions from here on update in-app; older ones reinstall once
 ANDROID_APK_URL = "https://github.com/SohamBhongade/StrideBoard/releases/download/android-latest/StrideBoard.apk"
 

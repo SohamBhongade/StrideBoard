@@ -432,20 +432,26 @@ Built with AI coding assistants, as the competition category intends. The team p
 ## Backups and restoring
 
 `server/backup.py` copies the database safely (SQLite's own backup, so it's consistent even
-while phones are syncing) and compresses it.
+while phones are syncing), compresses it and **encrypts it (AES-256-GCM)**. It reads the
+site's settings (database path, Gmail, keys) from the WSGI file, so the task needs no setup.
 
 - **Daily:** on PythonAnywhere, Tasks tab, add a daily task:
   `python3 /home/strideboard/strideboard/server/backup.py`
   It saves into `strideboard-data/backups/` next to the database and keeps the last 7 days.
-  On Mondays it also emails the copy to the site's Gmail (an off-site copy).
-- **Any time:** the owner can click **Admin → Backups → Download a backup**.
+  On Mondays it also emails the copy to the site's Gmail (an off-site copy). Delete those
+  emails after 4 weeks (the privacy policy promises this).
+- **Any time:** the owner can click **Admin → Backups → Download a backup** (not encrypted:
+  it goes straight to the owner's computer over HTTPS).
+- **The key:** `STRIDEBOARD_BACKUP_KEY` (64 hex characters) if set in the WSGI file, otherwise
+  one made from `STRIDEBOARD_SECRET_KEY`. If you change the secret key, older copies can only be
+  opened with the old one, so set a separate backup key if you want one key for good.
 
 **To restore** (Bash console on PythonAnywhere):
 
 ```
 cd ~/strideboard-data
 cp strideboard.sqlite3 strideboard-before-restore.sqlite3     # keep the current one, just in case
-gunzip -c backups/strideboard-backup-YYYY-MM-DD.sqlite3.gz > strideboard.sqlite3
+python3 ~/strideboard/server/backup.py --decrypt backups/strideboard-backup-YYYY-MM-DD.sqlite3.gz.enc strideboard.sqlite3
 touch /var/www/strideboard_pythonanywhere_com_wsgi.py
 ```
 

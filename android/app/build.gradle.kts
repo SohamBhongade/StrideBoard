@@ -13,8 +13,8 @@ android {
         applicationId = "com.strideboard.android"
         minSdk = 26          // Health Connect library minimum
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.5"
     }
 
     // One fixed key for every release, so each new APK installs over the last one (and the
