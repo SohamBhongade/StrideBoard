@@ -170,3 +170,55 @@ def test_download_steps_csv(me):
     lines = r.get_data(as_text=True).strip().splitlines()
     assert r.mimetype == "text/csv" and lines[0] == "date,steps,source,updated_at"
     assert len(lines) == 2 and ",4321," in lines[1]
+
+
+# ------------------------------------------------------------- security audit fixes
+
+def test_back_link_never_leaves_the_site():
+    for bad in ("//evil.com", "/\\\\evil.com", "/\\evil.com", "https://evil.com", "javascript:alert(1)", "", "/x\nLocation: y"):
+        assert A.safe_back(bad) is None
+    assert A.safe_back("/leaderboard?view=teacher") == "/leaderboard?view=teacher"
+
+
+def test_token_only_in_the_android_app(me):
+    c, path, uid = me
+    token = db.connect(path).execute("SELECT api_token FROM users WHERE id = ?", (uid,)).fetchone()[0]
+    android_chrome = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36"
+    assert token not in c.get("/", headers={"User-Agent": android_chrome}).get_data(as_text=True)
+    iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) Safari/604.1"
+    assert token in c.get("/", headers={"User-Agent": iphone}).get_data(as_text=True)   # Shortcut button
+    page = c.get("/", headers={"User-Agent": "Mozilla/5.0 StrideBoardAndroid/1.0 StrideBoardApp/6"}).get_data(as_text=True)
+    assert token in page
+
+
+def test_wrong_pins_from_one_address_are_throttled(site):
+    A.FAILED_BY_ADDRESS.clear(); A.FAILED_LOGINS.clear()
+    with site.session_transaction() as s:
+        s["csrf"] = "x"
+    for i in range(A.ADDRESS_TRIES):
+        site.post("/login", data={"csrf": "x", "username": f"Person {i}", "pin": "1234"})
+    page = site.post("/login", data={"csrf": "x", "username": "Someone Else", "pin": "1234"}).get_data(as_text=True)
+    assert "Too many wrong PINs" in page
+    A.FAILED_BY_ADDRESS.clear(); A.FAILED_LOGINS.clear()
+
+
+def test_secure_cookie_and_hsts_on_https(me):
+    c, _, _ = me
+    r = c.get("/settings", base_url="https://localhost")
+    assert "max-age" in r.headers.get("Strict-Transport-Security", "")
+    assert r.headers.get("X-Frame-Options") == "SAMEORIGIN"
+    with c.session_transaction() as s:
+        s["seen"] = 1
+    r = c.get("/settings", base_url="https://localhost")
+    cookie = r.headers.get("Set-Cookie", "")
+    assert "Secure" in cookie or cookie == ""
+
+
+def test_refuses_public_secret_key_on_pythonanywhere(monkeypatch, tmp_path):
+    monkeypatch.setenv("PYTHONANYWHERE_DOMAIN", "pythonanywhere.com")
+    monkeypatch.setattr(A.config, "SECRET_KEY", "dev-only-not-secret-change-me")
+    import flask
+    app = flask.Flask("x")
+    app.config["DATABASE"] = str(tmp_path / "k.sqlite3")
+    with pytest.raises(RuntimeError):
+        db.init_app(app)

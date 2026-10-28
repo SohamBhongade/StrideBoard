@@ -57,10 +57,12 @@
        Apple Health and sends the steps. The name must match the Shortcut exactly.
        The button hands the Shortcut this person's token as its input, so one shared
        Shortcut works for everyone and nobody has to paste anything. #}
+    {% if on_apple %}
     <div class="ios-sync" data-ios-sync hidden>
       <a class="btn btn-dark" href="shortcuts://run-shortcut?name=Strideboard&amp;input=text&amp;text={{ user.api_token|urlencode }}">{{ m.icon('refresh', 18) }} Sync from Apple Health</a>
       <p class="small muted">Runs your Strideboard Shortcut. When it finishes, tap the back arrow at the top left to come back. Not set up yet? See <a href="{{ url_for('settings') }}">Settings</a>.</p>
     </div>
+    {% endif %}
   </section>
 
   {# ---- Water ---- #}

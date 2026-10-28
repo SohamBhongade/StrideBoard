@@ -7,7 +7,7 @@ The character and every part are original drawings for StrideBoard.
 """
 import itertools
 
-from markupsafe import Markup
+from markupsafe import Markup, escape
 
 INK = "#17181C"
 _ids = itertools.count(1)   # unique ids for gradients when several avatars share a page
@@ -228,7 +228,7 @@ def _parts(build, uid):
 def render(build, size=40, title=None):
     """The avatar as a complete inline SVG (Markup). Unknown or missing parts fall back to the defaults."""
     uid = next(_ids)
-    label = f'<title>{title}</title>' if title else ""
+    label = f'<title>{escape(title)}</title>' if title else ""
     return Markup(
         f'<svg class="creature" width="{size}" height="{size}" viewBox="3 3 94 94" role="img" '
         f'aria-hidden="{"false" if title else "true"}">{label}{_parts(build, uid)}</svg>'
@@ -248,7 +248,7 @@ def look_key(build):
 
 def render_use(key, size=40, title=None):
     """An avatar that points at its look on the page's sheet (see render_sheet)."""
-    label = f'<title>{title}</title>' if title else ""
+    label = f'<title>{escape(title)}</title>' if title else ""
     return Markup(
         f'<svg class="creature" width="{size}" height="{size}" role="img" '
         f'aria-hidden="{"false" if title else "true"}">{label}<use href="#{key}"/></svg>'

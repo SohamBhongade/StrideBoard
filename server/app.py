@@ -10,6 +10,8 @@ import os
 import re
 import secrets
 from datetime import datetime, timedelta
+from urllib.parse import urlsplit
+from flask.sessions import SecureCookieSessionInterface
 from zoneinfo import ZoneInfo
 
 from flask import (Flask, abort, current_app, send_file, flash, g, get_flashed_messages, jsonify, redirect,
@@ -93,8 +95,16 @@ def to_int(value, field):
         raise ValueError(f"{field} must be a whole number")
 
 
+class HttpsOnlyCookies(SecureCookieSessionInterface):
+    """The login cookie is marked Secure (sent only over HTTPS) whenever the site is on HTTPS.
+    On a laptop over plain http it still works."""
+    def get_cookie_secure(self, app):
+        return bool(app.config.get("SESSION_COOKIE_SECURE")) or request.is_secure
+
+
 def create_app():
     app = Flask(__name__)
+    app.session_interface = HttpsOnlyCookies()
     # No SECRET_KEY here: db.init_app() sets it from the server's environment.
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
                       PERMANENT_SESSION_LIFETIME=timedelta(days=config.SESSION_IDLE_DAYS),
@@ -213,6 +223,9 @@ def add_speed(app):
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
         resp.headers.setdefault("Referrer-Policy", "same-origin")
         resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        if request.is_secure:   # once a browser has seen HTTPS, it never tries plain http again
+            resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
         if request.path.startswith("/static/") and resp.status_code == 200:
             if request.args.get("v"):
                 resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
@@ -278,6 +291,9 @@ def add_template_helpers(app):
         now = datetime.now(TZ)
         return {"csrf_token": csrf_token, "user": g.get("user"), "TIERS": TIERS,
                 "signup_open": config.SIGNUP_OPEN,
+                "in_android_app": "StrideBoardAndroid/" in request.headers.get("User-Agent", ""),
+                # Apple devices (iPads in desktop mode say "Macintosh"): the iPhone Shortcut button
+                "on_apple": bool(re.search(r"iPhone|iPad|iPod|Macintosh", request.headers.get("User-Agent", ""))),
                 "today_label": f"{now:%A} {now.day} {now:%B}",
                 "BADGES": BADGES, "MOODS": MOODS, "stand_due": stand_due(),
                 "INACTIVE_MINUTES": config.INACTIVE_MINUTES, "INACTIVE_MAX_STEPS": config.INACTIVE_MAX_STEPS,
@@ -502,6 +518,8 @@ def note_signup(addr, kind="signup"):
 
 FAILED_LOGINS = {}   # name (lower case) -> times of recent wrong PINs (kept in memory)
 LOGIN_TRIES, LOGIN_LOCK_MINUTES = 5, 15
+FAILED_BY_ADDRESS = {}   # internet address -> times of recent wrong PINs, for any name
+ADDRESS_TRIES = 20       # wrong PINs from one address (any names) within LOGIN_LOCK_MINUTES
 
 
 def _login_key(name):
@@ -518,9 +536,31 @@ def login_locked(name):
     return max(1, int((recent[0] + LOGIN_LOCK_MINUTES * 60 - now) // 60) + 1)
 
 
-def note_failed_login(name):
+def note_failed_login(name, address=None):
     _prune(FAILED_LOGINS, LOGIN_LOCK_MINUTES * 60)
-    FAILED_LOGINS.setdefault(_login_key(name), []).append(datetime.now().timestamp())
+    now = datetime.now().timestamp()
+    FAILED_LOGINS.setdefault(_login_key(name), []).append(now)
+    if address:
+        _prune(FAILED_BY_ADDRESS, LOGIN_LOCK_MINUTES * 60)
+        FAILED_BY_ADDRESS.setdefault(address, []).append(now)
+
+
+def address_locked(address):
+    """True when one internet address has guessed wrong too often, whatever names it tried."""
+    now = datetime.now().timestamp()
+    recent = [t for t in FAILED_BY_ADDRESS.get(address, []) if now - t < LOGIN_LOCK_MINUTES * 60]
+    FAILED_BY_ADDRESS[address] = recent
+    return len(recent) >= ADDRESS_TRIES
+
+
+def safe_back(target):
+    """A path on this site to go back to, or None. Refuses anything that could leave the site:
+    //evil.com, /\\evil.com (browsers read \\ as /), full addresses, control characters."""
+    t = (target or "").strip()
+    if not t.startswith("/") or t.startswith("//") or "\\" in t or any(ord(ch) < 32 for ch in t):
+        return None
+    parts = urlsplit(t)
+    return t if not parts.scheme and not parts.netloc else None
 
 
 def is_owner(user):
@@ -561,6 +601,8 @@ def add_routes(app):
             username = request.form.get("username", "").strip()
             pin = request.form.get("pin", "").strip()
             user, locked = None, login_locked(username)
+            if not locked and address_locked(request.remote_addr):
+                locked = LOGIN_LOCK_MINUTES
             if locked:
                 flash(f"Too many wrong PINs for that name. Wait {locked} minutes and try again, "
                       "or use 'Forgot your PIN?'.", "error")
@@ -571,7 +613,7 @@ def add_routes(app):
                 else:
                     user = data.authenticate_name(db.get_db(), username, pin)
             if not user and username:
-                note_failed_login(username)
+                note_failed_login(username, request.remote_addr)
             block = data.block_status(db.get_db(), user["id"]) if user else None
             if block:
                 flash(block_message(block), "blocked")
@@ -712,8 +754,7 @@ def add_routes(app):
     def dismiss_rename():
         """The OK button on the 'your name was changed' box."""
         data.dismiss_rename_notice(db.get_db(), g.user["id"])
-        back = request.form.get("back", "")
-        return redirect(back if back.startswith("/") and not back.startswith("//") else url_for("dashboard"))
+        return redirect(safe_back(request.form.get("back", "")) or url_for("dashboard"))
 
     @app.route("/logout", methods=["GET", "POST"])
     def logout():

@@ -175,9 +175,9 @@
 
 <script src="{{ url_for('static', filename='js/app.js') }}?v={{ ASSET_VERSION }}" defer></script>
 {% block scripts %}{% endblock %}
-{% if user %}
+{% if user and in_android_app %}
 {# Inside the StrideBoard Android app only: tell the app who is logged in, so it can sync
-   their steps without anyone copying a token. Ordinary browsers don't have StrideBoardApp. #}
+   their steps without anyone copying a token. Ordinary browsers never get the token in the page. #}
 <script>if (window.StrideBoardApp && window.StrideBoardApp.linkAccount) { window.StrideBoardApp.linkAccount({{ user.api_token|tojson }}); }</script>
 {% endif %}
 {{ avatar_sheet() }}
