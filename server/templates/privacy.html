@@ -126,6 +126,6 @@
   <p><b>Questions or requests.</b> For a copy of your data, a correction, deletion or any privacy question, contact {{ contact }}.</p>
 </section>
 
-{% if not user %}<p class="login-switch"><a href="{{ url_for('signup') }}">Create an account</a> · <a href="{{ url_for('login') }}">Log in</a></p>{% endif %}
+{% if not user %}<p class="login-switch">{% if signup_open %}<a href="{{ url_for('signup') }}">Create an account</a> · {% endif %}<a href="{{ url_for('login') }}">Log in</a></p>{% endif %}
 </div>
 {% endblock %}

@@ -29,6 +29,7 @@ def test_login_page_links_to_it(site):
 
 def test_signup_needs_agreement(site, monkeypatch):
     monkeypatch.setattr(A.mailer, "ready", lambda: True)
+    monkeypatch.setattr(A.config, "SIGNUP_OPEN", True)
     page = site.get("/signup").get_data(as_text=True)
     assert 'name="agree"' in page and 'href="/privacy"' in page
     with site.session_transaction() as s:

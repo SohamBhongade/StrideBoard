@@ -9,7 +9,12 @@
     <p class="muted hero-sub">Takes a minute. Then link your phone and your steps count automatically.</p>
   </div>
 
-  {% if not open_now %}
+  {% if not signup_open %}
+  <section class="card card-soft">
+    <h2 class="card-title">Sign-up is closed</h2>
+    <p class="small muted" style="margin-top:8px">StrideBoard isn't taking new accounts at the moment. If you already have an account, you can still log in.</p>
+  </section>
+  {% elif not open_now %}
   <section class="card card-soft">
     <h2 class="card-title">Sign-up isn't open yet</h2>
     <p class="small muted" style="margin-top:8px">Ask your teacher or the StrideBoard admin to make your account for you.</p>

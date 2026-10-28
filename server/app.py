@@ -263,6 +263,7 @@ def add_template_helpers(app):
     def globals_for_templates():
         now = datetime.now(TZ)
         return {"csrf_token": csrf_token, "user": g.get("user"), "TIERS": TIERS,
+                "signup_open": config.SIGNUP_OPEN,
                 "today_label": f"{now:%A} {now.day} {now:%B}",
                 "BADGES": BADGES, "MOODS": MOODS, "stand_due": stand_due(),
                 "INACTIVE_MINUTES": config.INACTIVE_MINUTES, "INACTIVE_MAX_STEPS": config.INACTIVE_MAX_STEPS,
@@ -565,7 +566,7 @@ def add_routes(app):
         if g.user:
             return redirect(url_for("dashboard"))
         form = request.form if request.method == "POST" else {}
-        open_now = mailer.ready()
+        open_now = config.SIGNUP_OPEN and mailer.ready()
         if request.method == "POST" and open_now:
             try:
                 if config.JOIN_CODE and form.get("code", "").strip().lower() != config.JOIN_CODE.lower():
@@ -601,6 +602,9 @@ def add_routes(app):
         """Type the 6-digit code from the email; then the account is made and you're logged in."""
         if g.user:
             return redirect(url_for("dashboard"))
+        if not config.SIGNUP_OPEN:          # closed: a half-finished sign-up can't finish either
+            session.pop("signup_id", None)
+            return redirect(url_for("signup"))
         conn, pending = db.get_db(), session.get("signup_id")
         email = data.pending_email(conn, pending) if pending else None
         if not email:
