@@ -366,6 +366,7 @@ button { cursor: pointer; }
 .agree input { width: 20px; height: 20px; margin-top: 1px; flex: none; accent-color: var(--ink); }
 .agree a { color: var(--ink); font-weight: 600; }
 .footer a { color: inherit; text-decoration: underline; }
+.footer .copyright { margin-top: 4px; font-size: 12px; opacity: .75; }
 
 /* Settings: Your data and privacy */
 .data-card { display: flex; flex-direction: column; gap: 18px; }

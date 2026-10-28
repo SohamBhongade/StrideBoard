@@ -65,7 +65,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "55"
+ASSET_VERSION = "56"
 
 PUBLIC_ENDPOINTS = {"privacy", "login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -291,6 +291,7 @@ def add_template_helpers(app):
         now = datetime.now(TZ)
         return {"csrf_token": csrf_token, "user": g.get("user"), "TIERS": TIERS,
                 "signup_open": config.SIGNUP_OPEN,
+                "COPYRIGHT": config.COPYRIGHT,
                 "in_android_app": "StrideBoardAndroid/" in request.headers.get("User-Agent", ""),
                 # Apple devices (iPads in desktop mode say "Macintosh"): the iPhone Shortcut button
                 "on_apple": bool(re.search(r"iPhone|iPad|iPod|Macintosh", request.headers.get("User-Agent", ""))),
