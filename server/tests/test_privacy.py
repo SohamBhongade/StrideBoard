@@ -139,3 +139,19 @@ def test_logged_out_after_30_idle_days(me):
 def test_privacy_page_lists_rights_and_transfer(site):
     page = site.get("/privacy").get_data(as_text=True)
     assert "Your rights" in page and "outside the UAE" in page and "Data protection contact" in page
+
+
+def test_pages_block_outside_code(me):
+    c, _, _ = me
+    for url in ("/", "/insights", "/settings", "/leaderboard", "/privacy"):
+        r = c.get(url)
+        csp = r.headers.get("Content-Security-Policy", "")
+        assert "script-src 'self'" in csp and "connect-src 'self'" in csp
+        assert "https://" not in r.get_data(as_text=True).split("<script")[1:][0][:200] if "<script src" in r.get_data(as_text=True) else True
+        assert "cdn.jsdelivr" not in r.get_data(as_text=True)
+
+
+def test_privacy_page_health_connect_disclosures(site):
+    page = site.get("/privacy").get_data(as_text=True)
+    for bit in ("Android Health Connect", "Limited Use", "Health Connect Permissions Policy", "AES-256", "Agree &amp; Connect"):
+        assert bit in page

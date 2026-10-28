@@ -1,4 +1,5 @@
 # Agent 1 (database)
 Flask>=3.0,<4
 tzdata>=2024.1      # time zone data, needed on Windows laptops
+cryptography>=41    # encrypts backup copies (AES-256); already installed on PythonAnywhere
 pytest>=8           # only for running the tests

@@ -83,7 +83,20 @@
     <li><b>Protected logins.</b> PINs and email fingerprints are stored only in one-way scrambled form. Wrong PIN attempts are limited, and sign-up and reset codes expire after 15 minutes.</li>
     <li><b>Cookies and log-out.</b> Three small cookies: one keeps you logged in, and two remember your theme and Fast mode. Scripts can’t read them, and there are no advertising or tracking cookies. You are logged out automatically after 30 days without using StrideBoard.</li>
     <li><b>Phones.</b> The Android app only asks for step access when you tap <b>Allow step access</b>, and it keeps its link to your account encrypted on the phone. The iPhone Shortcut sends the day’s step total and nothing else.</li>
-    <li><b>Other services.</b> Gmail sends sign-up and PIN reset codes. The Weekly Wrap-Up chart loads a drawing library (Chart.js) from jsDelivr, which sees your internet address but no StrideBoard data. No other outside service receives anything.</li>
+    <li><b>No third parties.</b> Every page, script, font and image comes from StrideBoard itself, and the browser is told to block anything else, so no outside code can read anyone’s steps. The Android app contains no advertising or analytics code. The only outside service is Gmail, which sends sign-up and PIN reset codes.</li>
+    <li><b>Encrypted backups.</b> Backup copies are encrypted with AES-256 before they are saved on the server or emailed, so a copy can’t be read without StrideBoard’s key. The live database sits on PythonAnywhere’s private server and is only reachable through the website.</li>
+  </ul>
+</section>
+
+<section class="card card-soft" aria-labelledby="p-hc">
+  <h2 id="p-hc" class="card-title">Android Health Connect</h2>
+  <p>The StrideBoard Android app reads data from <b>Android Health Connect</b>. It asks for one permission only: to read <b>Steps</b> (and, if you allow it, to read steps in the background).</p>
+  <ul>
+    <li><b>Before asking,</b> the app shows a screen in English and Arabic explaining what it reads and why. Health Connect is only contacted after you tap <b>Agree &amp; Connect</b>.</li>
+    <li><b>Why:</b> to show your daily progress, score the leaderboards and reward your progress. Background access keeps the leaderboards up to date while the app is closed; without it, steps sync when you open the app.</li>
+    <li><b>Limited Use.</b> StrideBoard’s use of information received from Health Connect adheres to the Health Connect Permissions Policy, including the Limited Use requirements. Step data is never sold, never used for advertising, and never shared except to show your own progress and the school leaderboards.</li>
+    <li><b>Kept and deleted.</b> Daily step totals are kept on StrideBoard’s server while your account exists, and step totals during the day for 2 days. <b>Delete my account</b> in Settings deletes all of your step data straight away; backup copies are cleared within 7 days (server) and 4 weeks (emailed copies).</li>
+    <li><b>Stop any time:</b> Health Connect → App permissions → StrideBoard → turn Steps off.</li>
   </ul>
 </section>
 

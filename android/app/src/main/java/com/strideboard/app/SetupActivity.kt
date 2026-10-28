@@ -1,5 +1,6 @@
 package com.strideboard.app
 
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -104,10 +105,22 @@ class SetupActivity : ComponentActivity() {
         return true
     }
 
+    /**
+     * Before Health Connect's own permission window, explain (English and Arabic) what is read,
+     * why, and that it's never sold or used for ads. Health Connect is only asked after
+     * "Agree & Connect".
+     */
     private fun onAllowClicked() {
         when (StepReader.sdkStatus(this)) {
             HealthConnectClient.SDK_AVAILABLE ->
-                permissionLauncher.launch(StepReader.permissionsToRequest(this))
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.consent_title)
+                    .setMessage(getString(R.string.consent_body_en) + "\n\n— — —\n\n" + getString(R.string.consent_body_ar))
+                    .setPositiveButton(R.string.consent_agree) { _, _ ->
+                        permissionLauncher.launch(StepReader.permissionsToRequest(this))
+                    }
+                    .setNegativeButton(R.string.consent_not_now, null)
+                    .show()
             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> openPlayStore()
             else -> hcStatus.text = SyncRunner.healthConnectProblem(HealthConnectClient.SDK_UNAVAILABLE)
         }

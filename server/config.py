@@ -31,7 +31,7 @@ SESSION_IDLE_DAYS = 30
 SCHOOL_NAME = os.environ.get("STRIDEBOARD_SCHOOL_NAME", "").strip() or "our school"
 PRIVACY_CONTACT = os.environ.get("STRIDEBOARD_PRIVACY_CONTACT", "").strip() or "a StrideBoard admin at school"
 TEAM_NAMES = os.environ.get("STRIDEBOARD_TEAM_NAMES", "").strip() or "the StrideBoard student team"
-PRIVACY_UPDATED = "27 October 2026"   # change when the policy changes
+PRIVACY_UPDATED = "28 October 2026"   # change when the policy changes
 # The one account that can time out, ban, rename and remove steps (Admin > Moderation).
 # STRIDEBOARD_OWNER can change it on the server without editing code.
 # STRIDEBOARD_MOVED_TO: set ONLY on an old copy of the site after moving it, e.g.

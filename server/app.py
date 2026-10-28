@@ -63,7 +63,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "53"
+ASSET_VERSION = "54"
 
 PUBLIC_ENDPOINTS = {"privacy", "login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -191,6 +191,11 @@ def clear_leaderboard_cache():
     _BOARD_CACHE.clear()
 
 
+CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+       "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; "
+       "manifest-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'")
+
+
 def add_speed(app):
     """Make pages load faster on phones and school Wi-Fi.
 
@@ -201,6 +206,13 @@ def add_speed(app):
     """
     @app.after_request
     def cache_and_compress(resp):
+        # Security: the browser may only load scripts, styles, fonts and images from StrideBoard
+        # itself and talk only to StrideBoard, so no outside code can read anyone's steps.
+        # (Inline scripts are allowed because the pages use small ones of their own.)
+        resp.headers.setdefault("Content-Security-Policy", CSP)
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("Referrer-Policy", "same-origin")
+        resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         if request.path.startswith("/static/") and resp.status_code == 200:
             if request.args.get("v"):
                 resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
