@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Report {{ target.display_name }}{% endblock %}
+{% block title %}Report {{ shown }}{% endblock %}
 {% block content %}
-{{ m.page_head("Report", target.display_name, "Tell the StrideBoard admins if something isn’t right. Your name isn’t shown to the person you report.") }}
+{{ m.page_head("Report", shown, "Tell the StrideBoard admins if something isn’t right. Your name isn’t shown to the person you report.") }}
 
 <form method="post" class="card card-soft form report-form" style="max-width:640px">
   <input type="hidden" name="csrf" value="{{ csrf_token() }}">

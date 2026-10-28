@@ -209,3 +209,14 @@ CREATE TABLE IF NOT EXISTS reports (
   handled_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
+
+-- Screen time: minutes used per day, kept ONLY for people with a parent's daily time limit
+-- (UAE Child Digital Safety Law: usage-time limits). Nobody else is tracked. Older days are
+-- deleted after a week.
+CREATE TABLE IF NOT EXISTS screen_time (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  minutes INTEGER NOT NULL DEFAULT 0,
+  last_minute TEXT,
+  PRIMARY KEY (user_id, date)
+);

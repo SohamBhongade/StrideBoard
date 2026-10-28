@@ -109,7 +109,7 @@ def test_page_has_period_dropdown(site):
 
 def test_page_switches_period(site):
     page = site.get("/leaderboard?period=all").get_data(as_text=True)
-    assert "All-time" in page and 'value="all" selected' in page and "Aisha Khan" in page
+    assert "All-time" in page and 'value="all" selected' in page and "Aisha K." in page
     page = site.get("/leaderboard?period=nonsense").get_data(as_text=True)
     assert 'value="week" selected' in page
 
@@ -121,7 +121,7 @@ def test_effort_has_no_all_time(site):
 
 def test_search_finds_names_and_keeps_ranks(site):
     page = site.get("/leaderboard?q=omar").get_data(as_text=True)
-    assert "Omar Saeed" in page and "Aisha Khan" not in page
+    assert "Omar S." in page and "Aisha K." not in page
     assert "1 match for" in page and ">2<" in page                 # Omar keeps rank 2
     page = site.get("/leaderboard?q=zzz").get_data(as_text=True)
     assert "No one called" in page
@@ -157,7 +157,7 @@ def test_screen_period_dropdown(screen):
     page = c.get(f"/board?key={key}").get_data(as_text=True)
     assert 'name="period"' in page and 'value="week" selected' in page and "resets every Monday" in page
     page = c.get(f"/board?key={key}&period=month").get_data(as_text=True)
-    assert 'value="month" selected' in page and "resets on the 1st" in page and "Aisha Khan" in page
+    assert 'value="month" selected' in page and "resets on the 1st" in page and "Aisha K." in page
     page = c.get(f"/board?key={key}&period=bogus").get_data(as_text=True)
     assert 'value="week" selected' in page
 
@@ -165,7 +165,7 @@ def test_screen_period_dropdown(screen):
 def test_screen_search(screen):
     c, key = _key(screen)
     page = c.get(f"/board?key={key}&q=lina").get_data(as_text=True)
-    assert "Lina Odeh" in page and "Aisha Khan" not in page and "1 match" in page
+    assert "Lina O." in page and "Aisha K." not in page and "1 match" in page
     assert ">4<" in page                                    # Lina keeps her real rank
     page = c.get(f"/board?key={key}&q=nobody").get_data(as_text=True)
     assert "No one called" in page

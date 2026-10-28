@@ -182,7 +182,7 @@ def test_back_link_never_leaves_the_site():
 
 def test_token_only_in_the_android_app(me):
     c, path, uid = me
-    token = db.connect(path).execute("SELECT api_token FROM users WHERE id = ?", (uid,)).fetchone()[0]
+    token = data.get_user(db.connect(path), uid)["api_token"]
     android_chrome = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36"
     assert token not in c.get("/", headers={"User-Agent": android_chrome}).get_data(as_text=True)
     iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) Safari/604.1"

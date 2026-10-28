@@ -16,6 +16,7 @@ from datetime import date, datetime, timedelta
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import calc
+import tokens
 import wordfilter
 import config
 from db import local_now_iso, local_today
@@ -23,7 +24,8 @@ from db import local_now_iso, local_today
 USERNAME_RE = re.compile(r"^[a-z0-9_.-]{3,30}$")
 # pin_hash is never selected for anything that leaves this file.
 USER_FIELDS = ("id, username, display_name, role, department, age_band, api_token, "
-               "daily_goal, goal_is_custom, created_at, avatar, avatar_color, rename_notice, parent_status")
+               "daily_goal, goal_is_custom, created_at, avatar, avatar_color, rename_notice, parent_status, "
+               "board_name, time_limit")
 PLAYER_ROLES = ("teacher", "student")   # admins never appear on boards or in stats
 # Someone timed out or banned (Admin > Moderation) is left off the boards until it ends.
 NOT_BLOCKED = "(u.blocked_until IS NULL OR u.blocked_until <= ?)"
@@ -150,14 +152,21 @@ def set_ios_shortcut_link(conn, link):
 def get_user(conn, user_id):
     """One user as a dict (never includes pin_hash), or None."""
     row = conn.execute(f"SELECT {USER_FIELDS} FROM users WHERE id = ?", (user_id,)).fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    user = dict(row)
+    user["api_token"] = tokens.unseal(user["api_token"])
+    if user["api_token"] is None:          # the secret key changed: hand out a fresh token
+        user["api_token"] = regenerate_token(conn, user_id)
+    return user
 
 
 def get_user_by_token(conn, token):
     """The user who owns a phone token, or None. Used by /api/steps."""
-    if not isinstance(token, str) or not token.strip():
+    if not isinstance(token, str) or not token.strip() or len(token) > 200:
         return None
-    row = conn.execute("SELECT id FROM users WHERE api_token = ?", (token.strip(),)).fetchone()
+    row = conn.execute("SELECT id FROM users WHERE api_token_hash = ?",
+                       (tokens.fingerprint(token.strip()),)).fetchone()
     return get_user(conn, row["id"]) if row else None
 
 
@@ -190,13 +199,15 @@ def _check_new_user(conn, username, display_name, role, department, age_band):
 
 
 def _insert_user(conn, username, display_name, role, department, age_band, pin_hash, email_hash=None):
+    token = tokens.new_token()
     try:
         cur = conn.execute(
             "INSERT INTO users (username, display_name, pin_hash, role, department, age_band, "
-            "api_token, daily_goal, goal_is_custom, created_at, email_hash) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+            "api_token, api_token_hash, daily_goal, goal_is_custom, created_at, email_hash) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
             (username, display_name, pin_hash, role, department, age_band,
-             secrets.token_urlsafe(24), config.AGE_BAND_GOALS[age_band], local_now_iso(), email_hash),
+             tokens.seal(token), tokens.fingerprint(token), config.AGE_BAND_GOALS[age_band],
+             local_now_iso(), email_hash),
         )
     except sqlite3.IntegrityError:
         raise ValueError(f"username {username!r} is already taken") from None
@@ -486,8 +497,9 @@ def set_age_band(conn, user_id, age_band):
 
 def regenerate_token(conn, user_id):
     """Make a new phone token (the old one stops working). Returns the new token."""
-    token = secrets.token_urlsafe(24)
-    cur = conn.execute("UPDATE users SET api_token = ? WHERE id = ?", (token, user_id))
+    token = tokens.new_token()
+    cur = conn.execute("UPDATE users SET api_token = ?, api_token_hash = ? WHERE id = ?",
+                       (tokens.seal(token), tokens.fingerprint(token), user_id))
     if cur.rowcount == 0:
         raise ValueError("user not found")
     conn.commit()
@@ -967,12 +979,103 @@ def _player_totals(conn, start, end, roles=PLAYER_ROLES):
     marks = ",".join("?" * len(roles))
     rows = conn.execute(
         f"SELECT u.id, u.display_name, u.department, u.daily_goal, u.avatar, u.avatar_color, "
+        f"u.role, u.age_band, u.board_name, "
         f"SUM(s.steps) AS total, MAX(s.updated_at) AS last_update "
         f"FROM users u JOIN steps s ON s.user_id = u.id AND s.date BETWEEN ? AND ? "
         f"WHERE u.role IN ({marks}) AND {NOT_BLOCKED} GROUP BY u.id HAVING total > 0",
         (_day(start), _day(end), *roles, local_now_iso()),
     ).fetchall()
-    return {r["id"]: dict(r) for r in rows}
+    out = {}
+    for r in rows:
+        choice = board_name_choice(r)
+        if choice == "hidden":
+            continue                      # still counts in their class/department average
+        p = dict(r)
+        p["display_name"] = shown_name(r["display_name"], choice)
+        out[r["id"]] = p
+    return out
+
+
+# ---- How your name shows on the leaderboards (UAE Child Digital Safety Law: private by default)
+BOARD_NAME_CHOICES = (("full", "Full name", "Amal Khan"),
+                      ("short", "First name and initial", "Amal K."),
+                      ("hidden", "Hidden", "Not on the leaderboards"))
+UNDER_18 = ("under_13", "teen_13_17")
+
+
+def board_name_default(role, age_band):
+    """Students and anyone under 18 start as 'short'; adults as 'full'."""
+    return "short" if role == "student" or age_band in UNDER_18 else "full"
+
+
+def board_name_choice(user):
+    """The setting that applies to this person (theirs, or the default)."""
+    choice = user["board_name"]
+    return choice if choice in dict((k, v) for k, v, _ in BOARD_NAME_CHOICES) else \
+        board_name_default(user["role"], user["age_band"])
+
+
+def shown_name(name, choice):
+    """'Amal Khan' as it appears on a leaderboard: full, 'Amal K.', or '' when hidden."""
+    if choice == "hidden":
+        return ""
+    words = (name or "").split()
+    if choice == "short" and len(words) > 1:
+        return f"{words[0]} {words[-1][0].upper()}."
+    return name
+
+
+def set_board_name(conn, user_id, choice):
+    if choice not in [k for k, _, _ in BOARD_NAME_CHOICES]:
+        raise ValueError("please choose how your name shows")
+    _require_user(conn, user_id)
+    conn.execute("UPDATE users SET board_name = ? WHERE id = ?", (choice, user_id))
+    conn.commit()
+
+
+# ---- Screen time: a parent's daily limit (UAE Child Digital Safety Law: usage-time limits).
+# Only people WITH a limit are tracked, one row a day, and anything older than a week is deleted.
+TIME_LIMIT_CHOICES = (0, 15, 30, 45, 60, 90, 120)
+
+
+def set_time_limit(conn, user_id, minutes):
+    try:
+        minutes = int(minutes)
+    except (TypeError, ValueError):
+        raise ValueError("please choose a time limit") from None
+    if minutes not in TIME_LIMIT_CHOICES:
+        raise ValueError("please choose a time limit")
+    conn.execute("UPDATE users SET time_limit = ? WHERE id = ?", (minutes or None, user_id))
+    if not minutes:
+        conn.execute("DELETE FROM screen_time WHERE user_id = ?", (user_id,))   # stop tracking
+    conn.commit()
+
+
+def note_screen_minute(conn, user_id, now=None):
+    """Count this minute as used (each clock minute counts once). Returns minutes used today."""
+    now = _now(now)
+    day, minute = now.date().isoformat(), now.strftime("%H:%M")
+    row = conn.execute("SELECT minutes, last_minute FROM screen_time WHERE user_id = ? AND date = ?",
+                       (user_id, day)).fetchone()
+    if row is None:
+        conn.execute("DELETE FROM screen_time WHERE user_id = ? AND date < ?",
+                     (user_id, (now.date() - timedelta(days=7)).isoformat()))
+        conn.execute("INSERT INTO screen_time (user_id, date, minutes, last_minute) VALUES (?, ?, 1, ?)",
+                     (user_id, day, minute))
+        conn.commit()
+        return 1
+    if row["last_minute"] == minute:
+        return row["minutes"]
+    conn.execute("UPDATE screen_time SET minutes = minutes + 1, last_minute = ? WHERE user_id = ? AND date = ?",
+                 (minute, user_id, day))
+    conn.commit()
+    return row["minutes"] + 1
+
+
+def screen_minutes_today(conn, user_id, now=None):
+    row = conn.execute("SELECT minutes FROM screen_time WHERE user_id = ? AND date = ?",
+                       (user_id, _now(now).date().isoformat())).fetchone()
+    return row["minutes"] if row else 0
 
 
 def _ranked(items):
@@ -1807,7 +1910,7 @@ def delete_people(conn, user_ids, acting_id=None, block_emails=True):
 # Everything a person has done, table by table. A reset empties these for one person.
 PERSONAL_TABLES = ("steps", "step_samples", "moods", "water", "activities", "exercises",
                    "badges", "exp_ledger", "avatar_owned", "avatar_equipped", "mini_runs",
-                   "daily_rewards")
+                   "daily_rewards", "screen_time")
 
 
 def reset_person(conn, user_id):
@@ -1931,7 +2034,7 @@ def claim_daily_reward(conn, user_id, today=None):
 # ---------------------------------------------------------------- Your data (UAE PDPL rights)
 
 # Columns never handed out, even to the person themself: they only work as secrets.
-_SECRET_COLUMNS = {"pin_hash", "email_hash", "api_token"}
+_SECRET_COLUMNS = {"pin_hash", "email_hash", "api_token", "api_token_hash", "parent_token_hash"}
 
 
 def export_my_data(conn, user_id):

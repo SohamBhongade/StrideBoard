@@ -121,6 +121,11 @@ BADGES = {
 # "Inactive" = fewer than INACTIVE_MAX_STEPS new steps across at least INACTIVE_MINUTES,
 # judged from two syncs; the newer sync must be at most SYNC_FRESH_MINUTES old.
 INACTIVE_MINUTES = 30
+
+# UAE Child Digital Safety Law: under-18s get a break reminder after this many minutes of
+# using the app without a pause, and must wait BREAK_SECONDS before carrying on.
+BREAK_AFTER_MINUTES = 30
+BREAK_SECONDS = 60
 INACTIVE_MAX_STEPS = 50
 SYNC_FRESH_MINUTES = 15
 SAMPLE_KEEP_DAYS = 2
