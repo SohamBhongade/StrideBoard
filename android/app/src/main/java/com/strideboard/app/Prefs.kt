@@ -82,6 +82,12 @@ object Prefs {
         }
     }
 
+    /** Forget everything saved on this phone (account link, sync history). */
+    fun clearAll(c: Context) {
+        sp(c).edit { clear() }
+        ensureServer(c)
+    }
+
     /** Time of the last sync that fully worked (0 = never). */
     fun lastSuccessAt(c: Context) = sp(c).getLong(KEY_LAST_SUCCESS, 0L)
 

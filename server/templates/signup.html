@@ -94,7 +94,7 @@
     </label>
     <label class="agree">
       <input type="checkbox" name="agree_privacy" value="1" required {% if form.get('agree_privacy') == '1' %}checked{% endif %}>
-      <span>I agree to StrideBoard storing my data as the <a href="{{ url_for('privacy') }}" target="_blank" rel="noopener">privacy policy</a> explains, on servers outside the UAE.</span>
+      <span>I agree to StrideBoard storing my data, including my step counts (activity data), as the <a href="{{ url_for('privacy') }}" target="_blank" rel="noopener">privacy policy</a> explains, on servers outside the UAE.</span>
     </label>
     <button class="btn btn-dark btn-block" type="submit">Send me a code {{ m.icon('play', 16) }}</button>
   </form>

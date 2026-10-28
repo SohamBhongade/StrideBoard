@@ -357,6 +357,10 @@ button { cursor: pointer; }
 .policy-table td:first-child { font-weight: 600; color: var(--ink); font-size: 16px; }
 .policy-table td:nth-child(2):not(:last-child) { display: inline-block; margin: 4px 0; padding: 2px 10px; border-radius: 999px; background: var(--line); color: var(--ink); font-size: 13px; font-weight: 600; }
 .policy-brand { margin-bottom: 18px; }
+.policy-lang { margin: 0; font-size: 16px; }
+.policy-lang a { color: var(--ink); font-weight: 600; }
+.policy[dir="rtl"] ul, .policy[dir="rtl"] ol { padding-left: 0; padding-right: 1.3em; }
+.policy[dir="rtl"] .policy-table td { text-align: right; }
 /* Sign-up: agree to the privacy policy and terms */
 .agree { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.45; cursor: pointer; }
 .agree input { width: 20px; height: 20px; margin-top: 1px; flex: none; accent-color: var(--ink); }
@@ -370,6 +374,7 @@ button { cursor: pointer; }
 .data-details { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
 .data-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--line); }
 .data-row > div { flex: 1; min-width: 220px; }
+.data-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 .data-delete { padding-top: 16px; border-top: 1px solid var(--line); }
 .data-delete summary { cursor: pointer; color: var(--bad, #B3261E); }
 .data-delete summary .data-sub { color: inherit; }

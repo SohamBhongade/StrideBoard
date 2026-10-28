@@ -155,3 +155,18 @@ def test_privacy_page_health_connect_disclosures(site):
     page = site.get("/privacy").get_data(as_text=True)
     for bit in ("Android Health Connect", "Limited Use", "Health Connect Permissions Policy", "AES-256", "Agree &amp; Connect"):
         assert bit in page
+
+
+def test_arabic_privacy_page(site):
+    page = site.get("/privacy?lang=ar").get_data(as_text=True)
+    assert 'dir="rtl"' in page and "حقوقك" in page and "الاستخدام المحدود" in page
+    assert 'href="/privacy"' in page                       # back to English
+    assert "privacy?lang=ar" in site.get("/privacy").get_data(as_text=True)
+
+
+def test_download_steps_csv(me):
+    c, _, _ = me
+    r = c.get("/settings/my-steps.csv")
+    lines = r.get_data(as_text=True).strip().splitlines()
+    assert r.mimetype == "text/csv" and lines[0] == "date,steps,source,updated_at"
+    assert len(lines) == 2 and ",4321," in lines[1]

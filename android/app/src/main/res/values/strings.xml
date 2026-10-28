@@ -14,7 +14,7 @@
     <string name="server_hint">strideboard.pythonanywhere.com</string>
     <string name="step2_label">2. Your account</string>
     <string name="step3_label">3. Step access: StrideBoard only reads your daily step count</string>
-    <string name="allow_steps">Allow step access</string>
+    <string name="allow_steps">Allow step access · السماح بالوصول إلى الخطوات</string>
     <string name="open_hc">Open Health Connect</string>
     <string name="step4_label">4. Sync</string>
     <string name="sync_now">Sync now</string>
@@ -27,6 +27,13 @@
     <string name="consent_body_ar">ما الذي يقرؤه StrideBoard: عدد خطواتك اليومي فقط من Health Connect. لا شيء غير ذلك: لا الموقع ولا نبضات القلب ولا النوم ولا التمارين.\n\nلماذا: لعرض تقدّمك اليومي، وحساب ترتيب لوحات المتصدرين، ومكافأتك على تقدّمك. وإذا سمحت أيضًا بالوصول في الخلفية، تستمر مزامنة خطواتك والتطبيق مغلق، لتبقى لوحات المتصدرين محدّثة.\n\nلن تُباع بيانات خطواتك لأي جهة أبدًا، ولن تُستخدم للإعلانات أبدًا. يلتزم استخدام المعلومات الواردة من Health Connect بسياسة أذونات Health Connect، بما في ذلك متطلبات الاستخدام المحدود.</string>
     <string name="consent_agree">Agree &amp; Connect · موافق واتصال</string>
     <string name="consent_not_now">Not now · ليس الآن</string>
+
+    <!-- Stop syncing and wipe this phone (English and Arabic) -->
+    <string name="disconnect">Disconnect and clear this phone · فصل ومسح هذا الهاتف</string>
+    <string name="disconnect_title">Disconnect this phone? · فصل هذا الهاتف؟</string>
+    <string name="disconnect_body">StrideBoard will stop reading your steps, remove its Health Connect permission, and erase everything it saved on this phone (your account link and sync history). Your StrideBoard account and the steps already sent stay as they are: to delete those, use Settings → Your data and privacy on the website.\n\n— — —\n\nسيتوقف StrideBoard عن قراءة خطواتك، ويزيل إذن Health Connect، ويمسح كل ما حفظه على هذا الهاتف (ربط حسابك وسجل المزامنة). يبقى حسابك في StrideBoard والخطوات المرسلة سابقًا كما هي: لحذفها، استخدم الإعدادات ← بياناتك وخصوصيتك على الموقع.</string>
+    <string name="disconnect_yes">Disconnect · فصل</string>
+    <string name="disconnect_done">This phone is disconnected and cleared. · تم فصل هذا الهاتف ومسحه.</string>
 
     <!-- Privacy screen -->
     <string name="privacy_title">Privacy</string>

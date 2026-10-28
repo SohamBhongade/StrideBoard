@@ -63,7 +63,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "54"
+ASSET_VERSION = "55"
 
 PUBLIC_ENDPOINTS = {"privacy", "login", "signup", "signup_verify", "forgot", "logout", "static", "offline", "service_worker",
                     "board"}
@@ -620,8 +620,16 @@ def add_routes(app):
     @app.route("/privacy")
     def privacy():
         """Privacy policy and terms of use: open to everyone, linked from sign-up and every page."""
-        return render_template("privacy.html", school=config.SCHOOL_NAME, contact=config.PRIVACY_CONTACT,
-                               team=config.TEAM_NAMES, updated=config.PRIVACY_UPDATED)
+        school, contact, team = config.SCHOOL_NAME, config.PRIVACY_CONTACT, config.TEAM_NAMES
+        if request.args.get("lang") == "ar":
+            # The server settings are usually in English; their built-in defaults get Arabic ones.
+            defaults = {"our school": "مدرستنا", "a StrideBoard admin at school": "أحد مسؤولي StrideBoard في المدرسة",
+                        "the StrideBoard student team": "فريق طلاب StrideBoard"}
+            return render_template("privacy_ar.html", school=defaults.get(school, school),
+                                   contact=defaults.get(contact, contact), team=defaults.get(team, team),
+                                   updated=config.PRIVACY_UPDATED)
+        return render_template("privacy.html", school=school, contact=contact, team=team,
+                               updated=config.PRIVACY_UPDATED)
 
     @app.route("/signup/verify", methods=["GET", "POST"])
     def signup_verify():
@@ -1000,6 +1008,21 @@ def add_routes(app):
         stamp = today().isoformat() if hasattr(today(), "isoformat") else str(today())
         resp = current_app.response_class(body, mimetype="application/json")
         resp.headers["Content-Disposition"] = f'attachment; filename="strideboard-my-data-{stamp}.json"'
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+
+    @app.route("/settings/my-steps.csv")
+    def my_steps_csv():
+        """Download my step history as a spreadsheet file (date, steps, where it came from)."""
+        import csv
+        rows = data.export_my_data(db.get_db(), g.user["id"])["steps"]
+        out = io.StringIO()
+        w = csv.writer(out)
+        w.writerow(["date", "steps", "source", "updated_at"])
+        for r in rows:
+            w.writerow([r["date"], r["steps"], r["source"], r["updated_at"]])
+        resp = current_app.response_class(out.getvalue(), mimetype="text/csv")
+        resp.headers["Content-Disposition"] = f'attachment; filename="strideboard-my-steps-{today()}.csv"'
         resp.headers["Cache-Control"] = "no-store"
         return resp
 

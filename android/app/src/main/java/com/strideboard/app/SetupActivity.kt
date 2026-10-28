@@ -7,6 +7,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.text.format.DateUtils
 import android.view.View
+import android.webkit.CookieManager
+import android.webkit.WebStorage
+import android.widget.Toast
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -77,9 +80,36 @@ class SetupActivity : ComponentActivity() {
                 finish()
             }
         }
+        findViewById<Button>(R.id.disconnect_button).setOnClickListener { confirmDisconnect() }
         findViewById<View>(R.id.privacy_link).setOnClickListener {
             startActivity(Intent(this, PrivacyActivity::class.java))
         }
+    }
+
+    /** Stop syncing, give back the Health Connect permission and wipe this phone's copy. */
+    private fun confirmDisconnect() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.disconnect_title)
+            .setMessage(R.string.disconnect_body)
+            .setPositiveButton(R.string.disconnect_yes) { _, _ -> lifecycleScope.launch { disconnect() } }
+            .setNegativeButton(R.string.consent_not_now, null)
+            .show()
+    }
+
+    private suspend fun disconnect() {
+        if (StepReader.sdkStatus(this) == HealthConnectClient.SDK_AVAILABLE) {
+            try {
+                HealthConnectClient.getOrCreate(this).permissionController.revokeAllPermissions()
+            } catch (e: Exception) {
+                // Already gone, or Health Connect busy: the user can still turn it off there.
+            }
+        }
+        SyncScheduler.update(this, backgroundAllowed = false)   // no more background jobs
+        Prefs.clearAll(this)                                     // token and sync history
+        CookieManager.getInstance().removeAllCookies(null)       // the website login in the app
+        WebStorage.getInstance().deleteAllData()
+        Toast.makeText(this, R.string.disconnect_done, Toast.LENGTH_LONG).show()
+        refreshStatus()
     }
 
     override fun onResume() {

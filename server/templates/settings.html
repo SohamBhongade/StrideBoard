@@ -246,9 +246,12 @@
   <div class="data-row">
     <div>
       <h3 class="data-sub">Download my data</h3>
-      <p class="small muted">A file with your account details, steps, water, mood, activities, badges and rewards (JSON, opens in any text editor).</p>
+      <p class="small muted">A file with your account details, steps, water, mood, activities, badges and rewards (JSON, opens in any text editor), or just your steps as a spreadsheet (CSV).</p>
     </div>
-    <a class="btn btn-outline" href="{{ url_for('my_data') }}" download>{{ m.icon('download', 18) }} Download</a>
+    <div class="data-buttons">
+      <a class="btn btn-outline" href="{{ url_for('my_data') }}" download>{{ m.icon('download', 18) }} Everything (JSON)</a>
+      <a class="btn btn-outline" href="{{ url_for('my_steps_csv') }}" download>{{ m.icon('download', 18) }} Steps (CSV)</a>
+    </div>
   </div>
 
   <details class="data-delete">
