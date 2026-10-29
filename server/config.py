@@ -161,7 +161,7 @@ TRACKS = {
     "jumping_jacks": {
         "name": "Jumping jacks", "unit": "jumping jacks", "record_name": "Most in a day",
         "levels": [25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000],
-        "record_levels": [50, 100, 200, 300, 500],
+        "record_levels": [25, 50, 100, 150, 200],   # top level 200 a day
     },
 }
 
