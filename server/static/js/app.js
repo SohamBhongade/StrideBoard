@@ -407,6 +407,21 @@ document.querySelectorAll("form[data-autosubmit]").forEach(function (form) {
   box.addEventListener("input", filter);
 })();
 
+// ---- Stride Reaper pop-up on Home: slides in, leaves after 9 s or when closed
+(function () {
+  var toast = document.querySelector("[data-reaper-toast]");
+  if (!toast) return;
+  var gone = false;
+  function hide() {
+    if (gone) return;
+    gone = true;
+    toast.classList.add("leaving");
+    setTimeout(function () { toast.hidden = true; }, 360);
+  }
+  toast.querySelector("[data-reaper-close]").addEventListener("click", hide);
+  setTimeout(hide, 9000);
+})();
+
 // ---- Buttons that ask "are you sure?" (e.g. Delete forever)
 document.querySelectorAll("button[data-confirm]").forEach(function (btn) {
   btn.addEventListener("click", function (e) {

@@ -198,3 +198,30 @@ def test_settings_header_has_no_none_for_people_without_a_class(school):
     page = client(ids["teacher"]).get("/settings").get_data(as_text=True)
     assert "@teach · None" not in page and "@teach" in page
     assert "@amal · Grade 9A" in client(ids["amal"]).get("/settings").get_data(as_text=True)
+
+
+# ---- Stride Reaper pop-up (playful, switched on and off by the owner) ----------------------
+
+def test_reaper_messages():
+    assert data.reaper_message(0, 6000)[1].startswith("0 steps. 6,000 to go.")
+    assert "2,500 steps to go" in data.reaper_message(3500, 6000)[1]
+    assert data.reaper_message(6000, 6000)[0] == "You live another day."
+
+
+def test_only_the_owner_switches_the_reaper_popup(school, monkeypatch):
+    client, path, ids = school
+    conn = db.connect(path)
+    owner = data.create_user(conn, "reaper", "Stride Reaper", "admin", "Staff", "adult_18_39", "4826")
+    other_admin = data.create_user(conn, "helper", "Helper Admin", "admin", "Staff", "adult_18_39", "4826")
+    conn.close()
+    monkeypatch.setattr(A.config, "OWNER_USERNAME", "reaper")
+    home = client(ids["amal"]).get("/").get_data(as_text=True)
+    assert "data-reaper-toast" not in home                                   # off by default
+    assert "Stride Reaper pop-up" in client(owner).get("/admin").get_data(as_text=True)
+    assert "Stride Reaper pop-up" not in client(other_admin).get("/admin").get_data(as_text=True)
+    assert client(other_admin).post("/admin", data={"csrf": "x", "action": "reaper_notice", "on": "1"}).status_code == 403
+    client(owner).post("/admin", data={"csrf": "x", "action": "reaper_notice", "on": "1"})
+    home = client(ids["amal"]).get("/").get_data(as_text=True)
+    assert "data-reaper-toast" in home and "steps to go today" in home
+    client(owner).post("/admin", data={"csrf": "x", "action": "reaper_notice", "on": "0"})
+    assert "data-reaper-toast" not in client(ids["amal"]).get("/").get_data(as_text=True)

@@ -165,6 +165,14 @@
     <h2 id="mod-h">Moderation</h2>
     <span class="chip chip-dark">Only you</span>
   </div>
+  <form method="post" class="reaper-switch">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="reaper_notice">
+    <input type="hidden" name="on" value="{{ '0' if reaper_on else '1' }}">
+    <div><strong>Stride Reaper pop-up</strong>
+      <span class="small muted">A playful "move or else" notification on everyone's Home. {{ 'On now.' if reaper_on else 'Off.' }}</span></div>
+    <button class="btn btn-sm {{ 'btn-outline' if reaper_on else 'btn-dark' }}" type="submit">{{ 'Turn off' if reaper_on else 'Turn on' }}</button>
+  </form>
   <p class="small muted">Type someone's full name (or username). Timed-out and banned people can't log in, their phone can't send steps, and they're hidden from the leaderboards until it ends.</p>
 
   <form method="post" class="form" style="margin-top:12px">

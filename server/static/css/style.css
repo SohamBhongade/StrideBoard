@@ -1488,3 +1488,26 @@ button.side-link { border: 0; background: none; color: inherit; font: inherit; c
 .choice input { width: 18px; height: 18px; accent-color: var(--ink); flex: none; }
 .choice:has(input:checked) { box-shadow: inset 0 0 0 2px var(--ink); }
 .board-name-form { margin-top: 6px; }
+
+/* ------------------------------------------------------------ Stride Reaper pop-up (Home) */
+.reaper-toast { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 50%; z-index: 60;
+  width: min(440px, calc(100% - 24px)); transform: translateX(-50%);
+  display: flex; gap: 12px; align-items: center; padding: 12px 12px 12px 14px; border-radius: 22px;
+  background: rgba(30, 22, 52, .94); color: #F4F1E8; box-shadow: 0 14px 40px rgba(0, 0, 0, .35);
+  border: 1px solid rgba(255, 255, 255, .12); animation: reaper-in .55s cubic-bezier(.2, 1.3, .4, 1) both; }
+.reaper-toast.leaving { animation: reaper-out .35s ease-in both; }
+.reaper-toast-icon .creature { display: block; border-radius: 14px; }
+.reaper-toast-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; font-size: 14px; line-height: 1.35; }
+.reaper-toast-from { font-size: 12px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: #CBB8F5; }
+.reaper-toast-from span { text-transform: none; color: #9E93B8; font-weight: 400; }
+.reaper-toast-text strong { font-size: 15.5px; }
+.reaper-toast-close { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, .1); color: #F4F1E8; cursor: pointer; }
+.reaper-toast-close:hover, .reaper-toast-close:focus-visible { background: rgba(255, 255, 255, .2); }
+@keyframes reaper-in { from { opacity: 0; transform: translate(-50%, -130%); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes reaper-out { to { opacity: 0; transform: translate(-50%, -130%); } }
+.fast .reaper-toast, .fast .reaper-toast.leaving { animation: none; }
+@media (prefers-reduced-motion: reduce) { .reaper-toast, .reaper-toast.leaving { animation: none; } }
+.reaper-switch { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  padding: 12px 14px; margin: 12px 0; border-radius: 16px; background: var(--white); }
+.reaper-switch div { display: flex; flex-direction: column; min-width: 0; flex: 1 1 200px; }

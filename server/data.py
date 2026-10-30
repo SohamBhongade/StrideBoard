@@ -105,6 +105,27 @@ def _get_meta(conn, key):
     return row["value"] if row else None
 
 
+def reaper_notice_on(conn):
+    """Is the Stride Reaper pop-up on Home switched on? (Off by default; the owner flips it.)"""
+    return _get_meta(conn, "reaper_notice") == "on"
+
+
+def set_reaper_notice(conn, on):
+    _set_meta(conn, "reaper_notice", "on" if on else "off")
+    conn.commit()
+
+
+def reaper_message(today_steps, daily_goal):
+    """The Stride Reaper's playful nudge, from how today is going: (title, text)."""
+    left = max(0, daily_goal - today_steps)
+    if left == 0:
+        return "You live another day.", "Goal smashed. The Stride Reaper spares your streak... for now. 💀"
+    if today_steps == 0:
+        return "I see you sitting there.", (f"0 steps. {daily_goal:,} to go. Move, or the Stride Reaper "
+                                            "comes for your streak. 👀")
+    return "Tick tock.", f"{left:,} steps to go today. Walk them, or the Stride Reaper takes your streak. 👀"
+
+
 def claim_daily_job(conn, day):
     """True for exactly one caller per Dubai day (even with several web workers): that caller
     runs the nightly backup and tidy-up. Everyone else gets False."""

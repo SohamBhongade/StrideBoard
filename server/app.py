@@ -65,7 +65,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "63"
+ASSET_VERSION = "64"
 
 # Pages that still work after a parent's daily time limit is used up.
 TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
@@ -938,7 +938,9 @@ def add_routes(app):
                                water_target=WATER_TARGET,
                                water_due=water_due(d["water_today"]),
                                app_update=android_app_update(),
-                               reward=data.reward_status(conn, uid, t))
+                               reward=data.reward_status(conn, uid, t),
+                               reaper=data.reaper_message(d["today_steps"], d["daily_goal"])
+                               if data.reaper_notice_on(conn) else None)
 
     @app.route("/reward", methods=["POST"])
     def claim_reward():
@@ -1319,6 +1321,13 @@ def add_routes(app):
                     new = data.add_exp(conn, target, request.form.get("amount"),
                                        request.form.get("reason") or "Given by an admin")
                     flash(f"Gave EXP to {who}. Their balance is now {new:,}.", "ok")
+                elif action == "reaper_notice":
+                    if not is_owner(g.user):
+                        abort(403)
+                    on = request.form.get("on") == "1"
+                    data.set_reaper_notice(conn, on)
+                    flash("The Stride Reaper pop-up is on for everyone." if on else
+                          "The Stride Reaper pop-up is off.", "ok")
                 elif action == "mod_delete_selected":
                     if not is_owner(g.user):
                         abort(403)
@@ -1404,6 +1413,7 @@ def add_routes(app):
                                csv_text=request.form.get("csv", "") if result else "",
                                shortcut_link=data.ios_shortcut_link(conn),
                                owner=is_owner(g.user),
+                               reaper_on=data.reaper_notice_on(conn),
                                blocked=data.blocked_people(conn) if is_owner(g.user) else [],
                                last_backup=backup.latest(current_app.config["DATABASE"])
                                if is_owner(g.user) else None)
