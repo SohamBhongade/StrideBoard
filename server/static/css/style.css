@@ -1133,7 +1133,8 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .board-who span { font-size: 12.5px; color: #A7B2CF; }
 .board-val { font-weight: 700; font-size: clamp(14px, 1.1vw, 18px); font-variant-numeric: tabular-nums; }
 .board-empty { color: #A7B2CF; text-align: center; padding: 40px 10px; font-size: 18px; }
-.board-foot { display: flex; justify-content: space-between; color: #8C97B5; font-size: 13px; }
+.board-foot { display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: space-between; color: #8C97B5; font-size: 13px; }
+.board-foot > * { min-width: 0; overflow-wrap: anywhere; }
 .board-foot strong { color: #EEF1F8; }
 .board-locked { align-items: center; justify-content: center; text-align: center; }
 .board-lock { max-width: 520px; display: flex; flex-direction: column; align-items: center; gap: 14px; }

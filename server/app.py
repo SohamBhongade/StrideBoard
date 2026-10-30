@@ -65,7 +65,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "62"
+ASSET_VERSION = "63"
 
 # Pages that still work after a parent's daily time limit is used up.
 TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
@@ -594,6 +594,19 @@ def block_message(block):
     return text + (f" Reason: {block['reason']}" if block["reason"] else "")
 
 
+ARABIC_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس",
+                 "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+
+def arabic_date(text):
+    """'28 October 2026' -> '28 أكتوبر 2026' for the Arabic privacy page (unchanged if unreadable)."""
+    try:
+        d = datetime.strptime(text, "%d %B %Y")
+    except ValueError:
+        return text
+    return f"{d.day} {ARABIC_MONTHS[d.month - 1]} {d.year}"
+
+
 def admin_only():
     if g.user["role"] != "admin":
         abort(403)
@@ -697,7 +710,7 @@ def add_routes(app):
                         "the StrideBoard student team": "فريق طلاب StrideBoard"}
             return render_template("privacy_ar.html", school=defaults.get(school, school),
                                    contact=defaults.get(contact, contact), team=defaults.get(team, team),
-                                   updated=config.PRIVACY_UPDATED)
+                                   updated=arabic_date(config.PRIVACY_UPDATED))
         return render_template("privacy.html", school=school, contact=contact, team=team,
                                updated=config.PRIVACY_UPDATED)
 
