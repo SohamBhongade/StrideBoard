@@ -416,7 +416,7 @@ cd ~/strideboard && git pull && touch /var/www/strideboard_pythonanywhere_com_ws
 1. `git clone` the repository to `~/strideboard` and `pip3 install --user -r requirements.txt`.
 2. In the WSGI file, set the settings below with `os.environ["..."] = "..."`, then `from app import app as application`.
 3. Run `python3 seed.py --reset --admin-only` and keep the admin PIN safe.
-4. Add the daily task (see [Backups](#-backups-housekeeping-and-disk-space)) and click **Reload** on the Web tab.
+4. Click **Reload** on the Web tab. Daily backups and housekeeping then run by themselves (see [Backups](#-backups-housekeeping-and-disk-space)).
 5. On the free plan, click the button on the Web tab that extends the site before it expires.
 
 | Setting | What it does |
@@ -438,11 +438,16 @@ When CSS or JS changes, bump `ASSET_VERSION` in `server/app.py` so phones fetch 
 
 ## 💾 Backups, housekeeping and disk space
 
-One daily task does everything. On PythonAnywhere, **Tasks tab → daily task:**
+**The site runs this by itself, once a day.** The free PythonAnywhere plan has no scheduled
+tasks, so the first visit or phone sync of each Dubai day claims the daily job, and it runs
+just after that reply has been sent, so nobody waits. Only one web worker runs it each day,
+and if it fails the site carries on (Admin → Backups shows the latest copy). To turn it off,
+set `STRIDEBOARD_DAILY_JOB=0`. You can also run it by hand from a Bash console (or as a daily
+task on a paid plan); it reads the site's settings from the WSGI file:
 ```
 python3 /home/strideboard/strideboard/server/backup.py
 ```
-It reads the site's settings from the WSGI file, so it needs no setup of its own. Each night it:
+Each day it:
 
 1. **Backs up** the database (SQLite's own backup, consistent even while phones sync), compressed and **encrypted (AES-256-GCM)**, into `strideboard-data/backups/`, keeping the last 7. On Mondays it also emails the copy to the site's Gmail. Delete those emails after 4 weeks, as the privacy policy promises.
 2. **Tidies up** (after the backup, so the backup is the safety net). Only working notes are trimmed; what people see never changes:

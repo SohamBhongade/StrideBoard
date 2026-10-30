@@ -1,7 +1,8 @@
 """Backups of the StrideBoard database, so the school's data survives any mistake.
 
 Three layers:
-  1. Daily: PythonAnywhere runs `python3 ~/strideboard/server/backup.py` once a day (Tasks tab).
+  1. Daily: the website runs run_daily() itself after the first visit of each Dubai day (the
+     free PythonAnywhere plan has no scheduled tasks); `python3 backup.py` does the same by hand.
      It saves a compressed copy next to the database, in backups/, and keeps the last 7.
   2. Weekly (Mondays): that same run also emails the copy to the site's own Gmail, so a copy
      exists outside PythonAnywhere too.
@@ -186,20 +187,17 @@ def tidy(db_path, today):
         conn.close()
 
 
-def main(argv=None):
-    argv = argv or sys.argv[1:]
-    if argv[:1] == ["--decrypt"]:
-        if len(argv) != 3:
-            sys.exit("Use: python3 backup.py --decrypt <backup.sqlite3.gz.enc> <out.sqlite3>")
-        decrypt_file(argv[1], argv[2])
-        print(f"Wrote {argv[2]}")
-        return
-    db_path = config.DATABASE
-    now = datetime.now(TZ)
+def run_daily(db_path, now=None, email=None):
+    """The whole daily job: save today's encrypted copy, tidy the database, and on Mondays email
+    the copy to the site's Gmail. The website runs this once a day by itself (the free
+    PythonAnywhere plan has no scheduled tasks); it can also be run by hand from a console."""
+    now = now or datetime.now(TZ)
     path = save_daily(db_path, now)
     print(f"Saved {path} ({path.stat().st_size / 1024:.0f} KB)")
     tidy(db_path, now.date())        # after the copy, so the copy is the safety net
-    if now.weekday() == 0 or "--email" in argv:      # Mondays, or when asked
+    if email is None:
+        email = now.weekday() == 0   # Mondays
+    if email:
         import mailer
         try:
             blob = path.read_bytes()
@@ -211,6 +209,18 @@ def main(argv=None):
                 print(f"Emailed it to {to}")
         except ValueError as e:
             print(f"Couldn't email it: {e}")
+    return path
+
+
+def main(argv=None):
+    argv = argv or sys.argv[1:]
+    if argv[:1] == ["--decrypt"]:
+        if len(argv) != 3:
+            sys.exit("Use: python3 backup.py --decrypt <backup.sqlite3.gz.enc> <out.sqlite3>")
+        decrypt_file(argv[1], argv[2])
+        print(f"Wrote {argv[2]}")
+        return
+    run_daily(config.DATABASE, datetime.now(TZ), email=True if "--email" in argv else None)
 
 
 if __name__ == "__main__":

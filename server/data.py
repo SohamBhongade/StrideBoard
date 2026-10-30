@@ -105,6 +105,15 @@ def _get_meta(conn, key):
     return row["value"] if row else None
 
 
+def claim_daily_job(conn, day):
+    """True for exactly one caller per Dubai day (even with several web workers): that caller
+    runs the nightly backup and tidy-up. Everyone else gets False."""
+    conn.execute("INSERT OR IGNORE INTO meta (key, value) VALUES ('daily_job', '')")
+    cur = conn.execute("UPDATE meta SET value = ? WHERE key = 'daily_job' AND value <> ?", (day, day))
+    conn.commit()
+    return cur.rowcount == 1
+
+
 def board_key(conn, renew=False):
     """The code a leaderboard screen (the Mac app) needs to show the boards. Made on first use."""
     key = None if renew else _get_meta(conn, "board_key")
@@ -1272,6 +1281,10 @@ def weekly_wrapup(conn, user_id, today):
     recent = history(conn, user_id, config.MOOD_CHART_DAYS, today)
     pairs = [d for d in recent if d["mood"] is not None and d["source"] is not None]
     mood_vs_steps = [{"date": d["date"], "steps": d["steps"], "mood": d["mood"]} for d in pairs]
+    # The chart: every recent day's steps, with mood where it was logged (None otherwise).
+    # Days before the person's first steps or mood are left off, so new people see no empty run.
+    first = next((i for i, d in enumerate(recent) if d["steps"] or d["mood"] is not None), len(recent))
+    chart_days = [{"date": d["date"], "steps": d["steps"], "mood": d["mood"]} for d in recent[first:]]
     goal_moods = [d["mood"] for d in pairs if d["goal_met"]]
     other_moods = [d["mood"] for d in pairs if not d["goal_met"]]
 
@@ -1284,6 +1297,7 @@ def weekly_wrapup(conn, user_id, today):
         "best_day": best_day,
         "daily": daily,
         "mood_vs_steps": mood_vs_steps,
+        "chart_days": chart_days,
         "insight": calc.insight_sentence(this_week, last_week_same_days, goal_moods, other_moods),
         "daily_goal": user["daily_goal"],
     }

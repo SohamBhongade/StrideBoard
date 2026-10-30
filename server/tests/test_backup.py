@@ -70,7 +70,7 @@ def test_only_the_owner_can_download_a_backup(web):
     assert gzip.decompress(r.data)[:15] == b"SQLite format 3"
     assert as_user(w, other).get("/admin/backup").status_code == 403
     page = as_user(w, owner).get("/admin").data.decode()
-    assert "Download a backup" in page and "Automatic daily backups aren't on yet" in page
+    assert "Download a backup" in page and "No automatic backup yet" in page
     assert "Download a backup" not in as_user(w, other).get("/admin").data.decode()
 
 

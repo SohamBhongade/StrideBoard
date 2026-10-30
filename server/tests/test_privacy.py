@@ -222,3 +222,9 @@ def test_refuses_public_secret_key_on_pythonanywhere(monkeypatch, tmp_path):
     app.config["DATABASE"] = str(tmp_path / "k.sqlite3")
     with pytest.raises(RuntimeError):
         db.init_app(app)
+
+
+def test_arabic_privacy_date_is_in_arabic():
+    import app as A
+    assert A.arabic_date("28 October 2026") == "28 أكتوبر 2026"
+    assert A.arabic_date("not a date") == "not a date"

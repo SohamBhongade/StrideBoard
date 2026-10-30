@@ -65,7 +65,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "62"
+ASSET_VERSION = "63"
 
 # Pages that still work after a parent's daily time limit is used up.
 TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
@@ -124,6 +124,7 @@ def create_app():
     add_speed(app)
     add_template_helpers(app)
     add_security(app)
+    add_daily_job(app)
     add_routes(app)
     return app
 
@@ -244,6 +245,41 @@ def add_speed(app):
                 resp.set_data(gzip.compress(body, compresslevel=6))
                 resp.headers["Content-Encoding"] = "gzip"
                 resp.headers.add("Vary", "Accept-Encoding")
+        return resp
+
+
+# ---------------------------------------------------------------- daily backup and tidy-up
+
+def add_daily_job(app):
+    """Run the daily backup and tidy-up (backup.run_daily) once a day, by itself.
+
+    The free PythonAnywhere plan has no scheduled tasks, so the website does it: the first
+    visit or phone sync of each Dubai day claims the job, and it runs AFTER that response has
+    been sent, so nobody waits for it. Turned off in tests and with STRIDEBOARD_DAILY_JOB=0.
+    """
+    done_for = {"day": None}      # this worker already knows today's job is claimed
+
+    @app.after_request
+    def daily_job(resp):
+        if app.testing or os.environ.get("STRIDEBOARD_DAILY_JOB", "1") == "0":
+            return resp
+        day = db.local_today().isoformat()
+        if done_for["day"] == day or request.path.startswith("/static/"):
+            return resp
+        done_for["day"] = day
+        path = app.config["DATABASE"]
+        try:
+            claimed = data.claim_daily_job(db.get_db(), day)
+        except Exception as e:      # never let upkeep break a page
+            app.logger.warning("daily job: couldn't check (%s)", e)
+            return resp
+        if claimed:
+            def run():
+                try:
+                    backup.run_daily(path)
+                except Exception:
+                    app.logger.exception("daily job failed")
+            resp.call_on_close(run)
         return resp
 
 
@@ -594,6 +630,19 @@ def block_message(block):
     return text + (f" Reason: {block['reason']}" if block["reason"] else "")
 
 
+ARABIC_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس",
+                 "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+
+def arabic_date(text):
+    """'28 October 2026' -> '28 أكتوبر 2026' for the Arabic privacy page (unchanged if unreadable)."""
+    try:
+        d = datetime.strptime(text, "%d %B %Y")
+    except ValueError:
+        return text
+    return f"{d.day} {ARABIC_MONTHS[d.month - 1]} {d.year}"
+
+
 def admin_only():
     if g.user["role"] != "admin":
         abort(403)
@@ -697,7 +746,7 @@ def add_routes(app):
                         "the StrideBoard student team": "فريق طلاب StrideBoard"}
             return render_template("privacy_ar.html", school=defaults.get(school, school),
                                    contact=defaults.get(contact, contact), team=defaults.get(team, team),
-                                   updated=config.PRIVACY_UPDATED)
+                                   updated=arabic_date(config.PRIVACY_UPDATED))
         return render_template("privacy.html", school=school, contact=contact, team=team,
                                updated=config.PRIVACY_UPDATED)
 
@@ -984,10 +1033,11 @@ def add_routes(app):
     @app.route("/insights")
     def insights():
         w = data.weekly_wrapup(db.get_db(), g.user["id"], today())
+        days = [datetime.strptime(r["date"], "%Y-%m-%d") for r in w["chart_days"]]
         chart = {
-            "labels": [datetime.strptime(r["date"], "%Y-%m-%d").strftime("%a") for r in w["mood_vs_steps"]],
-            "steps": [r.get("steps") or 0 for r in w["mood_vs_steps"]],
-            "moods": [r.get("mood") for r in w["mood_vs_steps"]],
+            "labels": [f"{d:%a} {d.day}" for d in days],      # e.g. "Mon 26": 4 weeks can repeat weekdays
+            "steps": [r["steps"] for r in w["chart_days"]],
+            "moods": [r["mood"] for r in w["chart_days"]],
         }
         return render_template("insights.html", w=w, chart=chart,
                                tier_up=tier_rank(w["tier"]) - tier_rank(w["last_tier"]))
@@ -1356,8 +1406,7 @@ def add_routes(app):
                                owner=is_owner(g.user),
                                blocked=data.blocked_people(conn) if is_owner(g.user) else [],
                                last_backup=backup.latest(current_app.config["DATABASE"])
-                               if is_owner(g.user) else None,
-                               backup_script=os.path.abspath(backup.__file__))
+                               if is_owner(g.user) else None)
 
     @app.route("/admin/reports")
     def admin_reports():
