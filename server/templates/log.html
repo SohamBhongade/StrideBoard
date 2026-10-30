@@ -29,7 +29,7 @@
       <li>
         <span class="h-date">{{ r.date|nice_date }}</span>
         {% if r.goal_met %}<span class="chip" style="background:var(--peri-bg)">{{ m.icon('check', 15) }} Goal</span>{% endif %}
-        <span class="src">{{ {'ios_shortcut': 'iPhone', 'android_app': 'Android', 'manual': 'By hand'}.get(r.source, 'Other') }}</span>
+        {% if r.source %}<span class="src">{{ {'ios_shortcut': 'iPhone', 'android_app': 'Android', 'manual': 'By hand'}.get(r.source, 'Other') }}</span>{% endif %}
         <span class="h-steps">{{ r.steps|num }}</span>
       </li>
       {% endfor %}

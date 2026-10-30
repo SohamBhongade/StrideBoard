@@ -1272,6 +1272,10 @@ def weekly_wrapup(conn, user_id, today):
     recent = history(conn, user_id, config.MOOD_CHART_DAYS, today)
     pairs = [d for d in recent if d["mood"] is not None and d["source"] is not None]
     mood_vs_steps = [{"date": d["date"], "steps": d["steps"], "mood": d["mood"]} for d in pairs]
+    # The chart: every recent day's steps, with mood where it was logged (None otherwise).
+    # Days before the person's first steps or mood are left off, so new people see no empty run.
+    first = next((i for i, d in enumerate(recent) if d["steps"] or d["mood"] is not None), len(recent))
+    chart_days = [{"date": d["date"], "steps": d["steps"], "mood": d["mood"]} for d in recent[first:]]
     goal_moods = [d["mood"] for d in pairs if d["goal_met"]]
     other_moods = [d["mood"] for d in pairs if not d["goal_met"]]
 
@@ -1284,6 +1288,7 @@ def weekly_wrapup(conn, user_id, today):
         "best_day": best_day,
         "daily": daily,
         "mood_vs_steps": mood_vs_steps,
+        "chart_days": chart_days,
         "insight": calc.insight_sentence(this_week, last_week_same_days, goal_moods, other_moods),
         "daily_goal": user["daily_goal"],
     }

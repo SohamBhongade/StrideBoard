@@ -984,10 +984,11 @@ def add_routes(app):
     @app.route("/insights")
     def insights():
         w = data.weekly_wrapup(db.get_db(), g.user["id"], today())
+        days = [datetime.strptime(r["date"], "%Y-%m-%d") for r in w["chart_days"]]
         chart = {
-            "labels": [datetime.strptime(r["date"], "%Y-%m-%d").strftime("%a") for r in w["mood_vs_steps"]],
-            "steps": [r.get("steps") or 0 for r in w["mood_vs_steps"]],
-            "moods": [r.get("mood") for r in w["mood_vs_steps"]],
+            "labels": [f"{d:%a} {d.day}" for d in days],      # e.g. "Mon 26": 4 weeks can repeat weekdays
+            "steps": [r["steps"] for r in w["chart_days"]],
+            "moods": [r["mood"] for r in w["chart_days"]],
         }
         return render_template("insights.html", w=w, chart=chart,
                                tier_up=tier_rank(w["tier"]) - tier_rank(w["last_tier"]))

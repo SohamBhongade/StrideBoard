@@ -371,6 +371,20 @@ def test_wrapup_mood_insight(conn):
                             "vs 2.7 on other days.")
 
 
+def test_wrapup_chart_shows_steps_without_any_mood(conn):
+    """Live bug (30 Oct): someone who never checked in a mood saw an empty chart."""
+    uid = make_user(conn, "sam")
+    put_steps(conn, uid, days_ago(5), 9000)
+    put_steps(conn, uid, TODAY, 4000)
+    data.save_mood(conn, uid, days_ago(2), 4)
+    w = data.weekly_wrapup(conn, uid, TODAY)
+    days = w["chart_days"]
+    assert days[0] == {"date": days_ago(5), "steps": 9000, "mood": None}    # starts at first data
+    assert len(days) == 6 and days[-1]["steps"] == 4000
+    assert [d["mood"] for d in days] == [None, None, None, 4, None, None]
+    assert data.weekly_wrapup(conn, make_user(conn, "new"), TODAY)["chart_days"] == []
+
+
 def test_wrapup_empty_week(conn):
     uid = make_user(conn, "sam")
     w = data.weekly_wrapup(conn, uid, TODAY)
