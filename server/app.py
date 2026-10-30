@@ -65,7 +65,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "60"
+ASSET_VERSION = "61"
 
 # Pages that still work after a parent's daily time limit is used up.
 TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
@@ -1343,7 +1343,7 @@ def add_routes(app):
                      or (people_role == "blocked" and u["blocked"]))
                  and (not needle or needle in f"{u['display_name']} {u['username']} {u['department'] or ''}".lower())]
         per_day = data.suggested_distance_target(conn, 1)
-        return render_template("admin.html", reports=data.open_reports(conn), board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
+        return render_template("admin.html", reports=data.open_reports(conn), report_reasons=data.REPORT_REASONS, board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
                                users=users, shown=shown, people_role=people_role,
                                people_q=people_q, role_counts=role_counts,
                                challenges=data.active_challenges(conn, today()),

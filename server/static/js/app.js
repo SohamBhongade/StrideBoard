@@ -383,6 +383,30 @@ document.querySelectorAll("form[data-autosubmit]").forEach(function (form) {
   });
 })();
 
+// ---- Admin Reports: filter by type and search by name (reporter or reported person)
+(function () {
+  var type = document.querySelector("[data-report-type]");
+  var box = document.querySelector("[data-report-search]");
+  var list = document.querySelector("[data-report-rows]");
+  if (!type || !box || !list) return;
+  var none = document.querySelector("[data-report-none]");
+  var rows = Array.prototype.slice.call(list.querySelectorAll("li"));
+  function filter() {
+    var words = box.value.toLowerCase().split(/\s+/).filter(Boolean);
+    var n = 0;
+    rows.forEach(function (li) {
+      var text = li.getAttribute("data-search");
+      var ok = (!type.value || li.getAttribute("data-reason") === type.value) &&
+               words.every(function (w) { return text.indexOf(w) !== -1; });
+      li.hidden = !ok;
+      if (ok) n++;
+    });
+    if (none) none.hidden = n !== 0;
+  }
+  type.addEventListener("change", filter);
+  box.addEventListener("input", filter);
+})();
+
 // ---- Buttons that ask "are you sure?" (e.g. Delete forever)
 document.querySelectorAll("button[data-confirm]").forEach(function (btn) {
   btn.addEventListener("click", function (e) {

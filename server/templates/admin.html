@@ -11,9 +11,24 @@
     <h2 id="reports-h">Reports {% if reports %}<span class="chip chip-dark">{{ reports|length }} open</span>{% endif %}</h2>
   </div>
   {% if reports %}
-  <ul class="report-list">
+  {# Filter by type and search by name, so one report is easy to find in a long list #}
+  <div class="report-tools" role="search">
+    <label class="visually-hidden" for="report-type">Type of report</label>
+    <select class="input" id="report-type" data-report-type>
+      <option value="">All types · {{ reports|length }}</option>
+      {% for key, label in report_reasons %}
+      {% set n = reports|selectattr('reason', 'equalto', key)|list|length %}
+      {% if n %}<option value="{{ key }}">{{ label }} · {{ n }}</option>{% endif %}
+      {% endfor %}
+    </select>
+    <label class="visually-hidden" for="report-q">Search by name</label>
+    <input class="input" id="report-q" type="search" autocomplete="off"
+           placeholder="Search by name" data-report-search>
+  </div>
+  <ul class="report-list" data-report-rows>
     {% for r in reports %}
-    <li class="report-row">
+    <li class="report-row" data-reason="{{ r.reason }}"
+        data-search="{{ ((r.reporter or '') ~ ' ' ~ r.target ~ ' ' ~ (r.target_dept or ''))|lower }}">
       <div class="report-what">
         <strong>{{ r.target }}</strong> <span class="muted small">{{ r.target_dept or '' }}</span>
         <span class="chip">{{ r.reason_label }}</span>
@@ -29,6 +44,7 @@
     </li>
     {% endfor %}
   </ul>
+  <p class="small muted" data-report-none hidden>No reports match. Try another type or name.</p>
   <p class="small muted">To rename, time out or ban someone, use Moderation{% if not owner %} (the owner account){% endif %}.</p>
   {% else %}
   <p class="small muted">No open reports. People can report a name, avatar, cheating or bullying from the leaderboards.</p>

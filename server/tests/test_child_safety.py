@@ -181,6 +181,11 @@ def test_report_flow(school):
     admin = client(ids["admin"])
     page = admin.get("/admin").get_data(as_text=True)
     assert "Omar Saeed" in page and "Rude or fake name" in page and "rude nickname" in page
+    # Type dropdown (only types that have reports, with counts) and a name search
+    assert '<option value="name">Rude or fake name · 1</option>' in page
+    assert 'value="cheating"' not in page.split("data-report-type")[1].split("</select>")[0]
+    assert "data-report-search" in page and 'data-reason="name"' in page
+    assert 'data-search="amal khan omar saeed' in page          # reporter and reported person
     rid = conn.execute("SELECT id FROM reports").fetchone()[0]
     admin.post("/admin", data={"csrf": "x", "action": "report_done", "report_id": rid})
     assert conn.execute("SELECT status FROM reports").fetchone()[0] == "done"
