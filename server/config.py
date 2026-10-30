@@ -208,19 +208,20 @@ AVATAR_ITEMS = {
 
     "mouth_smile": ("mouth", "Smile", 0), "mouth_o": ("mouth", "Ooh", 0),
     "mouth_grin": ("mouth", "Grin", 50), "mouth_smirk": ("mouth", "Smirk", 50),
-    "mouth_tongue": ("mouth", "Cheeky", 150),
+    "mouth_tongue": ("mouth", "Cheeky", 150), "mouth_skull": ("mouth", "Skull face", 1000),
 
     "hat_none": ("hat", "None", 0), "hat_headband": ("hat", "Sweatband", 50),
     "hat_cap": ("hat", "Cap", 150), "hat_beanie": ("hat", "Beanie", 150),
     "hat_flower": ("hat", "Flower", 150), "hat_party": ("hat", "Party hat", 400),
     "hat_headphones": ("hat", "Headphones", 400), "hat_crown": ("hat", "Crown", 1000),
     "hat_silver_visor": ("hat", "Silver visor", 100), "hat_gold_laurel": ("hat", "Gold laurel", 150),
-    "hat_platinum_halo": ("hat", "Platinum halo", 200),
+    "hat_platinum_halo": ("hat", "Platinum halo", 200), "hat_reaper_hood": ("hat", "Reaper hood", 1000),
 
     "extra_none": ("extra", "None", 0), "extra_glasses": ("extra", "Glasses", 50),
     "extra_scarf": ("extra", "Scarf", 150), "extra_shades": ("extra", "Shades", 150),
     "extra_whistle": ("extra", "Coach whistle", 150), "extra_medal": ("extra", "Medal", 400),
     "extra_silver_wings": ("extra", "Silver wings", 100), "extra_gold_cape": ("extra", "Gold cape", 150),
+    "extra_reaper_scythe": ("extra", "Reaper scythe", 1000),
 
     "shoes_plain": ("shoes", "Bare feet", 0), "shoes_sneakers": ("shoes", "Sneakers", 150),
     "shoes_runners": ("shoes", "Red runners", 50), "shoes_sky": ("shoes", "Sky trainers", 50),
@@ -230,6 +231,7 @@ AVATAR_ITEMS = {
 
     "bg_plain": ("bg", "Plain", 0), "bg_sage": ("bg", "Sage", 0), "bg_sky": ("bg", "Sky", 50),
     "bg_track": ("bg", "Running track", 150), "bg_sunrise": ("bg", "Sunrise", 400),
+    "bg_reaper_night": ("bg", "Reaper night", 1000),
     "bg_stars": ("bg", "Night sky", 400), "bg_platinum_glow": ("bg", "Platinum glow", 200),
 }
 # The "Glass" tab of the studio: the colour field behind the frosted glass look, which only
@@ -286,6 +288,10 @@ def _calendar(*weeks):
 EXCLUSIVE_ITEMS = {"hat_silver_visor": "Silver", "extra_silver_wings": "Silver",
                    "hat_gold_laurel": "Gold", "extra_gold_cape": "Gold",
                    "hat_platinum_halo": "Platinum", "bg_platinum_glow": "Platinum"}
+
+# Owner-only items: never sold or given by rewards. Only the owner account (OWNER_USERNAME)
+# sees them in the studio and can wear them; anyone else wearing one shows the default.
+OWNER_ITEMS = ("hat_reaper_hood", "extra_reaper_scythe", "mouth_skull", "bg_reaper_night")
 
 REWARD_TRACKS = {
     "Bronze": _calendar(
