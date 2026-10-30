@@ -7,6 +7,9 @@ Three layers:
      exists outside PythonAnywhere too.
   3. Any time: the owner can download a copy from Admin > Backups.
 
+After the copy, the same run tidies the database (data.tidy_up): old working notes are trimmed
+or merged and the file is shrunk when it's mostly empty space, so it doesn't fill the disk.
+
 A copy is taken with SQLite's own backup feature, so it is consistent even while people sync.
 
 Saved and emailed copies are ENCRYPTED (AES-256-GCM), so a copy sitting on the server or in
@@ -166,6 +169,23 @@ def decrypt_file(src, dst):
     Path(dst).write_bytes(gzip.decompress(decrypt(Path(src).read_bytes())))
 
 
+def tidy(db_path, today):
+    """Nightly housekeeping: trim old working notes, then shrink the file if it's mostly empty."""
+    import db
+    import data
+    conn = db.connect(str(db_path))
+    try:
+        before = Path(db_path).stat().st_size
+        done = data.tidy_up(conn, today)
+        shrunk = data.shrink_if_needed(conn)
+        after = Path(db_path).stat().st_size
+        removed = ", ".join(f"{k} {v}" for k, v in done.items() if v) or "nothing to tidy"
+        print(f"Tidied: {removed}. Database {before / 1e6:.1f} MB -> {after / 1e6:.1f} MB"
+              + (" (shrunk)" if shrunk else ""))
+    finally:
+        conn.close()
+
+
 def main(argv=None):
     argv = argv or sys.argv[1:]
     if argv[:1] == ["--decrypt"]:
@@ -178,6 +198,7 @@ def main(argv=None):
     now = datetime.now(TZ)
     path = save_daily(db_path, now)
     print(f"Saved {path} ({path.stat().st_size / 1024:.0f} KB)")
+    tidy(db_path, now.date())        # after the copy, so the copy is the safety net
     if now.weekday() == 0 or "--email" in argv:      # Mondays, or when asked
         import mailer
         try:
