@@ -8,6 +8,7 @@
   "minus": '<path d="M5 12h14"/>',
   "trophy": '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>',
   "flag": '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
+  "report": '<path d="M5 4h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 16h-8.5L6 20v-4H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 4z"/><path d="M12 7.5v4M12 13.5h.01"/>',
   "chart": '<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>',
   "gear": '<path d="M10.3 3.2a1.8 1.8 0 0 1 3.4 0l.3 1a1.8 1.8 0 0 0 2.5 1l.9-.5a1.8 1.8 0 0 1 2.4 2.4l-.5.9a1.8 1.8 0 0 0 1 2.5l1 .3a1.8 1.8 0 0 1 0 3.4l-1 .3a1.8 1.8 0 0 0-1 2.5l.5.9a1.8 1.8 0 0 1-2.4 2.4l-.9-.5a1.8 1.8 0 0 0-2.5 1l-.3 1a1.8 1.8 0 0 1-3.4 0l-.3-1a1.8 1.8 0 0 0-2.5-1l-.9.5a1.8 1.8 0 0 1-2.4-2.4l.5-.9a1.8 1.8 0 0 0-1-2.5l-1-.3a1.8 1.8 0 0 1 0-3.4l1-.3a1.8 1.8 0 0 0 1-2.5l-.5-.9a1.8 1.8 0 0 1 2.4-2.4l.9.5a1.8 1.8 0 0 0 2.5-1z"/><circle cx="12" cy="12" r="3"/>',
   "bulb": '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.8.6 1.1 1.3 1.1 2.2h5c0-.9.3-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',
@@ -54,6 +55,14 @@
 {%- endmacro %}
 
 {# Big two-weight page title: light first word(s), bold last. #}
+{# The tabs at the top of the Admin pages: Overview and Reports (with the open count) #}
+{% macro admin_tabs(active, report_count=0) -%}
+<nav class="pills admin-tabs" aria-label="Admin sections">
+  <a class="pill{% if active == 'overview' %} active{% endif %}" href="{{ url_for('admin') }}"{% if active == 'overview' %} aria-current="page"{% endif %}>{{ icon('users', 18) }} Overview</a>
+  <a class="pill{% if active == 'reports' %} active{% endif %}" href="{{ url_for('admin_reports') }}"{% if active == 'reports' %} aria-current="page"{% endif %}>{{ icon('report', 18) }} Reports{% if report_count %} <span class="tab-count">{{ report_count }}</span>{% endif %}</a>
+</nav>
+{%- endmacro %}
+
 {% macro page_head(light, bold, sub=None) -%}
 <header class="page-head">
   <div>

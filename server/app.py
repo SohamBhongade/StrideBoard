@@ -65,7 +65,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "60"
+ASSET_VERSION = "62"
 
 # Pages that still work after a parent's daily time limit is used up.
 TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
@@ -1239,7 +1239,7 @@ def add_routes(app):
                     data.handle_report(conn, to_int(request.form.get("report_id"), "report"), g.user["id"],
                                        "done" if action == "report_done" else "dismissed")
                     flash("Report marked as handled." if action == "report_done" else "Report dismissed.", "ok")
-                    return redirect(url_for("admin", _anchor="reports"))
+                    return redirect(url_for("admin_reports"))
                 elif action == "add_users":
                     result = data.bulk_create_users(conn, request.form.get("csv", ""))
                     flash(f"Added {result['created']} user(s).", "ok" if not result["errors"] else "error")
@@ -1343,7 +1343,7 @@ def add_routes(app):
                      or (people_role == "blocked" and u["blocked"]))
                  and (not needle or needle in f"{u['display_name']} {u['username']} {u['department'] or ''}".lower())]
         per_day = data.suggested_distance_target(conn, 1)
-        return render_template("admin.html", reports=data.open_reports(conn), board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
+        return render_template("admin.html", report_count=len(data.open_reports(conn)), board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
                                users=users, shown=shown, people_role=people_role,
                                people_q=people_q, role_counts=role_counts,
                                challenges=data.active_challenges(conn, today()),
@@ -1358,6 +1358,14 @@ def add_routes(app):
                                last_backup=backup.latest(current_app.config["DATABASE"])
                                if is_owner(g.user) else None,
                                backup_script=os.path.abspath(backup.__file__))
+
+    @app.route("/admin/reports")
+    def admin_reports():
+        """The Reports tab: open reports, with a type filter and name search (handled via /admin)."""
+        admin_only()
+        conn = db.get_db()
+        return render_template("admin_reports.html", reports=data.open_reports(conn),
+                               report_reasons=data.REPORT_REASONS, owner=is_owner(g.user))
 
     @app.route("/admin/backup")
     def admin_backup():
