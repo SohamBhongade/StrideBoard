@@ -105,6 +105,15 @@ def _get_meta(conn, key):
     return row["value"] if row else None
 
 
+def claim_daily_job(conn, day):
+    """True for exactly one caller per Dubai day (even with several web workers): that caller
+    runs the nightly backup and tidy-up. Everyone else gets False."""
+    conn.execute("INSERT OR IGNORE INTO meta (key, value) VALUES ('daily_job', '')")
+    cur = conn.execute("UPDATE meta SET value = ? WHERE key = 'daily_job' AND value <> ?", (day, day))
+    conn.commit()
+    return cur.rowcount == 1
+
+
 def board_key(conn, renew=False):
     """The code a leaderboard screen (the Mac app) needs to show the boards. Made on first use."""
     key = None if renew else _get_meta(conn, "board_key")

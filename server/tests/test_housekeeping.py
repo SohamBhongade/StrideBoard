@@ -137,3 +137,47 @@ def test_nightly_task_backs_up_then_tidies(tmp_path, capsys):
     conn.close()
     backup.tidy(str(path), TODAY)
     assert "step_samples 1" in capsys.readouterr().out
+
+
+def test_daily_job_is_claimed_once_per_day(conn):
+    assert data.claim_daily_job(conn, "2026-10-30") is True
+    assert data.claim_daily_job(conn, "2026-10-30") is False      # another worker, same day
+    assert data.claim_daily_job(conn, "2026-10-31") is True       # next day
+
+
+def test_website_runs_the_daily_job_after_the_first_request(tmp_path, monkeypatch):
+    """Free PythonAnywhere has no scheduled tasks, so the site runs backup + tidy itself."""
+    import app as A
+    ran = []
+    monkeypatch.setattr(backup, "run_daily", lambda path, *a, **k: ran.append(path))
+    import db
+    path = str(tmp_path / "live.sqlite3")
+    c0 = db.connect(path); db.create_tables(c0); c0.close()
+    web = A.create_app()
+    web.config.update(DATABASE=path)
+    web.testing = False                     # the job is skipped in tests unless this is off
+    c = web.test_client()
+    # A real web server always closes each response; that's when the job runs.
+    for url in ("/login", "/login", "/static/css/style.css"):
+        c.get(url).close()
+    assert ran == [path]                    # once, not on every page
+
+    web2 = A.create_app()                   # a second worker on the same day
+    web2.config.update(DATABASE=path)
+    web2.testing = False
+    web2.test_client().get("/login").close()
+    assert ran == [path]
+
+
+def test_run_daily_backs_up_tidies_and_emails_on_mondays(tmp_path, monkeypatch):
+    from datetime import datetime
+    import mailer
+    sent = []
+    monkeypatch.setattr(mailer, "send_backup", lambda name, blob: sent.append(name) or "site@gmail")
+    import db
+    path = tmp_path / "live.sqlite3"
+    c = db.connect(str(path)); db.create_tables(c); make_user(c); c.close()
+    backup.run_daily(str(path), datetime(2026, 10, 28, 3, 0, tzinfo=backup.TZ))   # Wednesday
+    assert sent == [] and len(list(backup.folder_for(str(path)).iterdir())) == 1
+    backup.run_daily(str(path), datetime(2026, 11, 2, 3, 0, tzinfo=backup.TZ))    # Monday
+    assert len(sent) == 1

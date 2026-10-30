@@ -105,10 +105,9 @@
   <p class="small muted">Everything (people, steps, badges, EXP) in one compressed file. Keep a copy on your computer now and then.</p>
   <a class="btn btn-dark" href="{{ url_for('admin_backup') }}" download>{{ m.icon('upload', 18) }} Download a backup</a>
   {% if not last_backup %}
-  <p class="small" style="margin-top:12px">{{ m.icon('info', 14) }} <strong>Automatic daily backups aren't on yet.</strong>
-    On PythonAnywhere, open <strong>Tasks</strong>, add a daily task with the command
-    <code>python3 {{ backup_script }}</code>, and pick any time.
-    It keeps the last 7 days and emails a copy to the site's Gmail every Monday.</p>
+  <p class="small" style="margin-top:12px">{{ m.icon('info', 14) }} <strong>No automatic backup yet.</strong>
+    The site makes one by itself after the first visit or phone sync each day, so one will
+    appear here soon. It keeps the last 7 days and emails a copy to the site's Gmail every Monday.</p>
   {% endif %}
 </section>
 {% endif %}
