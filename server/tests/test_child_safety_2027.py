@@ -187,3 +187,14 @@ def test_a_link_cant_log_you_out(school):
     assert c.get("/").status_code == 200                                  # still logged in
     c.post("/logout", data={"csrf": "x"})
     assert "/login" in c.get("/").headers["Location"]
+
+
+def test_settings_header_has_no_none_for_people_without_a_class(school):
+    """Live bug (30 Oct): an admin with no class saw '@name · None' in the Settings header."""
+    client, path, ids = school
+    conn = db.connect(path)
+    conn.execute("UPDATE users SET department = NULL WHERE id = ?", (ids["teacher"],))
+    conn.commit()
+    page = client(ids["teacher"]).get("/settings").get_data(as_text=True)
+    assert "@teach · None" not in page and "@teach" in page
+    assert "@amal · Grade 9A" in client(ids["amal"]).get("/settings").get_data(as_text=True)
