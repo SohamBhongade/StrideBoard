@@ -162,13 +162,15 @@ PLAT, PLAT_SHADE = "#BFF0E8", "#8FD5CC"
 REAPER, REAPER_SHADE = "#3B2D5C", "#271D40"
 
 
-def _scythe():
-    """The owner's scythe, held in front: the handle crosses the body, the blade sweeps over the head."""
+def _scythe(main, shade):
+    """The owner's scythe, held in front: the handle crosses the body, the blade sweeps over the head.
+    The little hand holding it is the avatar's own body colour."""
     return (f'<path d="M64 95L82 13" stroke="{INK}" stroke-width="5.4" stroke-linecap="round"/>'
             '<path d="M64 95L82 13" stroke="#8A5A3C" stroke-width="3.2" stroke-linecap="round"/>'
             '<path d="M70.5 66l3.6-16" stroke="#B07A55" stroke-width="1" stroke-linecap="round" opacity=".8"/>'
-            f'<path d="M67.6 79.5l3.8 .8" stroke="{INK}" stroke-width="5" stroke-linecap="round"/>'
-            f'<path d="M67.6 79.5l3.8 .8" stroke="{REAPER}" stroke-width="3" stroke-linecap="round"/>'
+            f'<ellipse cx="69.3" cy="78.5" rx="4.6" ry="3.8" transform="rotate(-14 69.3 78.5)" '
+            f'fill="{main}" stroke="{INK}" stroke-width="1.3"/>'
+            f'<path d="M66.4 80.6q3 1.4 5.8 .4" stroke="{shade}" stroke-width="1.1" fill="none" stroke-linecap="round"/>'
             f'<path d="M83 15Q70 0 48 5Q64 9 75 22Z" fill="#D9DEE6" stroke="{INK}" stroke-width="1.4" stroke-linejoin="round"/>'
             '<path d="M78 10Q66 4 54 6" stroke="#fff" stroke-width="1.3" fill="none" opacity=".9"/>'
             f'<rect x="78.5" y="11" width="7" height="6" rx="1.6" fill="{REAPER}" stroke="{INK}" stroke-width="1.2" '
@@ -272,7 +274,7 @@ def _parts(build, uid):
         '<circle cx="34" cy="59" r="3.6" fill="#F49A8F" opacity=".45"/><circle cx="66" cy="59" r="3.6" fill="#F49A8F" opacity=".45"/>'
         f'{_eyes(build.get("eyes"))}{_mouth(build.get("mouth"))}'
         f'{_extra(build.get("extra"))}{_hat(build.get("hat"))}'
-        f'{_scythe() if build.get("extra") == "extra_reaper_scythe" else ""}'   # held in front of everything
+        f'{_scythe(main, shade) if build.get("extra") == "extra_reaper_scythe" else ""}'   # held in front of everything
     )
 
 
