@@ -130,6 +130,16 @@ INACTIVE_MAX_STEPS = 50
 SYNC_FRESH_MINUTES = 15
 SAMPLE_KEEP_DAYS = 2
 
+# --- Housekeeping (run every night by backup.py) ---
+# Keeps the database small so a full school fits on PythonAnywhere's free 512 MB for years.
+# Only working notes are trimmed: steps, moods, water, activities, badges, EXP balances and
+# challenge totals are never changed.
+TIDY_MINI_RUN_DAYS = 14      # mini challenge attempts: only today's count is ever used
+TIDY_EXERCISE_DAYS = 14      # older sets on the same day are merged into one (same totals)
+TIDY_EXP_DAYS = 60           # older EXP rows are merged into one per person (same balance)
+TIDY_REWARD_DAYS = 60        # older login-reward claims are removed (the latest is always kept)
+TIDY_VACUUM_SHARE = 0.25     # shrink the file when a quarter or more of it is empty space
+
 # --- Progression tracks (the Challenges page) ---
 # Lifetime totals unlock level badges; the "record" badge levels up with your best single day
 # (everything you did that day added up). Planks are in seconds.

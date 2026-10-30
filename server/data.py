@@ -563,7 +563,7 @@ def add_exp(conn, user_id, amount, reason):
 def exp_history(conn, user_id, limit=20):
     """Latest EXP gains and spends, newest first: [{"amount", "reason", "created_at"}]."""
     rows = conn.execute("SELECT amount, reason, created_at FROM exp_ledger WHERE user_id = ? "
-                        "ORDER BY id DESC LIMIT ?", (user_id, limit)).fetchall()
+                        "ORDER BY created_at DESC, id DESC LIMIT ?", (user_id, limit)).fetchall()
     return [dict(r) for r in rows]
 
 
@@ -2232,3 +2232,90 @@ def handle_report(conn, report_id, admin_id, status, now=None):
     conn.commit()
     if not cur.rowcount:
         raise ValueError("that report was already handled")
+
+
+# =====================================================================
+# Housekeeping: keeps the database small (run every night by backup.py)
+# =====================================================================
+
+def tidy_up(conn, today=None):
+    """Remove or merge old working notes so the database stops growing. Returns what changed.
+
+    Nothing anyone sees changes: EXP balances, lifetime exercise totals, best days, badges,
+    steps, moods, water and activities all stay exactly the same.
+    """
+    today = _today(today)
+
+    def before(days):
+        return (today - timedelta(days=days)).isoformat()
+
+    done = {}
+    # Stand-up reminder snapshots: also for people who stopped syncing (normally trimmed on sync).
+    done["step_samples"] = conn.execute("DELETE FROM step_samples WHERE date < ?",
+                                        (before(config.SAMPLE_KEEP_DAYS),)).rowcount
+    # Parent time-limit minutes: kept a week.
+    done["screen_time"] = conn.execute("DELETE FROM screen_time WHERE date < ?", (before(7),)).rowcount
+    # Email codes and waiting sign-ups hold email addresses: gone after a day (PDPL).
+    stamp = before(1)
+    done["email_codes"] = conn.execute("DELETE FROM email_codes WHERE created_at < ?", (stamp,)).rowcount
+    done["pending_signups"] = conn.execute("DELETE FROM pending_signups WHERE created_at < ?",
+                                           (stamp,)).rowcount
+    # Mini challenge attempts: only today's are counted (3 a day); EXP and exercises are kept elsewhere.
+    done["mini_runs"] = conn.execute("DELETE FROM mini_runs WHERE date < ?",
+                                     (before(config.TIDY_MINI_RUN_DAYS),)).rowcount
+    # Login rewards: only each person's latest claim is needed to know their calendar day.
+    done["daily_rewards"] = conn.execute(
+        "DELETE FROM daily_rewards WHERE date < ? AND date < "
+        "(SELECT MAX(d.date) FROM daily_rewards d WHERE d.user_id = daily_rewards.user_id)",
+        (before(config.TIDY_REWARD_DAYS),)).rowcount
+
+    # Exercise sets: merge each person's sets of one type on one day into a single row.
+    # Day totals (record badges) and lifetime totals (level badges) stay the same.
+    merged = 0
+    groups = conn.execute(
+        "SELECT user_id, date, type, SUM(amount) AS total, MAX(created_at) AS at, COUNT(*) AS n "
+        "FROM exercises WHERE date < ? GROUP BY user_id, date, type "
+        "HAVING COUNT(*) > 1 AND SUM(amount) <= 5000",
+        (before(config.TIDY_EXERCISE_DAYS),)).fetchall()
+    for g in groups:
+        conn.execute("DELETE FROM exercises WHERE user_id = ? AND date = ? AND type = ?",
+                     (g["user_id"], g["date"], g["type"]))
+        conn.execute("INSERT INTO exercises (user_id, date, type, amount, created_at) VALUES (?, ?, ?, ?, ?)",
+                     (g["user_id"], g["date"], g["type"], g["total"], g["at"]))
+        merged += g["n"] - 1
+    done["exercises"] = merged
+
+    # EXP: merge each person's older gains and spends into one row. The balance stays the same.
+    merged = 0
+    groups = conn.execute(
+        "SELECT user_id, SUM(amount) AS total, MAX(created_at) AS at, COUNT(*) AS n "
+        "FROM exp_ledger WHERE created_at < ? GROUP BY user_id HAVING COUNT(*) > 1",
+        (before(config.TIDY_EXP_DAYS),)).fetchall()
+    for g in groups:
+        conn.execute("DELETE FROM exp_ledger WHERE user_id = ? AND created_at < ?",
+                     (g["user_id"], before(config.TIDY_EXP_DAYS)))
+        if g["total"]:
+            conn.execute("INSERT INTO exp_ledger (user_id, amount, reason, created_at) VALUES (?, ?, ?, ?)",
+                         (g["user_id"], g["total"], "Earlier EXP (combined)", g["at"]))
+        merged += g["n"] - (1 if g["total"] else 0)
+    done["exp_ledger"] = merged
+    conn.commit()
+    return done
+
+
+def shrink_if_needed(conn, share=None):
+    """Give empty space back to the disk (SQLite files never shrink by themselves).
+
+    Only runs when at least `share` of the file is empty, so it's usually skipped.
+    Returns True if the file was shrunk.
+    """
+    share = config.TIDY_VACUUM_SHARE if share is None else share
+    pages = conn.execute("PRAGMA page_count").fetchone()[0]
+    free = conn.execute("PRAGMA freelist_count").fetchone()[0]
+    if not pages or free / pages < share:
+        conn.execute("PRAGMA optimize")
+        return False
+    conn.commit()
+    conn.execute("VACUUM")
+    conn.execute("PRAGMA optimize")
+    return True
