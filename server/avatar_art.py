@@ -28,6 +28,15 @@ def _sparkle(x, y, r):
 
 
 def _bg(key, uid):
+    if key == "bg_reaper_night":
+        stars = "".join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#fff" opacity="{o}"/>'
+                        for x, y, r, o in ((86, 40, 1.3, .9), (36, 8, .9, .7), (12, 46, 1, .6), (90, 62, 1.2, .8),
+                                           (92, 78, .9, .6), (10, 80, 1.1, .7)))
+        return (f'<defs><linearGradient id="rn{uid}" x1="0" y1="0" x2="0" y2="1">'
+                '<stop offset="0" stop-color="#2A1F45"/><stop offset="1" stop-color="#4B2E6B"/></linearGradient></defs>'
+                f'<rect width="100" height="100" fill="url(#rn{uid})"/>{stars}'
+                '<path d="M20 9a10 10 0 1 0 8 15a8 8 0 1 1-8-15z" fill="#F3E9C6"/>'
+                '<path d="M0 92q25-6 50 0t50 0V100H0z" fill="#21183A"/>')
     if key == "bg_platinum_glow":
         return (f'<defs><radialGradient id="pg{uid}" cx=".5" cy=".45" r=".7">'
                 '<stop offset="0" stop-color="#F4FFFD"/><stop offset=".55" stop-color="#BFF0E8"/>'
@@ -96,7 +105,22 @@ def _eyes(key):
             '<circle cx="42.2" cy="47.8" r="1" fill="#fff"/><circle cx="60.2" cy="47.8" r="1" fill="#fff"/>')
 
 
+def _skull():
+    """The owner's skull face: a friendly bone-white face plate over the eyes and mouth."""
+    plate = "M33 54Q32 37 50 36Q68 37 67 54Q67 62 61 64V69Q50 72 39 69V64Q33 62 33 54Z"
+    teeth = "".join(f'<path d="M{x} 64.5v4.5" stroke="{INK}" stroke-width="1.1" stroke-linecap="round"/>'
+                    for x in (44.5, 50, 55.5))
+    return (f'<path d="{plate}" fill="#F4F1E8" stroke="{INK}" stroke-width="1.5" stroke-linejoin="round"/>'
+            f'<ellipse cx="42.5" cy="50" rx="5.2" ry="5.8" fill="{INK}"/><ellipse cx="57.5" cy="50" rx="5.2" ry="5.8" fill="{INK}"/>'
+            '<circle cx="44" cy="48.4" r="1.5" fill="#fff"/><circle cx="59" cy="48.4" r="1.5" fill="#fff"/>'
+            f'<path d="M50 56.5l-2.4 3.6h4.8z" fill="{INK}" stroke="{INK}" stroke-width="1" stroke-linejoin="round"/>'
+            f'<path d="M40 64.5Q50 66.5 60 64.5" stroke="{INK}" stroke-width="1.2" fill="none"/>{teeth}'
+            '<path d="M37 45Q40 40 46 39" stroke="#fff" stroke-width="1.2" opacity=".8" fill="none" stroke-linecap="round"/>')
+
+
 def _mouth(key):
+    if key == "mouth_skull":
+        return _skull()
     if key == "mouth_o":
         return f'<ellipse cx="50" cy="63" rx="3" ry="3.6" fill="{INK}"/>'
     if key == "mouth_grin":
@@ -135,6 +159,22 @@ GOLD, GOLD_SHADE = "#E8C15A", "#C99B2E"
 PLAT, PLAT_SHADE = "#BFF0E8", "#8FD5CC"
 
 
+REAPER, REAPER_SHADE = "#3B2D5C", "#271D40"
+
+
+def _scythe():
+    """The owner's scythe, held in front: the handle crosses the body, the blade sweeps over the head."""
+    return (f'<path d="M64 95L82 13" stroke="{INK}" stroke-width="5.4" stroke-linecap="round"/>'
+            '<path d="M64 95L82 13" stroke="#8A5A3C" stroke-width="3.2" stroke-linecap="round"/>'
+            '<path d="M70.5 66l3.6-16" stroke="#B07A55" stroke-width="1" stroke-linecap="round" opacity=".8"/>'
+            f'<path d="M67.6 79.5l3.8 .8" stroke="{INK}" stroke-width="5" stroke-linecap="round"/>'
+            f'<path d="M67.6 79.5l3.8 .8" stroke="{REAPER}" stroke-width="3" stroke-linecap="round"/>'
+            f'<path d="M83 15Q70 0 48 5Q64 9 75 22Z" fill="#D9DEE6" stroke="{INK}" stroke-width="1.4" stroke-linejoin="round"/>'
+            '<path d="M78 10Q66 4 54 6" stroke="#fff" stroke-width="1.3" fill="none" opacity=".9"/>'
+            f'<rect x="78.5" y="11" width="7" height="6" rx="1.6" fill="{REAPER}" stroke="{INK}" stroke-width="1.2" '
+            'transform="rotate(12 82 14)"/>')
+
+
 def _wings(key):
     """Extras drawn behind the body: Silver wings, Gold cape."""
     if key == "extra_gold_cape":
@@ -165,7 +205,18 @@ def _laurel():
     return stems + "".join(leaves)
 
 
+def _hood():
+    """The owner's hood: covers the top and sides of the head, the face peeks out; a soft point on top."""
+    outer = ("M17 68Q14 32 36 19Q46 13 57 5Q55 12 62 18Q86 30 83 68"
+             "Q77 76 70 74Q73 46 50 35Q27 46 30 74Q23 76 17 68Z")
+    return (f'<path d="{outer}" fill="{REAPER}" stroke="{INK}" stroke-width="1.5" stroke-linejoin="round"/>'
+            f'<path d="M30 74Q27 46 50 35Q73 46 70 74" stroke="{REAPER_SHADE}" stroke-width="2.4" fill="none"/>'
+            '<path d="M36 25Q44 18 53 16" stroke="#fff" stroke-width="1.3" opacity=".35" fill="none" stroke-linecap="round"/>')
+
+
 def _hat(key):
+    if key == "hat_reaper_hood":
+        return _hood()
     if key == "hat_gold_laurel":
         return _laurel()
     if key == "hat_platinum_halo":
@@ -221,6 +272,7 @@ def _parts(build, uid):
         '<circle cx="34" cy="59" r="3.6" fill="#F49A8F" opacity=".45"/><circle cx="66" cy="59" r="3.6" fill="#F49A8F" opacity=".45"/>'
         f'{_eyes(build.get("eyes"))}{_mouth(build.get("mouth"))}'
         f'{_extra(build.get("extra"))}{_hat(build.get("hat"))}'
+        f'{_scythe() if build.get("extra") == "extra_reaper_scythe" else ""}'   # held in front of everything
     )
 
 

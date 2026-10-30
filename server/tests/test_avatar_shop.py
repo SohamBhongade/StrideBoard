@@ -107,3 +107,46 @@ def test_set_role(conn):
         data.set_role(conn, admin, "teacher", acting_admin_id=admin)
     with pytest.raises(ValueError, match="role must be"):
         data.set_role(conn, uid, "boss")
+
+
+# ---- Owner-only reaper set (hood, scythe, skull face, night background) ------------------
+
+def _owner_and_student(conn, monkeypatch):
+    monkeypatch.setattr(data.config, "OWNER_USERNAME", "reaper")
+    owner = data.create_user(conn, "reaper", "Stride Reaper", "admin", "Staff", "adult_18_39", "4826")
+    kid = data.create_user(conn, "kid", "Kid Young", "student", "Grade 9A", "teen_13_17", "4826")
+    data.add_exp(conn, kid, 100_000, "test")
+    return owner, kid
+
+
+def test_only_the_owner_sees_and_wears_the_reaper_set(conn, monkeypatch):
+    owner, kid = _owner_and_student(conn, monkeypatch)
+    mine = {i["key"]: i for i in data.avatar_shop(conn, owner)["items"]}
+    for key in data.config.OWNER_ITEMS:
+        assert mine[key]["owned"] and mine[key]["exclusive"] == "Owner"
+        data.wear_avatar_item(conn, owner, key)
+    build = data.avatar_build(conn, owner)
+    assert (build["hat"], build["extra"], build["mouth"], build["bg"]) == (
+        "hat_reaper_hood", "extra_reaper_scythe", "mouth_skull", "bg_reaper_night")
+
+    theirs = {i["key"] for i in data.avatar_shop(conn, kid)["items"]}
+    assert not theirs & set(data.config.OWNER_ITEMS)            # hidden from everyone else
+    for key in data.config.OWNER_ITEMS:
+        with pytest.raises(ValueError, match="doesn't exist"):
+            data.wear_avatar_item(conn, kid, key)
+        with pytest.raises(ValueError, match="doesn't exist"):
+            data.buy_avatar_item(conn, kid, key)
+
+
+def test_reaper_set_comes_off_if_the_owner_changes(conn, monkeypatch):
+    owner, kid = _owner_and_student(conn, monkeypatch)
+    data.wear_avatar_item(conn, owner, "hat_reaper_hood")
+    monkeypatch.setattr(data.config, "OWNER_USERNAME", "someone.else")
+    assert data.avatar_build(conn, owner)["hat"] == data.config.AVATAR_DEFAULTS["hat"]
+
+
+def test_reaper_parts_draw(conn):
+    import avatar_art
+    svg = str(avatar_art.render({"color": "color_midnight", "hat": "hat_reaper_hood", "extra": "extra_reaper_scythe",
+                                 "mouth": "mouth_skull", "bg": "bg_reaper_night"}, 40))
+    assert svg.count("<path") > 12 and "F4F1E8" in svg and "F3E9C6" in svg

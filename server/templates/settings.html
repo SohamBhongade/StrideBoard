@@ -190,7 +190,7 @@
       <span class="av av-creature" style="--av: 76px">{{ creature(try_on(shop.build, slot, it.key), 76) }}</span>
       {% endif %}
       <strong>{{ it.name }}</strong>
-      <span class="item-price">{% if it.price == 0 %}Free{% elif it.owned %}Owned{% elif it.exclusive %}{{ it.exclusive }} reward only{% else %}{{ it.price|num }} EXP{% endif %}</span>
+      <span class="item-price">{% if it.exclusive == 'Owner' %}Owner only{% elif it.price == 0 %}Free{% elif it.owned %}Owned{% elif it.exclusive %}{{ it.exclusive }} reward only{% else %}{{ it.price|num }} EXP{% endif %}</span>
       {% if it.worn %}
         <span class="chip chip-dark">{{ m.icon('check', 14) }} {{ 'In use' if slot in ('glass', 'material') else 'Wearing' }}</span>
       {% else %}

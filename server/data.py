@@ -582,15 +582,28 @@ def _default_build(user_id):
     return build
 
 
+def owner_id(conn):
+    """The owner account's id (config.OWNER_USERNAME, an admin), or None."""
+    row = conn.execute("SELECT id FROM users WHERE username = ? AND role = 'admin'",
+                       (config.OWNER_USERNAME,)).fetchone()
+    return row["id"] if row else None
+
+
 def avatar_builds(conn, user_ids):
-    """What each person's avatar is wearing: {user_id: {slot: item_key}} (defaults filled in)."""
+    """What each person's avatar is wearing: {user_id: {slot: item_key}} (defaults filled in).
+
+    Owner-only items show only on the owner (if the owner changes, the old owner's look
+    quietly goes back to the defaults for those slots).
+    """
     ids = [int(u) for u in user_ids if u is not None]
     builds = {u: _default_build(u) for u in ids}
     if ids:
+        owner = owner_id(conn)
         marks = ",".join("?" * len(ids))
         for r in conn.execute(f"SELECT user_id, slot, item_key FROM avatar_equipped "
                               f"WHERE user_id IN ({marks})", ids):
-            if r["item_key"] in config.AVATAR_ITEMS:
+            if r["item_key"] in config.AVATAR_ITEMS and (
+                    r["item_key"] not in config.OWNER_ITEMS or r["user_id"] == owner):
                 builds[r["user_id"]][r["slot"]] = r["item_key"]
     return builds
 
@@ -608,10 +621,13 @@ def avatar_shop(conn, user_id):
     build = avatar_build(conn, user_id)
     worn = {**build, "glass": glass_choice(conn, user_id), "material": material_choice(conn, user_id)}
     bought = {r[0] for r in conn.execute("SELECT item_key FROM avatar_owned WHERE user_id = ?", (user_id,))}
+    is_owner = owner_id(conn) == user_id
     items = [{"key": k, "slot": slot, "name": name, "price": price,
-              "owned": price == 0 or k in bought, "worn": worn.get(slot) == k,
-              "exclusive": config.EXCLUSIVE_ITEMS.get(k)}
-             for k, (slot, name, price) in config.SHOP_ITEMS.items()]
+              "owned": price == 0 or k in bought or (is_owner and k in config.OWNER_ITEMS),
+              "worn": worn.get(slot) == k,
+              "exclusive": "Owner" if k in config.OWNER_ITEMS else config.EXCLUSIVE_ITEMS.get(k)}
+             for k, (slot, name, price) in config.SHOP_ITEMS.items()
+             if is_owner or k not in config.OWNER_ITEMS]     # nobody else even sees them
     return {"balance": exp_balance(conn, user_id), "build": build, "items": items}
 
 
@@ -642,7 +658,10 @@ def wear_avatar_item(conn, user_id, key):
     """Put on an item you own (free items are always yours)."""
     slot, name, price = _item(key)
     _require_user(conn, user_id)
-    if price > 0 and not conn.execute("SELECT 1 FROM avatar_owned WHERE user_id = ? AND item_key = ?",
+    if key in config.OWNER_ITEMS:
+        if owner_id(conn) != user_id:
+            raise ValueError("that item doesn't exist")      # hidden from everyone else
+    elif price > 0 and not conn.execute("SELECT 1 FROM avatar_owned WHERE user_id = ? AND item_key = ?",
                                       (user_id, key)).fetchone():
         raise ValueError(f"buy {name} first")
     conn.execute("INSERT INTO avatar_equipped (user_id, slot, item_key) VALUES (?, ?, ?) "
@@ -655,6 +674,8 @@ def buy_avatar_item(conn, user_id, key):
     """Spend EXP on an item and put it on. Returns the new balance."""
     slot, name, price = _item(key)
     _require_user(conn, user_id)
+    if key in config.OWNER_ITEMS:
+        raise ValueError("that item doesn't exist")
     if price == 0:
         raise ValueError(f"{name} is free: just tap Wear")
     if key in config.EXCLUSIVE_ITEMS:
