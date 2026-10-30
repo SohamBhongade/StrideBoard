@@ -102,7 +102,7 @@
     <div class="topbar">
       <a href="{{ url_for('dashboard') }}" class="topbar-logo" aria-label="StrideBoard home">{{ m.logo(30) }}<span>StrideBoard</span></a>
       <div class="topbar-actions">
-        {% if user.role == 'admin' %}<a href="{{ url_for('admin') }}" class="round-btn" aria-label="Admin" title="Admin"{% if request.endpoint == 'admin' %} aria-current="page"{% endif %}>{{ m.icon('users', 20) }}</a>{% endif %}
+        {% if user.role == 'admin' %}<a href="{{ url_for('admin') }}" class="round-btn" aria-label="Admin" title="Admin"{% if request.endpoint in ('admin', 'admin_reports') %} aria-current="page"{% endif %}>{{ m.icon('users', 20) }}</a>{% endif %}
         <a href="{{ url_for('settings') }}" class="avatar-btn gear-av" title="Settings" aria-label="Settings ({{ user.display_name }})"{% if request.endpoint == 'settings' %} aria-current="page"{% endif %}>{{ m.avatar(user.display_name, user.avatar, user.avatar_color, 44, my_build) }}<span class="gear-cover" aria-hidden="true">{{ m.icon('gear', 20) }}</span></a>
       </div>
     </div>

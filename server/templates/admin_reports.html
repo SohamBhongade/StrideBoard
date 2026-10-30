@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Reports · Admin{% endblock %}
+{% block content %}
+
+{{ m.page_head("School", "reports", "Things people have flagged on the leaderboards. Handle or dismiss each one.") }}
+{{ m.admin_tabs('reports', reports|length) }}
+
+{# ---- Reports from people (Child Digital Safety Law: an easy way to report) ---- #}
+<section class="card card-soft reports-card" id="reports" aria-labelledby="reports-h" >
+  <div class="card-head">
+    <span class="icon-circle">{{ m.icon('report') }}</span>
+    <h2 id="reports-h">Reports {% if reports %}<span class="chip chip-dark">{{ reports|length }} open</span>{% endif %}</h2>
+  </div>
+  {% if reports %}
+  {# Filter by type and search by name, so one report is easy to find in a long list #}
+  <div class="report-tools" role="search">
+    <label class="visually-hidden" for="report-type">Type of report</label>
+    <select class="input" id="report-type" data-report-type>
+      <option value="">All types · {{ reports|length }}</option>
+      {% for key, label in report_reasons %}
+      {% set n = reports|selectattr('reason', 'equalto', key)|list|length %}
+      {% if n %}<option value="{{ key }}">{{ label }} · {{ n }}</option>{% endif %}
+      {% endfor %}
+    </select>
+    <label class="visually-hidden" for="report-q">Search by name</label>
+    <input class="input" id="report-q" type="search" autocomplete="off"
+           placeholder="Search by name" data-report-search>
+  </div>
+  <ul class="report-list" data-report-rows>
+    {% for r in reports %}
+    <li class="report-row" data-reason="{{ r.reason }}"
+        data-search="{{ ((r.reporter or '') ~ ' ' ~ r.target ~ ' ' ~ (r.target_dept or ''))|lower }}">
+      <div class="report-what">
+        <strong>{{ r.target }}</strong> <span class="muted small">{{ r.target_dept or '' }}</span>
+        <span class="chip">{{ r.reason_label }}</span>
+        {% if r.note %}<p class="small">“{{ r.note }}”</p>{% endif %}
+        <p class="small muted">Reported by {{ r.reporter or 'a deleted account' }} · {{ r.created_at[:16]|replace('T', ' ') }}</p>
+      </div>
+      <form method="post" action="{{ url_for('admin') }}" class="report-actions">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="report_id" value="{{ r.id }}">
+        <button class="btn btn-dark btn-sm" name="action" value="report_done" type="submit">Handled</button>
+        <button class="btn btn-outline btn-sm" name="action" value="report_dismiss" type="submit">Dismiss</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="small muted" data-report-none hidden>No reports match. Try another type or name.</p>
+  <p class="small muted">To rename, time out or ban someone, use Moderation{% if not owner %} (the owner account){% endif %}.</p>
+  {% else %}
+  <p class="small muted">No open reports. People can report a name, avatar, cheating or bullying from the leaderboards.</p>
+  {% endif %}
+</section>
+
+
+{% endblock %}

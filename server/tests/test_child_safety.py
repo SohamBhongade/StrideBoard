@@ -179,7 +179,10 @@ def test_report_flow(school):
     conn = db.connect(path)
     assert conn.execute("SELECT COUNT(*) FROM reports").fetchone()[0] == 1
     admin = client(ids["admin"])
-    page = admin.get("/admin").get_data(as_text=True)
+    overview = admin.get("/admin").get_data(as_text=True)
+    assert "/admin/reports" in overview and '<span class="tab-count">1</span>' in overview
+    assert "rude nickname" not in overview                       # reports live on their own tab
+    page = admin.get("/admin/reports").get_data(as_text=True)
     assert "Omar Saeed" in page and "Rude or fake name" in page and "rude nickname" in page
     # Type dropdown (only types that have reports, with counts) and a name search
     assert '<option value="name">Rude or fake name · 1</option>' in page
@@ -187,7 +190,8 @@ def test_report_flow(school):
     assert "data-report-search" in page and 'data-reason="name"' in page
     assert 'data-search="amal khan omar saeed' in page          # reporter and reported person
     rid = conn.execute("SELECT id FROM reports").fetchone()[0]
-    admin.post("/admin", data={"csrf": "x", "action": "report_done", "report_id": rid})
+    r = admin.post("/admin", data={"csrf": "x", "action": "report_done", "report_id": rid})
+    assert r.headers["Location"].endswith("/admin/reports")      # back to the Reports tab
     assert conn.execute("SELECT status FROM reports").fetchone()[0] == "done"
 
 
@@ -207,4 +211,5 @@ def test_report_rules(conn):
 
 def test_students_cant_open_admin_reports(school):
     client, path, ids = school
+    assert client(ids["Amal Khan"]).get("/admin/reports").status_code == 403
     assert client(ids["Amal Khan"]).post("/admin", data={"csrf": "x", "action": "report_done", "report_id": 1}).status_code in (302, 403)
