@@ -311,5 +311,38 @@
   {% else %}
     {{ m.empty("No one yet", "Paste a CSV above to add your first people.", "users") }}
   {% endif %}
+
+  {% if people_role == 'blocked' %}
+  {# Emails of deleted accounts (Delete forever, or a name that wasn't approved) #}
+  <h3 class="data-sub" style="margin-top:20px">Blocked emails · {{ blocked_email_list|length }}</h3>
+  <p class="small muted">These can't sign up again. StrideBoard only keeps a scrambled fingerprint of each email,
+    so they're listed by the name the account had, not the address.</p>
+  {% if owner %}
+  <form method="post" class="form unblock-email" style="margin:12px 0">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="email_unblock">
+    <div class="field"><label for="unblock-email">Unblock an email</label>
+      <input class="input" id="unblock-email" name="email" type="email" autocomplete="off" required
+             placeholder="Their Gmail, e.g. amal.khan@gmail.com">
+      <span class="hint">Ask them to tell you their email. If it's on the list, it's unblocked and they get an
+        email with a link to sign up again with their real name. The address isn't saved.</span></div>
+    <button class="btn btn-dark btn-sm" type="submit">Unblock and email them</button>
+  </form>
+  {% endif %}
+  {% if blocked_email_list %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Account name</th><th>Why</th><th>When</th></tr></thead>
+      <tbody>
+        {% for e in blocked_email_list %}
+        <tr><td>{{ e.name }}</td><td>{{ e.reason }}</td><td>{{ (e.at or '')[:16]|replace('T', ' ') }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="small muted">No blocked emails.</p>
+  {% endif %}
+  {% endif %}
 </section>
 {% endblock %}

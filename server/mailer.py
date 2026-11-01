@@ -97,6 +97,32 @@ def send_backup(filename, data):
     return user
 
 
+def send_unblocked(to, link):
+    """Tell someone their email can sign up again (after an admin unblocked it). Raises ValueError."""
+    subject = "You can sign up for StrideBoard again"
+    body = ("Hello,\n\nA StrideBoard admin at school has unblocked this email, so you can make a new "
+            "account with it.\n\nPlease sign up with your real full name (first and last name):\n"
+            f"{link}\n\nIf you didn't ask for this, you can ignore this email.\n")
+    if debug_mode():
+        log.warning("MAIL DEBUG: unblock notice for %s: %s", to, link)
+        print(f"MAIL DEBUG: unblock notice for {to}: {link}", flush=True)
+        return
+    user, password = gmail_login()
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = f"StrideBoard <{user}>"
+    msg["To"] = to
+    msg.set_content(body)
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as smtp:
+            smtp.starttls()
+            smtp.login(user, password)
+            smtp.send_message(msg)
+    except (smtplib.SMTPException, OSError):
+        log.exception("could not send the unblock email")
+        raise ValueError("the email is unblocked, but Gmail didn't send the notice. Tell them to sign up") from None
+
+
 def send_parent_request(to, child_name, link):
     """Ask a parent to approve their under-13's StrideBoard account. Raises ValueError if not sent."""
     subject = f"Please approve {child_name}'s StrideBoard account"

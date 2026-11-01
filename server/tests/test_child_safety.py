@@ -245,22 +245,32 @@ def test_admin_approves_a_possible_real_name_from_the_reports_tab(school):
                                                          "user_id": ids["Omar Saeed"]}).status_code in (302, 403)
 
 
-def test_not_approved_asks_for_the_real_name_and_checks_again(school):
+def test_not_approved_deletes_and_only_the_owner_unblocks_by_email(school, monkeypatch):
     client, path, ids = school
     conn = db.connect(path)
+    owner = data.create_user(conn, "reaper", "Stride Reaper", "admin", "Staff", "adult_18_39", "4826")
+    web = client(owner).application
+    conn.execute("UPDATE users SET email_hash = ? WHERE id = ?",
+                 (data.email_fingerprint("omar.saeed@gmail.com", web.config["SECRET_KEY"]), ids["Omar Saeed"]))
     data.update_my_details(conn, ids["Omar Saeed"], "Kundan Saeed", "Grade 10A")
+    conn.commit()
     conn.close()
+    monkeypatch.setattr(A.config, "OWNER_USERNAME", "reaper")
     admin, omar = client(ids["admin"]), client(ids["Omar Saeed"])
+    page = admin.get("/admin/reports").get_data(as_text=True)
+    assert "If it isn't approved, this account is deleted" in omar.get("/").get_data(as_text=True)
+    assert 'value="name_reject"' in page and "blocks its email" in page
     admin.post("/admin", data={"csrf": "x", "action": "name_reject", "user_id": ids["Omar Saeed"]})
-    assert 'data-reason="real_name"' not in admin.get("/admin/reports").get_data(as_text=True)
-    for url in ("/settings", "/"):
-        page = omar.get(url).get_data(as_text=True)
-        assert "Your name wasn't approved" in page and "actual full name" in page
-    assert "Omar" not in client(ids["Amal Khan"]).get("/leaderboard?view=student").get_data(as_text=True).split("<main")[1]
-    # They try again with their real name: no check needed, back on the boards
-    omar.post("/settings", data={"csrf": "x", "action": "my_details", "display_name": "Omar Saeed",
-                                 "department": "Grade 10A"})
-    assert "wasn't approved" not in omar.get("/").get_data(as_text=True)
-    conn = db.connect(path)
-    assert data.get_user(conn, ids["Omar Saeed"])["name_review"] is None
+    r = omar.get("/")
+    assert r.status_code == 302 and "/login" in r.headers["Location"]          # logged out: gone
+    blocked = client(owner).get("/admin?people=blocked").get_data(as_text=True)
+    assert "Blocked emails · 1" in blocked and "Kundan Saeed" in blocked and "Name not approved" in blocked
+    assert "Unblock an email" in blocked and "Unblock an email" not in admin.get("/admin?people=blocked").get_data(as_text=True)
+    assert admin.post("/admin", data={"csrf": "x", "action": "email_unblock",
+                                      "email": "omar.saeed@gmail.com"}).status_code == 403
+    sent = []
+    web.config["SEND_UNBLOCKED"] = lambda to, link: sent.append((to, link))
+    r = client(owner).post("/admin", data={"csrf": "x", "action": "email_unblock", "email": "Omar.Saeed@gmail.com"})
+    assert r.status_code == 302 and sent[0][0] == "omarsaeed@gmail.com" and sent[0][1].endswith("/signup")
+    assert "Blocked emails · 0" in client(owner).get("/admin?people=blocked").get_data(as_text=True)
 

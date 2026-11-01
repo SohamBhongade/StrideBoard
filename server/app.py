@@ -109,7 +109,7 @@ def create_app():
     app = Flask(__name__)
     app.session_interface = HttpsOnlyCookies()
     # No SECRET_KEY here: db.init_app() sets it from the server's environment.
-    app.config.update(SEND_PARENT=mailer.send_parent_request)
+    app.config.update(SEND_PARENT=mailer.send_parent_request, SEND_UNBLOCKED=mailer.send_unblocked)
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
                       PERMANENT_SESSION_LIFETIME=timedelta(days=config.SESSION_IDLE_DAYS),
                       SEND_CODE=mailer.send_code)   # tests swap this out
@@ -1294,11 +1294,11 @@ def add_routes(app):
                     return redirect(url_for("admin_reports"))
                 elif action in ("name_approve", "name_reject"):
                     uid = to_int(request.form.get("user_id"), "person")
-                    data.decide_name(conn, uid, approve=action == "name_approve")
-                    who = data.get_user(conn, uid)["display_name"]
+                    who = (data.get_user(conn, uid) or {}).get("display_name", "That person")
+                    data.decide_name(conn, uid, approve=action == "name_approve", acting_id=g.user["id"])
                     flash(f"{who} is on the leaderboards now." if action == "name_approve" else
-                          f"{who} wasn't approved. They're asked to change it to their real name, "
-                          "and the new name comes back here if it needs a check.", "ok")
+                          f"{who} wasn't approved: the account is deleted and its email blocked. "
+                          "To let them sign up again with their real name, type their email in People → Banned / timed out.", "ok")
                     return redirect(url_for("admin_reports"))
                 elif action == "add_users":
                     result = data.bulk_create_users(conn, request.form.get("csv", ""))
@@ -1336,6 +1336,16 @@ def add_routes(app):
                     data.set_reaper_notice(conn, on)
                     flash("The Stride Reaper pop-up is on for everyone." if on else
                           "The Stride Reaper pop-up is off.", "ok")
+                elif action == "email_unblock":
+                    if not is_owner(g.user):
+                        abort(403)
+                    address, name = data.unblock_email(conn, app.config["SECRET_KEY"], request.form.get("email"))
+                    try:
+                        app.config["SEND_UNBLOCKED"](address, url_for("signup", _external=True))
+                        flash(f"Unblocked {name}'s email and emailed them a sign-up link.", "ok")
+                    except ValueError as e:
+                        flash(f"Unblocked {name}'s email. {str(e)[0].upper()}{str(e)[1:]}.", "error")
+                    return redirect(url_for("admin", people="blocked", _anchor="people"))
                 elif action == "mod_delete_selected":
                     if not is_owner(g.user):
                         abort(403)
@@ -1403,7 +1413,8 @@ def add_routes(app):
         role_counts = {"all": len(users)}
         for r in ("student", "teacher", "admin"):
             role_counts[r] = sum(1 for u in users if u["role"] == r)
-        role_counts["blocked"] = sum(1 for u in users if u["blocked"])
+        emails = data.blocked_emails(conn)
+        role_counts["blocked"] = sum(1 for u in users if u["blocked"]) + len(emails)
         needle = people_q.lower()
         shown = [u for u in users
                  if (people_role == "all" or u["role"] == people_role
@@ -1421,6 +1432,7 @@ def add_routes(app):
                                csv_text=request.form.get("csv", "") if result else "",
                                shortcut_link=data.ios_shortcut_link(conn),
                                owner=is_owner(g.user),
+                               blocked_email_list=emails,
                                reaper_on=data.reaper_notice_on(conn),
                                blocked=data.blocked_people(conn) if is_owner(g.user) else [],
                                last_backup=backup.latest(current_app.config["DATABASE"])
