@@ -25,7 +25,7 @@ USERNAME_RE = re.compile(r"^[a-z0-9_.-]{3,30}$")
 # pin_hash is never selected for anything that leaves this file.
 USER_FIELDS = ("id, username, display_name, role, department, age_band, api_token, "
                "daily_goal, goal_is_custom, created_at, avatar, avatar_color, rename_notice, parent_status, "
-               "board_name, time_limit")
+               "board_name, time_limit, name_review")
 PLAYER_ROLES = ("teacher", "student")   # admins never appear on boards or in stats
 # Someone timed out or banned (Admin > Moderation) is left off the boards until it ends.
 NOT_BLOCKED = "(u.blocked_until IS NULL OR u.blocked_until <= ?)"
@@ -215,7 +215,7 @@ def _check_new_user(conn, username, display_name, role, department, age_band):
     display_name = (display_name or "").strip()
     if not 1 <= len(display_name) <= 50:
         raise ValueError("display name must be 1-50 characters")
-    wordfilter.check(display_name, "That name")
+    wordfilter.check_name(display_name, "That name")
     role = (role or "").strip().lower()
     if role not in config.ROLES:
         raise ValueError("role must be student, teacher or admin")
@@ -441,6 +441,7 @@ def finish_signup(conn, pending_id, code, now=None):
     if conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
         username = _hidden_username(conn, role)
     uid = _insert_user(conn, username, display_name, role, department, age_band, pin_hash, row["email_hash"])
+    _hold_name_for_review(conn, uid, display_name)
     if row["parent_email"]:   # under 13: the account waits for a parent's yes
         conn.execute("UPDATE users SET parent_status = 'pending', parent_email = ? WHERE id = ?",
                      (row["parent_email"], uid))
@@ -1030,7 +1031,7 @@ def _player_totals(conn, start, end, roles=PLAYER_ROLES):
     marks = ",".join("?" * len(roles))
     rows = conn.execute(
         f"SELECT u.id, u.display_name, u.department, u.daily_goal, u.avatar, u.avatar_color, "
-        f"u.role, u.age_band, u.board_name, "
+        f"u.role, u.age_band, u.board_name, u.name_review, "
         f"SUM(s.steps) AS total, MAX(s.updated_at) AS last_update "
         f"FROM users u JOIN steps s ON s.user_id = u.id AND s.date BETWEEN ? AND ? "
         f"WHERE u.role IN ({marks}) AND {NOT_BLOCKED} GROUP BY u.id HAVING total > 0",
@@ -1039,7 +1040,7 @@ def _player_totals(conn, start, end, roles=PLAYER_ROLES):
     out = {}
     for r in rows:
         choice = board_name_choice(r)
-        if choice == "hidden":
+        if choice == "hidden" or r["name_review"]:
             continue                      # still counts in their class/department average
         p = dict(r)
         p["display_name"] = shown_name(r["display_name"], choice)
@@ -1903,15 +1904,15 @@ def rename_person(conn, user_id, new_name, acting_id=None):
     new_name = clean_name(new_name)
     if not 1 <= len(new_name) <= 50:
         raise ValueError("the new name must be 1-50 characters")
-    wordfilter.check(new_name, "That name")
+    wordfilter.check_name(new_name, "That name")
     taken = conn.execute("SELECT id FROM users WHERE lower(display_name) = lower(?) AND id != ?",
                          (new_name, user_id)).fetchone()
     if taken:
         raise ValueError(f"someone already uses the name {new_name!r}")
     # Remember the old name so they see a warning box until they tap OK
     # (if renamed twice before seeing it, the box still shows their original name).
-    conn.execute("UPDATE users SET rename_notice = COALESCE(rename_notice, display_name), display_name = ? "
-                 "WHERE id = ?", (new_name, user_id))
+    conn.execute("UPDATE users SET rename_notice = COALESCE(rename_notice, display_name), display_name = ?, "
+                 "name_review = NULL, name_review_at = NULL WHERE id = ?", (new_name, user_id))   # the owner chose it
     conn.commit()
 
 
@@ -2125,7 +2126,7 @@ def update_my_details(conn, user_id, display_name, department):
     name = clean_name(display_name)
     if not 1 <= len(name) <= 50:
         raise ValueError("your name must be 1-50 characters")
-    wordfilter.check(name, "That name")
+    wordfilter.check_name(name, "That name")
     if conn.execute("SELECT 1 FROM users WHERE lower(display_name) = lower(?) AND id != ?",
                     (name, user_id)).fetchone():
         raise ValueError("someone already uses that name. Add your last name or initial")
@@ -2138,6 +2139,8 @@ def update_my_details(conn, user_id, display_name, department):
     elif dept and len(dept) > 50:
         raise ValueError("department must be at most 50 characters")
     conn.execute("UPDATE users SET display_name = ?, department = ? WHERE id = ?", (name, dept, user_id))
+    if name != user["display_name"]:
+        _hold_name_for_review(conn, user_id, name)
     conn.commit()
 
 
@@ -2375,3 +2378,35 @@ def shrink_if_needed(conn, share=None):
     conn.execute("VACUUM")
     conn.execute("PRAGMA optimize")
     return True
+
+
+# =====================================================================
+# Names that might be rude but might be real (wordfilter.REVIEW)
+# =====================================================================
+
+def _hold_name_for_review(conn, user_id, name):
+    """A name someone picked for themselves: if it might be rude ("Dick", "Kundan"), keep them off
+    the leaderboards until an admin approves it; a clean name clears any earlier hold."""
+    word = wordfilter.needs_review(name)
+    conn.execute("UPDATE users SET name_review = ?, name_review_at = ? WHERE id = ?",
+                 (word, local_now_iso() if word else None, user_id))
+
+
+def name_reviews(conn):
+    """Names waiting for an admin, oldest first, shaped like open_reports() rows for the Reports tab."""
+    rows = conn.execute("SELECT id, display_name, department, name_review, name_review_at FROM users "
+                        "WHERE name_review IS NOT NULL ORDER BY name_review_at").fetchall()
+    return [{"id": r["id"], "kind": "name", "reason": "real_name", "reason_label": "Possible real name",
+             "target": r["display_name"], "target_dept": r["department"], "word": r["name_review"],
+             "reporter": None, "created_at": r["name_review_at"] or ""} for r in rows]
+
+
+def decide_name(conn, user_id, approve):
+    """An admin's answer: approve (back on the boards) or hide (stays off the boards, still counts
+    for the class). Either way the hold is cleared."""
+    if not conn.execute("SELECT 1 FROM users WHERE id = ? AND name_review IS NOT NULL", (user_id,)).fetchone():
+        raise ValueError("that name was already checked")
+    extra = "" if approve else ", board_name = 'hidden'"
+    conn.execute(f"UPDATE users SET name_review = NULL, name_review_at = NULL{extra} WHERE id = ?", (user_id,))
+    conn.commit()
+

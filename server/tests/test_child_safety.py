@@ -222,3 +222,21 @@ def test_students_cant_open_admin_reports(school):
     client, path, ids = school
     assert client(ids["Amal Khan"]).get("/admin/reports").status_code == 403
     assert client(ids["Amal Khan"]).post("/admin", data={"csrf": "x", "action": "report_done", "report_id": 1}).status_code in (302, 403)
+
+
+def test_admin_approves_a_possible_real_name_from_the_reports_tab(school):
+    client, path, ids = school
+    conn = db.connect(path)
+    data.update_my_details(conn, ids["Omar Saeed"], "Kundan Saeed", "Grade 10A")
+    conn.close()
+    admin = client(ids["admin"])
+    assert '<span class="tab-count">1</span>' in admin.get("/admin").get_data(as_text=True)
+    page = admin.get("/admin/reports").get_data(as_text=True)
+    assert "Possible real name" in page and "Kundan Saeed" in page and "Approve name" in page
+    assert '<option value="real_name">Possible real name · 1</option>' in page
+    assert "waiting for a quick check" in client(ids["Omar Saeed"]).get("/settings").get_data(as_text=True)
+    r = admin.post("/admin", data={"csrf": "x", "action": "name_approve", "user_id": ids["Omar Saeed"]})
+    assert r.headers["Location"].endswith("/admin/reports")
+    assert 'data-reason="real_name"' not in admin.get("/admin/reports").get_data(as_text=True)
+    assert client(ids["Amal Khan"]).post("/admin", data={"csrf": "x", "action": "name_hide",
+                                                         "user_id": ids["Omar Saeed"]}).status_code in (302, 403)

@@ -44,7 +44,7 @@ ANYWHERE = (
 
 WHOLE_WORD = (
     # English
-    "fuk", "fck", "fk", "ass", "arse", "shit", "shite", "crap", "dick", "cock", "piss", "damn",
+    "fuk", "fck", "fk", "ass", "arse", "shit", "shite", "crap", "cock", "piss", "damn",
     "hell", "fag", "fags", "tit", "tits", "boob", "boobs", "nude", "nudes", "sex", "porn", "cum",
     "jizz", "wtf", "stfu", "milf", "thot", "hoe", "hoes", "prick", "twat", "pedo", "paedo",
     "nazi", "isis", "kkk", "idiot", "stupid", "dumb", "moron", "loser", "ugly", "kill", "suicide",
@@ -70,6 +70,14 @@ WHOLE_WORD = (
     "മൈര്", "മൈരെ", "മൈരേ", "മൈരൻ", "പൂറ്", "കൂതി", "നായിന്റെ",
     # Tamil script
     "மயிரு", "மயிர்", "கூதி", "சூத்து", "பொட்டை", "ஓம்பு", "ஒம்மால",
+)
+
+# Words that are rude in one language but real names in another ("Dick", "Randi", "Kundan").
+# In a name someone picks for themselves they are allowed, but the person stays off the
+# leaderboards until an admin approves the name (Admin > Reports: "Possible real name").
+# Anywhere else (challenge titles, report notes) they are blocked like WHOLE_WORD.
+REVIEW = (
+    "dick", "fanny", "willy", "randi", "lund", "gay", "kundan", "andi", "patti", "myra", "pooran",
 )
 
 _LEET = str.maketrans({"0": "o", "1": "i", "!": "i", "|": "i", "3": "e", "4": "a", "@": "a",
@@ -107,6 +115,7 @@ def _variants(text):
 
 _ANY = tuple(_plain(w).replace(" ", "") for w in ANYWHERE)
 _WHOLE = {_plain(w) for w in WHOLE_WORD}
+_REVIEW = {_plain(w) for w in REVIEW}
 
 
 def _short_word_runs(words):
@@ -145,6 +154,24 @@ def is_clean(text):
 
 
 def check(text, what="That"):
-    """Raise ValueError if the text contains a blocked word. `what` names the field."""
+    """Raise ValueError if the text contains a blocked word. `what` names the field.
+    Maybe-real names (REVIEW) are blocked here too: this is for titles and notes, not names."""
+    if find_blocked(text) or needs_review(text):
+        raise ValueError(f"{what} has a word that isn't allowed on StrideBoard. Please choose another")
+
+
+def needs_review(text):
+    """For names: the word that might be rude but might be a real name (e.g. 'dick'), or None."""
+    for version in _variants(text or ""):
+        for w in _WORD.findall(version):
+            if w in _REVIEW or _squeeze(w) in _REVIEW:
+                return w
+    return None
+
+
+def check_name(text, what="That name"):
+    """Like check(), for a name someone picks: blocked words are refused; maybe-real names pass
+    (the caller holds them for an admin with needs_review)."""
     if find_blocked(text):
         raise ValueError(f"{what} has a word that isn't allowed on StrideBoard. Please choose another")
+

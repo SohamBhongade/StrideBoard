@@ -2,7 +2,7 @@
 {% block title %}Reports · Admin{% endblock %}
 {% block content %}
 
-{{ m.page_head("School", "reports", "Things people have flagged on the leaderboards. Handle or dismiss each one.") }}
+{{ m.page_head("School", "reports", "Things people have flagged on the leaderboards, and new names to check. Handle each one.") }}
 {{ m.admin_tabs('reports', reports|length) }}
 
 {# ---- Reports from people (Child Digital Safety Law: an easy way to report) ---- #}
@@ -33,15 +33,30 @@
       <div class="report-what">
         <strong>{{ r.target }}</strong> <span class="muted small">{{ r.target_dept or '' }}</span>
         <span class="chip">{{ r.reason_label }}</span>
+        {% if r.kind == 'name' %}
+        <p class="small">Their name has “{{ r.word }}”, which is rude in some languages but can be a real name.
+          They're off the leaderboards until you decide.</p>
+        <p class="small muted">Checked automatically · {{ r.created_at[:16]|replace('T', ' ') }}</p>
+        {% else %}
         {% if r.note %}<p class="small">“{{ r.note }}”</p>{% endif %}
         <p class="small muted">Reported by {{ r.reporter or 'a deleted account' }} · {{ r.created_at[:16]|replace('T', ' ') }}</p>
+        {% endif %}
       </div>
+      {% if r.kind == 'name' %}
+      <form method="post" action="{{ url_for('admin') }}" class="report-actions">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="user_id" value="{{ r.id }}">
+        <button class="btn btn-dark btn-sm" name="action" value="name_approve" type="submit">Approve name</button>
+        <button class="btn btn-outline btn-sm" name="action" value="name_hide" type="submit" title="They stay off the boards; their steps still count for their class">Keep off boards</button>
+      </form>
+      {% else %}
       <form method="post" action="{{ url_for('admin') }}" class="report-actions">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="report_id" value="{{ r.id }}">
         <button class="btn btn-dark btn-sm" name="action" value="report_done" type="submit">Handled</button>
         <button class="btn btn-outline btn-sm" name="action" value="report_dismiss" type="submit">Dismiss</button>
       </form>
+      {% endif %}
     </li>
     {% endfor %}
   </ul>

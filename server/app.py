@@ -1292,6 +1292,13 @@ def add_routes(app):
                                        "done" if action == "report_done" else "dismissed")
                     flash("Report marked as handled." if action == "report_done" else "Report dismissed.", "ok")
                     return redirect(url_for("admin_reports"))
+                elif action in ("name_approve", "name_hide"):
+                    uid = to_int(request.form.get("user_id"), "person")
+                    data.decide_name(conn, uid, approve=action == "name_approve")
+                    who = data.get_user(conn, uid)["display_name"]
+                    flash(f"{who} is back on the leaderboards." if action == "name_approve" else
+                          f"{who} stays off the leaderboards (their steps still count for their class).", "ok")
+                    return redirect(url_for("admin_reports"))
                 elif action == "add_users":
                     result = data.bulk_create_users(conn, request.form.get("csv", ""))
                     flash(f"Added {result['created']} user(s).", "ok" if not result["errors"] else "error")
@@ -1402,7 +1409,7 @@ def add_routes(app):
                      or (people_role == "blocked" and u["blocked"]))
                  and (not needle or needle in f"{u['display_name']} {u['username']} {u['department'] or ''}".lower())]
         per_day = data.suggested_distance_target(conn, 1)
-        return render_template("admin.html", report_count=len(data.open_reports(conn)), board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
+        return render_template("admin.html", report_count=len(data.open_reports(conn)) + len(data.name_reviews(conn)), board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
                                users=users, shown=shown, people_role=people_role,
                                people_q=people_q, role_counts=role_counts,
                                challenges=data.active_challenges(conn, today()),
@@ -1423,8 +1430,9 @@ def add_routes(app):
         """The Reports tab: open reports, with a type filter and name search (handled via /admin)."""
         admin_only()
         conn = db.get_db()
-        return render_template("admin_reports.html", reports=data.open_reports(conn),
-                               report_reasons=data.REPORT_REASONS, owner=is_owner(g.user))
+        return render_template("admin_reports.html", reports=data.open_reports(conn) + data.name_reviews(conn),
+                               report_reasons=data.REPORT_REASONS + (("real_name", "Possible real name"),),
+                               owner=is_owner(g.user))
 
     @app.route("/admin/backup")
     def admin_backup():
