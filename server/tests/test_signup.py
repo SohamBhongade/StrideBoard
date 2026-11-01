@@ -144,8 +144,10 @@ def test_keep_off_boards_hides_them_and_name_changes_recheck(conn):
     assert data.name_reviews(conn) == []
     data.update_my_details(conn, uid, "Randi Joseph", "Grade 10A")          # chosen by themselves: held
     assert [r["word"] for r in data.name_reviews(conn)] == ["randi"]
-    data.decide_name(conn, uid, approve=False)
-    assert data.get_user(conn, uid)["board_name"] == "hidden" and data.name_reviews(conn) == []
+    data.decide_name(conn, uid, approve=False)                       # not approved: asked to rename
+    assert data.name_review_state(data.get_user(conn, uid)) == "rejected" and data.name_reviews(conn) == []
+    data.update_my_details(conn, uid, "Randi Joseph", "Grade 10A")   # same name again: back in the queue
+    assert data.name_review_state(data.get_user(conn, uid)) == "pending"
     data.update_my_details(conn, uid, "Patti Joseph", "Grade 10A")
     data.update_my_details(conn, uid, "Joseph Mathew", "Grade 10A")        # a clean name clears the hold
     assert data.name_reviews(conn) == []

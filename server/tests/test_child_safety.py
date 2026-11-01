@@ -234,9 +234,33 @@ def test_admin_approves_a_possible_real_name_from_the_reports_tab(school):
     page = admin.get("/admin/reports").get_data(as_text=True)
     assert "Possible real name" in page and "Kundan Saeed" in page and "Approve name" in page
     assert '<option value="real_name">Possible real name · 1</option>' in page
-    assert "waiting for a quick check" in client(ids["Omar Saeed"]).get("/settings").get_data(as_text=True)
+    omar = client(ids["Omar Saeed"])
+    for url in ("/settings", "/"):                                   # told on Home and in Settings
+        assert "Your name is waiting to be approved" in omar.get(url).get_data(as_text=True)
+        assert "Please tell an admin at" in omar.get(url).get_data(as_text=True)
     r = admin.post("/admin", data={"csrf": "x", "action": "name_approve", "user_id": ids["Omar Saeed"]})
     assert r.headers["Location"].endswith("/admin/reports")
     assert 'data-reason="real_name"' not in admin.get("/admin/reports").get_data(as_text=True)
-    assert client(ids["Amal Khan"]).post("/admin", data={"csrf": "x", "action": "name_hide",
+    assert client(ids["Amal Khan"]).post("/admin", data={"csrf": "x", "action": "name_reject",
                                                          "user_id": ids["Omar Saeed"]}).status_code in (302, 403)
+
+
+def test_not_approved_asks_for_the_real_name_and_checks_again(school):
+    client, path, ids = school
+    conn = db.connect(path)
+    data.update_my_details(conn, ids["Omar Saeed"], "Kundan Saeed", "Grade 10A")
+    conn.close()
+    admin, omar = client(ids["admin"]), client(ids["Omar Saeed"])
+    admin.post("/admin", data={"csrf": "x", "action": "name_reject", "user_id": ids["Omar Saeed"]})
+    assert 'data-reason="real_name"' not in admin.get("/admin/reports").get_data(as_text=True)
+    for url in ("/settings", "/"):
+        page = omar.get(url).get_data(as_text=True)
+        assert "Your name wasn't approved" in page and "actual full name" in page
+    assert "Omar" not in client(ids["Amal Khan"]).get("/leaderboard?view=student").get_data(as_text=True).split("<main")[1]
+    # They try again with their real name: no check needed, back on the boards
+    omar.post("/settings", data={"csrf": "x", "action": "my_details", "display_name": "Omar Saeed",
+                                 "department": "Grade 10A"})
+    assert "wasn't approved" not in omar.get("/").get_data(as_text=True)
+    conn = db.connect(path)
+    assert data.get_user(conn, ids["Omar Saeed"])["name_review"] is None
+

@@ -55,6 +55,30 @@
 {%- endmacro %}
 
 {# Big two-weight page title: light first word(s), bold last. #}
+{# For someone whose self-chosen name might be rude in another language (wordfilter.REVIEW):
+   waiting for an admin, or not approved and asked to use their real name. #}
+{% macro name_review_notice(person, home=False) -%}
+{% if person.name_review %}
+{% set group = 'class' if person.role == 'student' else 'department' %}
+<div class="nudge nudge-pink name-review" role="status">
+  <span class="icon-circle">{{ icon('report') }}</span>
+  <div class="nudge-text">
+  {% if person.name_review == 'rejected' %}
+    <strong>Your name wasn't approved</strong>
+    <span>You're not on the leaderboards. Please change it to your actual full name{% if home %} in
+      Settings → Your data and privacy{% else %} here{% endif %} and save. A school admin will check it again
+      if needed. Your steps still count for your {{ group }}.</span>
+  {% else %}
+    <strong>Your name is waiting to be approved</strong>
+    <span>A school admin needs to check it before it shows on the leaderboards. Please tell an admin at
+      school so they can approve it. Your steps still count for your {{ group }}.</span>
+  {% endif %}
+  </div>
+  {% if home %}<a class="btn btn-dark btn-sm" href="{{ url_for('settings') }}#your-data">{{ 'Change name' if person.name_review == 'rejected' else 'Settings' }}</a>{% endif %}
+</div>
+{% endif %}
+{%- endmacro %}
+
 {# The tabs at the top of the Admin pages: Overview and Reports (with the open count) #}
 {% macro admin_tabs(active, report_count=0) -%}
 <nav class="pills admin-tabs" aria-label="Admin sections">

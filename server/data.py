@@ -2139,7 +2139,7 @@ def update_my_details(conn, user_id, display_name, department):
     elif dept and len(dept) > 50:
         raise ValueError("department must be at most 50 characters")
     conn.execute("UPDATE users SET display_name = ?, department = ? WHERE id = ?", (name, dept, user_id))
-    if name != user["display_name"]:
+    if name != user["display_name"] or user["name_review"] == NAME_REJECTED:
         _hold_name_for_review(conn, user_id, name)
     conn.commit()
 
@@ -2392,21 +2392,35 @@ def _hold_name_for_review(conn, user_id, name):
                  (word, local_now_iso() if word else None, user_id))
 
 
+NAME_REJECTED = "rejected"    # users.name_review after an admin says no: off the boards until they rename
+
+
+def name_review_state(user):
+    """None (fine), "pending" (waiting for an admin) or "rejected" (asked to use their real name)."""
+    value = user["name_review"]
+    if not value:
+        return None
+    return "rejected" if value == NAME_REJECTED else "pending"
+
+
 def name_reviews(conn):
     """Names waiting for an admin, oldest first, shaped like open_reports() rows for the Reports tab."""
     rows = conn.execute("SELECT id, display_name, department, name_review, name_review_at FROM users "
-                        "WHERE name_review IS NOT NULL ORDER BY name_review_at").fetchall()
+                        "WHERE name_review IS NOT NULL AND name_review != ? ORDER BY name_review_at",
+                        (NAME_REJECTED,)).fetchall()
     return [{"id": r["id"], "kind": "name", "reason": "real_name", "reason_label": "Possible real name",
              "target": r["display_name"], "target_dept": r["department"], "word": r["name_review"],
              "reporter": None, "created_at": r["name_review_at"] or ""} for r in rows]
 
 
 def decide_name(conn, user_id, approve):
-    """An admin's answer: approve (back on the boards) or hide (stays off the boards, still counts
-    for the class). Either way the hold is cleared."""
-    if not conn.execute("SELECT 1 FROM users WHERE id = ? AND name_review IS NOT NULL", (user_id,)).fetchone():
+    """An admin's answer. Approve: back on the boards. Not approved: they stay off the boards
+    (still counting for their class) and are asked to change it to their real name; saving a new
+    name in Settings checks it again."""
+    if not conn.execute("SELECT 1 FROM users WHERE id = ? AND name_review IS NOT NULL AND name_review != ?",
+                        (user_id, NAME_REJECTED)).fetchone():
         raise ValueError("that name was already checked")
-    extra = "" if approve else ", board_name = 'hidden'"
-    conn.execute(f"UPDATE users SET name_review = NULL, name_review_at = NULL{extra} WHERE id = ?", (user_id,))
+    conn.execute("UPDATE users SET name_review = ?, name_review_at = NULL WHERE id = ?",
+                 (None if approve else NAME_REJECTED, user_id))
     conn.commit()
 

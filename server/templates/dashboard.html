@@ -22,6 +22,8 @@
 </div>
 {% endif %}
 
+{{ m.name_review_notice(user, home=True) }}
+
 {% if app_update %}
 {# Inside an older Android app: a small notice to update (see android_app_update in app.py) #}
 <div class="nudge nudge-blue app-update" data-app-update>
