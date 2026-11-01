@@ -62,7 +62,10 @@ ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT", "email_hash TEXT"
                            # NULL = the default (short for students and under-18s, full for adults).
                            "board_name TEXT",
                            # A parent's daily time limit in minutes (NULL = none).
-                           "time_limit INTEGER"],
+                           "time_limit INTEGER",
+                           # A self-chosen name that might be rude but might be real ("Dick",
+                           # "Kundan"): the word, and when. Off the boards until an admin decides.
+                           "name_review TEXT", "name_review_at TEXT"],
                  "pending_signups": ["parent_email TEXT"]}
 
 

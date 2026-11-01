@@ -15,7 +15,12 @@ import wordfilter
 @pytest.mark.parametrize("name", [
     "Hassan Ali", "Assad Khan", "Dickson Mathew", "Shitanshu Rao", "Cassandra Lee", "Kamini Iyer",
     "Pornima Kale", "Nazir Ahmed", "Harshita Sharma", "Kalbani Saeed", "Abi Tchandran", "Alan Samuel D S",
-    "زبيدة محمد", "دخول المدرسة", "Walk to Dubai", "Pedometer Club", "Crisis Team", "Grade 10A walkers"])
+    "زبيدة محمد", "دخول المدرسة", "Walk to Dubai", "Pedometer Club", "Crisis Team", "Grade 10A walkers",
+    # Malayali and Tamil names and places that contain the same sounds as blocked words
+    "Kunnath Joseph", "Arun Kunnamkulam", "Koothattukulam Club", "Pooja Nair", "Poornima Menon",
+    "Purushothaman K", "Sunil Thayyil", "Badusha Ali", "Pundalik Rao", "Mayuri S", "Othayoth Faisal",
+    "Oommen Chandy", "Kundan Lal", "Sunni Muslim Society", "Myra Thomas", "Pothan Varghese", "Kunjumon",
+    "Kundara", "Soorya Krishna", "Thevara Walkers", "Baadshah", "കുന്നത്ത്", "പൂരി", "പൂജ", "பூஜா", "மயில்", "கூட்டம்"])
 def test_real_names_and_words_pass(name):
     assert wordfilter.is_clean(name)
 
@@ -23,7 +28,11 @@ def test_real_names_and_words_pass(name):
 @pytest.mark.parametrize("text", [
     "fuck", "F.U.C.K", "f u c k", "fu ck", "fuuuck", "sh1t", "a$$", "b1tch", "motherfucker", "Bhenchod",
     "chutiya", "Saala", "kos omak", "kosomak", "ibn el kalb", "a7a", "Yel3an", "شرموطة", "كسمك", "كس",
-    "حمار", "n1gger", "porn", "hitler", "stupid", "Shiiit"])
+    "حمار", "n1gger", "porn", "hitler", "stupid", "Shiiit",
+    # Malayalam and Tamil, in English letters and in their own scripts
+    "thayoli", "Th4yoli", "poorimone", "kunna", "k u n n a", "myre", "p00ru", "kazhuveri", "oombi",
+    "thevidiya", "Thevdiya paiyan", "punda", "otha", "pundamavane", "loosu",
+    "നീ തായോളി", "കുണ്ണ", "മൈരൻ", "മൈര്\u200d", "തേ കഴുവേറി", "தேவிடியா", "புண்டை", "மயிரு", "ஓத்தா", "சூத்து"])
 def test_rude_words_are_blocked(text):
     assert not wordfilter.is_clean(text)
 
@@ -213,3 +222,21 @@ def test_students_cant_open_admin_reports(school):
     client, path, ids = school
     assert client(ids["Amal Khan"]).get("/admin/reports").status_code == 403
     assert client(ids["Amal Khan"]).post("/admin", data={"csrf": "x", "action": "report_done", "report_id": 1}).status_code in (302, 403)
+
+
+def test_admin_approves_a_possible_real_name_from_the_reports_tab(school):
+    client, path, ids = school
+    conn = db.connect(path)
+    data.update_my_details(conn, ids["Omar Saeed"], "Kundan Saeed", "Grade 10A")
+    conn.close()
+    admin = client(ids["admin"])
+    assert '<span class="tab-count">1</span>' in admin.get("/admin").get_data(as_text=True)
+    page = admin.get("/admin/reports").get_data(as_text=True)
+    assert "Possible real name" in page and "Kundan Saeed" in page and "Approve name" in page
+    assert '<option value="real_name">Possible real name · 1</option>' in page
+    assert "waiting for a quick check" in client(ids["Omar Saeed"]).get("/settings").get_data(as_text=True)
+    r = admin.post("/admin", data={"csrf": "x", "action": "name_approve", "user_id": ids["Omar Saeed"]})
+    assert r.headers["Location"].endswith("/admin/reports")
+    assert 'data-reason="real_name"' not in admin.get("/admin/reports").get_data(as_text=True)
+    assert client(ids["Amal Khan"]).post("/admin", data={"csrf": "x", "action": "name_hide",
+                                                         "user_id": ids["Omar Saeed"]}).status_code in (302, 403)

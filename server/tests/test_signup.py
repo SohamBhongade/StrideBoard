@@ -112,3 +112,50 @@ def test_signup_lists():
     assert len(config.SIGNUP_CLASSES) == 14
     assert config.SIGNUP_CLASSES[0] == "Grade 9A" and config.SIGNUP_CLASSES[-1] == "Grade 12C"
     assert "Computer Science" in config.SIGNUP_DEPARTMENTS
+
+
+# ---- Names that might be rude but might be real ("Possible real name" in Admin > Reports) ----
+
+def test_maybe_real_name_signs_up_but_waits_off_the_boards(conn):
+    import wordfilter
+    assert wordfilter.needs_review("Kundan Lal") == "kundan" and wordfilter.needs_review("Amal Khan") is None
+    assert wordfilter.needs_review("Dickson Mathew") is None                  # whole words only
+    pid, _, code = start(conn, name="Kundan Lal")
+    uid = data.finish_signup(conn, pid, code, now=T0 + timedelta(minutes=2))
+    data.save_steps(conn, uid, None, 9000, "android_app")
+    other = make_user(conn, "omar")
+    data.save_steps(conn, other, None, 4000, "android_app")
+
+    def on_board():
+        return any(r.get("user_id") == uid for r in data.leaderboard(conn, "student", data.local_today()))
+
+    assert not on_board()
+    [row] = data.name_reviews(conn)
+    assert (row["target"], row["word"], row["reason_label"]) == ("Kundan Lal", "kundan", "Possible real name")
+    assert data.leaderboard(conn, "department", data.local_today())[0]["value"] > 0   # still counts for the class
+    data.decide_name(conn, uid, approve=True)
+    assert on_board() and data.name_reviews(conn) == []
+    with pytest.raises(ValueError, match="already checked"):
+        data.decide_name(conn, uid, approve=True)
+
+
+def test_keep_off_boards_hides_them_and_name_changes_recheck(conn):
+    uid = make_user(conn, "dick", display_name="Dick Smith")       # made by an admin: no hold
+    assert data.name_reviews(conn) == []
+    data.update_my_details(conn, uid, "Randi Joseph", "Grade 10A")          # chosen by themselves: held
+    assert [r["word"] for r in data.name_reviews(conn)] == ["randi"]
+    data.decide_name(conn, uid, approve=False)
+    assert data.get_user(conn, uid)["board_name"] == "hidden" and data.name_reviews(conn) == []
+    data.update_my_details(conn, uid, "Patti Joseph", "Grade 10A")
+    data.update_my_details(conn, uid, "Joseph Mathew", "Grade 10A")        # a clean name clears the hold
+    assert data.name_reviews(conn) == []
+    data.update_my_details(conn, uid, "Lund Peter", "Grade 10A")
+    data.rename_person(conn, uid, "Peter Lund")                      # the owner's rename clears it too
+    assert data.name_reviews(conn) == []
+
+
+def test_maybe_real_names_are_still_blocked_in_titles_and_notes():
+    import wordfilter
+    with pytest.raises(ValueError):
+        wordfilter.check("Dick walkers", "The title")
+    wordfilter.check_name("Dick Smith")                               # fine as a name
