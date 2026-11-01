@@ -228,3 +228,16 @@ def test_arabic_privacy_date_is_in_arabic():
     import app as A
     assert A.arabic_date("28 October 2026") == "28 أكتوبر 2026"
     assert A.arabic_date("not a date") == "not a date"
+
+
+def test_policy_never_says_steps_can_be_typed_in(site):
+    """Steps only come from phones (manual logging was removed in PR #4), and both policies say so."""
+    en = site.get("/privacy").get_data(as_text=True)
+    ar = site.get("/privacy?lang=ar").get_data(as_text=True)
+    assert "or typed in" not in en and "typing made-up numbers" not in en
+    assert "Steps can’t be typed in by hand" in en
+    assert "أو الإدخال يدويًا" not in ar and "إدخال أرقام مختلقة" not in ar
+    assert "لا يمكن إدخال الخطوات يدويًا" in ar
+    assert "1 November 2026" in en and "1 نوفمبر 2026" in ar
+    assert "Daily goal (you can change it in Settings)" in en
+    assert "الهدف اليومي (يمكنك تغييره من الإعدادات)" in ar
