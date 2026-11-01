@@ -1890,12 +1890,31 @@ def unblock_user(conn, user_id):
 
 
 def blocked_emails(conn):
-    """Emails that can't sign up again, newest first: [{"name", "reason", "at"}].
+    """Emails that can't sign up again, newest first: [{"id", "name", "reason", "at"}].
     Only a fingerprint of each email is kept, so the name is how the owner tells them apart."""
-    rows = conn.execute("SELECT email_hash, name, reason, blocked_at FROM blocked_emails "
+    rows = conn.execute("SELECT rowid AS id, name, reason, blocked_at FROM blocked_emails "
                         "ORDER BY blocked_at DESC").fetchall()
-    return [{"name": r["name"] or "An older account",
+    return [{"id": r["id"], "name": r["name"] or "An older account",
              "reason": r["reason"] or "Deleted forever", "at": r["blocked_at"]} for r in rows]
+
+
+def unblock_email_row(conn, row_id):
+    """The owner's Unblock button on one row of the list. Returns the name it had."""
+    row = conn.execute("SELECT name FROM blocked_emails WHERE rowid = ?", (int(row_id),)).fetchone()
+    if row is None:
+        raise ValueError("that email was already unblocked")
+    conn.execute("DELETE FROM blocked_emails WHERE rowid = ?", (int(row_id),))
+    conn.commit()
+    return row["name"] or "That account"
+
+
+def unblock_emails_on(conn, day):
+    """Unblock every email blocked on one day (YYYY-MM-DD), e.g. test accounts deleted together."""
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day or ""):
+        raise ValueError("choose a day")
+    n = conn.execute("DELETE FROM blocked_emails WHERE substr(blocked_at, 1, 10) = ?", (day,)).rowcount
+    conn.commit()
+    return n
 
 
 def unblock_email(conn, secret, email):

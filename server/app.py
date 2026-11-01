@@ -4,6 +4,7 @@ The pages people see. All data comes from data.py (Agent 1); this file never
 writes SQL. Run from the server folder with:  flask run
 """
 import gzip
+from collections import Counter
 import io
 import json
 import os
@@ -65,7 +66,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "64"
+ASSET_VERSION = "65"
 
 # Pages that still work after a parent's daily time limit is used up.
 TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
@@ -1336,6 +1337,17 @@ def add_routes(app):
                     data.set_reaper_notice(conn, on)
                     flash("The Stride Reaper pop-up is on for everyone." if on else
                           "The Stride Reaper pop-up is off.", "ok")
+                elif action in ("email_unblock_row", "email_unblock_day"):
+                    if not is_owner(g.user):
+                        abort(403)
+                    if action == "email_unblock_row":
+                        name = data.unblock_email_row(conn, to_int(request.form.get("row"), "row"))
+                        flash(f"{name}'s email can sign up again.", "ok")
+                    else:
+                        day = request.form.get("day", "")
+                        n = data.unblock_emails_on(conn, day)
+                        flash(f"Unblocked {n} email{'s' if n != 1 else ''} blocked on {day}.", "ok")
+                    return redirect(url_for("admin", people="blocked", _anchor="people"))
                 elif action == "email_unblock":
                     if not is_owner(g.user):
                         abort(403)
@@ -1433,6 +1445,8 @@ def add_routes(app):
                                shortcut_link=data.ios_shortcut_link(conn),
                                owner=is_owner(g.user),
                                blocked_email_list=emails,
+                               blocked_email_days=sorted(Counter((e["at"] or "")[:10] for e in emails).items(),
+                                                         reverse=True),
                                reaper_on=data.reaper_notice_on(conn),
                                blocked=data.blocked_people(conn) if is_owner(g.user) else [],
                                last_backup=backup.latest(current_app.config["DATABASE"])

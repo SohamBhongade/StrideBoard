@@ -274,3 +274,24 @@ def test_not_approved_deletes_and_only_the_owner_unblocks_by_email(school, monke
     assert r.status_code == 302 and sent[0][0] == "omarsaeed@gmail.com" and sent[0][1].endswith("/signup")
     assert "Blocked emails · 0" in client(owner).get("/admin?people=blocked").get_data(as_text=True)
 
+
+
+def test_owner_unblocks_one_email_or_a_whole_day(school, monkeypatch):
+    client, path, ids = school
+    conn = db.connect(path)
+    owner = data.create_user(conn, "reaper", "Stride Reaper", "admin", "Staff", "adult_18_39", "4826")
+    conn.executemany("INSERT INTO blocked_emails (email_hash, blocked_at, name, reason) VALUES (?, ?, ?, ?)",
+                     [(f"h{i}", "2026-10-28T11:33:00+04:00", None, None) for i in range(15)]
+                     + [("x1", "2026-10-23T18:23:00+04:00", None, None),
+                        ("x2", "2026-11-01T17:44:00+04:00", "Kundan Nithik", "Name not approved")])
+    conn.commit()
+    monkeypatch.setattr(A.config, "OWNER_USERNAME", "reaper")
+    page = client(owner).get("/admin?people=blocked").get_data(as_text=True)
+    assert '<option value="2026-10-28">2026-10-28 · 15 emails</option>' in page
+    assert client(ids["admin"]).post("/admin", data={"csrf": "x", "action": "email_unblock_day",
+                                                     "day": "2026-10-28"}).status_code == 403
+    client(owner).post("/admin", data={"csrf": "x", "action": "email_unblock_day", "day": "2026-10-28"})
+    assert conn.execute("SELECT COUNT(*) FROM blocked_emails").fetchone()[0] == 2
+    row = conn.execute("SELECT rowid FROM blocked_emails WHERE email_hash = 'x2'").fetchone()[0]
+    client(owner).post("/admin", data={"csrf": "x", "action": "email_unblock_row", "row": row})
+    assert [r[0] for r in conn.execute("SELECT email_hash FROM blocked_emails")] == ["x1"]
