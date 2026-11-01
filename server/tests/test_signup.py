@@ -139,17 +139,31 @@ def test_maybe_real_name_signs_up_but_waits_off_the_boards(conn):
         data.decide_name(conn, uid, approve=True)
 
 
-def test_keep_off_boards_hides_them_and_name_changes_recheck(conn):
+def test_not_approved_deletes_and_blocks_until_the_owner_types_the_email(conn):
+    pid, _, code = start(conn, email="Kundan.Lal+x@gmail.com", name="Kundan Lal")
+    uid = data.finish_signup(conn, pid, code, now=T0 + timedelta(minutes=2))
+    assert data.decide_name(conn, uid, approve=False) == "Kundan Lal"
+    assert data.get_user(conn, uid) is None and data.name_reviews(conn) == []     # deleted: logged out
+    assert data.blocked_emails(conn)[0]["name"] == "Kundan Lal"
+    assert data.blocked_emails(conn)[0]["reason"] == "Name not approved"
+    with pytest.raises(ValueError, match="can't be used"):
+        start(conn, email="kundanlal@gmail.com", name="Kundan Lal")             # same inbox, still blocked
+    with pytest.raises(ValueError, match="isn't blocked"):
+        data.unblock_email(conn, SECRET, "someone.else@gmail.com")
+    address, name = data.unblock_email(conn, SECRET, "kundan.lal@gmail.com")   # dots don't matter
+    assert (address, name) == ("kundanlal@gmail.com", "Kundan Lal") and data.blocked_emails(conn) == []
+    assert "kundan" not in str(conn.execute("SELECT * FROM blocked_emails").fetchall()).lower()
+    pid, _, code = start(conn, email="kundan.lal@gmail.com", name="Kundan Lalith Kumar")
+    assert data.finish_signup(conn, pid, code, now=T0 + timedelta(minutes=4))
+
+
+def test_name_changes_are_checked_again(conn):
     uid = make_user(conn, "dick", display_name="Dick Smith")       # made by an admin: no hold
     assert data.name_reviews(conn) == []
-    data.update_my_details(conn, uid, "Randi Joseph", "Grade 10A")          # chosen by themselves: held
+    data.update_my_details(conn, uid, "Randi Joseph", "Grade 10A")   # chosen by themselves: held
     assert [r["word"] for r in data.name_reviews(conn)] == ["randi"]
-    data.decide_name(conn, uid, approve=False)                       # not approved: asked to rename
-    assert data.name_review_state(data.get_user(conn, uid)) == "rejected" and data.name_reviews(conn) == []
-    data.update_my_details(conn, uid, "Randi Joseph", "Grade 10A")   # same name again: back in the queue
     assert data.name_review_state(data.get_user(conn, uid)) == "pending"
-    data.update_my_details(conn, uid, "Patti Joseph", "Grade 10A")
-    data.update_my_details(conn, uid, "Joseph Mathew", "Grade 10A")        # a clean name clears the hold
+    data.update_my_details(conn, uid, "Joseph Mathew", "Grade 10A")  # a clean name clears the hold
     assert data.name_reviews(conn) == []
     data.update_my_details(conn, uid, "Lund Peter", "Grade 10A")
     data.rename_person(conn, uid, "Peter Lund")                      # the owner's rename clears it too

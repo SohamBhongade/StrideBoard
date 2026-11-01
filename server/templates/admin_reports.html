@@ -35,8 +35,8 @@
         <span class="chip">{{ r.reason_label }}</span>
         {% if r.kind == 'name' %}
         <p class="small">Their name has “{{ r.word }}”, which is rude in some languages but can be a real name.
-          They're off the leaderboards until you decide.</p>
-        <p class="small muted">Checked automatically · {{ r.created_at[:16]|replace('T', ' ') }}</p>
+          They're off the leaderboards until you decide. <strong>Not approved</strong> deletes the account and blocks its email.</p>
+        <p class="small muted">Checked automatically · {{ r.created_at[:16]|replace('T', ' ') if r.created_at else 'earlier' }}</p>
         {% else %}
         {% if r.note %}<p class="small">“{{ r.note }}”</p>{% endif %}
         <p class="small muted">Reported by {{ r.reporter or 'a deleted account' }} · {{ r.created_at[:16]|replace('T', ' ') }}</p>
@@ -47,7 +47,8 @@
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="user_id" value="{{ r.id }}">
         <button class="btn btn-dark btn-sm" name="action" value="name_approve" type="submit">Approve name</button>
-        <button class="btn btn-outline btn-sm" name="action" value="name_reject" type="submit" title="They stay off the boards and are asked to change it to their real name">Not approved</button>
+        <button class="btn btn-danger btn-sm" name="action" value="name_reject" type="submit"
+                data-confirm="Not approve {{ r.target }}? The account is deleted, they're logged out, and their email is blocked. The owner can unblock it later in People → Banned / timed out by typing their email.">Not approved</button>
       </form>
       {% else %}
       <form method="post" action="{{ url_for('admin') }}" class="report-actions">

@@ -63,18 +63,12 @@
 <div class="nudge nudge-pink name-review" role="status">
   <span class="icon-circle">{{ icon('report') }}</span>
   <div class="nudge-text">
-  {% if person.name_review == 'rejected' %}
-    <strong>Your name wasn't approved</strong>
-    <span>You're not on the leaderboards. Please change it to your actual full name{% if home %} in
-      Settings → Your data and privacy{% else %} here{% endif %} and save. A school admin will check it again
-      if needed. Your steps still count for your {{ group }}.</span>
-  {% else %}
     <strong>Your name is waiting to be approved</strong>
     <span>A school admin needs to check it before it shows on the leaderboards. Please tell an admin at
-      school so they can approve it. Your steps still count for your {{ group }}.</span>
-  {% endif %}
+      school so they can approve it. If it isn't approved, this account is deleted; ask an admin to let
+      you sign up again with your real name. Your steps still count for your {{ group }}.</span>
   </div>
-  {% if home %}<a class="btn btn-dark btn-sm" href="{{ url_for('settings') }}#your-data">{{ 'Change name' if person.name_review == 'rejected' else 'Settings' }}</a>{% endif %}
+  {% if home %}<a class="btn btn-dark btn-sm" href="{{ url_for('settings') }}#your-data">Settings</a>{% endif %}
 </div>
 {% endif %}
 {%- endmacro %}

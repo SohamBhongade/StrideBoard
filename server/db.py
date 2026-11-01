@@ -66,7 +66,10 @@ ADDED_COLUMNS = {"users": ["avatar TEXT", "avatar_color TEXT", "email_hash TEXT"
                            # A self-chosen name that might be rude but might be real ("Dick",
                            # "Kundan"): the word, and when. Off the boards until an admin decides.
                            "name_review TEXT", "name_review_at TEXT"],
-                 "pending_signups": ["parent_email TEXT"]}
+                 "pending_signups": ["parent_email TEXT"],
+                 # Blocked emails: the deleted account's name and why, so the owner can tell them
+                 # apart and unblock one (the address itself is never stored).
+                 "blocked_emails": ["name TEXT", "reason TEXT"]}
 
 
 # Avatar items taken out of the shop. Anyone who bought one gets its price back as EXP once,

@@ -1889,6 +1889,29 @@ def unblock_user(conn, user_id):
     conn.commit()
 
 
+def blocked_emails(conn):
+    """Emails that can't sign up again, newest first: [{"name", "reason", "at"}].
+    Only a fingerprint of each email is kept, so the name is how the owner tells them apart."""
+    rows = conn.execute("SELECT email_hash, name, reason, blocked_at FROM blocked_emails "
+                        "ORDER BY blocked_at DESC").fetchall()
+    return [{"name": r["name"] or "An older account",
+             "reason": r["reason"] or "Deleted forever", "at": r["blocked_at"]} for r in rows]
+
+
+def unblock_email(conn, secret, email):
+    """The owner types a blocked person's email (they tell it to the owner in person): if its
+    fingerprint is on the blocked list, it can sign up again. The address is only used for this
+    check and is never stored. Returns (clean address, name the deleted account had)."""
+    address = normalize_email(email)
+    fingerprint = email_fingerprint(address, secret)
+    row = conn.execute("SELECT name FROM blocked_emails WHERE email_hash = ?", (fingerprint,)).fetchone()
+    if row is None:
+        raise ValueError("that email isn't blocked. Check the spelling")
+    conn.execute("DELETE FROM blocked_emails WHERE email_hash = ?", (fingerprint,))
+    conn.commit()
+    return address, row["name"] or "That account"
+
+
 def blocked_people(conn, now=None):
     """Everyone timed out or banned right now: [{"id", "name", "username", "until", "reason"}]."""
     rows = conn.execute("SELECT id, display_name, username, blocked_until, block_reason FROM users "
@@ -1933,7 +1956,7 @@ def remove_steps(conn, user_id, date):
     return row["steps"]
 
 
-def delete_people(conn, user_ids, acting_id=None, block_emails=True):
+def delete_people(conn, user_ids, acting_id=None, block_emails=True, reason="Deleted forever"):
     """Erase accounts and everything they had (steps, badges, EXP...). Can't be undone.
 
     Their email (fingerprint) is blocked from signing up again. Returns the names deleted.
@@ -1956,8 +1979,10 @@ def delete_people(conn, user_ids, acting_id=None, block_emails=True):
         if row is None:
             continue
         if block_emails and row["email_hash"]:
-            conn.execute("INSERT OR IGNORE INTO blocked_emails (email_hash, blocked_at) VALUES (?, ?)",
-                         (row["email_hash"], local_now_iso()))
+            conn.execute("INSERT INTO blocked_emails (email_hash, blocked_at, name, reason) VALUES (?, ?, ?, ?) "
+                         "ON CONFLICT (email_hash) DO UPDATE SET blocked_at = excluded.blocked_at, "
+                         "name = excluded.name, reason = excluded.reason",
+                         (row["email_hash"], local_now_iso(), row["display_name"], reason))
         conn.execute("DELETE FROM users WHERE id = ?", (uid,))
         names.append(row["display_name"])
     conn.commit()
@@ -2139,7 +2164,7 @@ def update_my_details(conn, user_id, display_name, department):
     elif dept and len(dept) > 50:
         raise ValueError("department must be at most 50 characters")
     conn.execute("UPDATE users SET display_name = ?, department = ? WHERE id = ?", (name, dept, user_id))
-    if name != user["display_name"] or user["name_review"] == NAME_REJECTED:
+    if name != user["display_name"]:
         _hold_name_for_review(conn, user_id, name)
     conn.commit()
 
@@ -2392,35 +2417,31 @@ def _hold_name_for_review(conn, user_id, name):
                  (word, local_now_iso() if word else None, user_id))
 
 
-NAME_REJECTED = "rejected"    # users.name_review after an admin says no: off the boards until they rename
-
-
 def name_review_state(user):
-    """None (fine), "pending" (waiting for an admin) or "rejected" (asked to use their real name)."""
-    value = user["name_review"]
-    if not value:
-        return None
-    return "rejected" if value == NAME_REJECTED else "pending"
+    """None (fine) or "pending" (waiting for an admin to approve their name)."""
+    return "pending" if user["name_review"] else None
 
 
 def name_reviews(conn):
     """Names waiting for an admin, oldest first, shaped like open_reports() rows for the Reports tab."""
     rows = conn.execute("SELECT id, display_name, department, name_review, name_review_at FROM users "
-                        "WHERE name_review IS NOT NULL AND name_review != ? ORDER BY name_review_at",
-                        (NAME_REJECTED,)).fetchall()
+                        "WHERE name_review IS NOT NULL ORDER BY name_review_at").fetchall()
+    # (rows marked "rejected" by an older version come back here for a fresh decision)
     return [{"id": r["id"], "kind": "name", "reason": "real_name", "reason_label": "Possible real name",
-             "target": r["display_name"], "target_dept": r["department"], "word": r["name_review"],
+             "target": r["display_name"], "target_dept": r["department"],
+             "word": wordfilter.needs_review(r["display_name"]) or r["name_review"],
              "reporter": None, "created_at": r["name_review_at"] or ""} for r in rows]
 
 
-def decide_name(conn, user_id, approve):
-    """An admin's answer. Approve: back on the boards. Not approved: they stay off the boards
-    (still counting for their class) and are asked to change it to their real name; saving a new
-    name in Settings checks it again."""
-    if not conn.execute("SELECT 1 FROM users WHERE id = ? AND name_review IS NOT NULL AND name_review != ?",
-                        (user_id, NAME_REJECTED)).fetchone():
+def decide_name(conn, user_id, approve, acting_id=None):
+    """An admin's answer. Approve: on the boards. Not approved: the account is deleted (so they're
+    logged out everywhere) and its email is blocked; the owner can unblock the email in People >
+    Banned / timed out so they can sign up again with their real name."""
+    if not conn.execute("SELECT 1 FROM users WHERE id = ? AND name_review IS NOT NULL", (user_id,)).fetchone():
         raise ValueError("that name was already checked")
-    conn.execute("UPDATE users SET name_review = ?, name_review_at = NULL WHERE id = ?",
-                 (None if approve else NAME_REJECTED, user_id))
-    conn.commit()
+    if approve:
+        conn.execute("UPDATE users SET name_review = NULL, name_review_at = NULL WHERE id = ?", (user_id,))
+        conn.commit()
+        return None
+    return delete_people(conn, [user_id], acting_id=acting_id, reason="Name not approved")[0]
 
