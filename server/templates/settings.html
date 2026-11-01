@@ -228,6 +228,7 @@
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="my_details">
     <h3 class="data-sub">Correct your details</h3>
+    {{ m.name_review_notice(me) }}
     <div class="field">
       <label for="my_name">Full name</label>
       <input class="input" id="my_name" name="display_name" value="{{ me.display_name }}" maxlength="50" autocomplete="name" autocapitalize="words" required>
@@ -256,10 +257,6 @@
         <span><strong>{{ label }}</strong><span class="small muted">{{ example }}</span></span></label>
       {% endfor %}
     </fieldset>
-    {% if me.name_review %}
-    <p class="hint"><strong>Your name is waiting for a quick check</strong> by a school admin, so it isn't on
-      the leaderboards yet. Your steps still count for your {{ 'class' if me.role == 'student' else 'department' }}.</p>
-    {% endif %}
     <p class="hint">Hidden: your steps still count for your {{ 'class' if me.role == 'student' else 'department' }}, but your name and avatar aren't shown. You always see your own full name.</p>
     <button class="btn btn-outline" type="submit">Save</button>
   </form>

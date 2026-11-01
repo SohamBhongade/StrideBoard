@@ -1292,12 +1292,13 @@ def add_routes(app):
                                        "done" if action == "report_done" else "dismissed")
                     flash("Report marked as handled." if action == "report_done" else "Report dismissed.", "ok")
                     return redirect(url_for("admin_reports"))
-                elif action in ("name_approve", "name_hide"):
+                elif action in ("name_approve", "name_reject"):
                     uid = to_int(request.form.get("user_id"), "person")
                     data.decide_name(conn, uid, approve=action == "name_approve")
                     who = data.get_user(conn, uid)["display_name"]
-                    flash(f"{who} is back on the leaderboards." if action == "name_approve" else
-                          f"{who} stays off the leaderboards (their steps still count for their class).", "ok")
+                    flash(f"{who} is on the leaderboards now." if action == "name_approve" else
+                          f"{who} wasn't approved. They're asked to change it to their real name, "
+                          "and the new name comes back here if it needs a check.", "ok")
                     return redirect(url_for("admin_reports"))
                 elif action == "add_users":
                     result = data.bulk_create_users(conn, request.form.get("csv", ""))
