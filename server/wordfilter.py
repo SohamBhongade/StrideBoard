@@ -1,7 +1,8 @@
 """Blocks swearing, slurs and rude slang in anything new people type (names, challenges, reports).
 
-Covers English, Arabic (Arabic script and "Arabizi" written in Latin letters) and Hindi/Urdu
-slang, with the usual disguises: CaPiTaLs, l33t numbers and symbols, dots or spaces between
+Covers English, Arabic (Arabic script and "Arabizi" written in Latin letters), Hindi/Urdu,
+Malayalam and Tamil (in their own scripts and as typed in English letters: "Manglish" and
+"Tanglish") slang, with the usual disguises: CaPiTaLs, l33t numbers and symbols, dots or spaces between
 letters (f.u.c.k, f u c k), repeated letters (fuuuck), accents and Arabic diacritics.
 
 Real names must keep working, so there are two lists:
@@ -29,6 +30,16 @@ ANYWHERE = (
     "kusomak", "ibnelkalb", "yel3an", "yil3an", "khawal", "metnak", "mitnak", "zebbi",
     # Arabic script
     "شرموط", "منيوك", "متناك", "قحبه", "كسمك", "كساختك", "ابنالكلب", "يلعن",
+    # Malayalam typed in English letters
+    "thayoli", "thayolli", "thaayoli", "poorimon", "poorimakan", "kazhuveri", "kazhuveriy",
+    "myrandi", "pundachi", "koothichi", "kunnappan",
+    # Tamil typed in English letters
+    "thevidiya", "thevdiya", "thevudiya", "thevadiya", "pundamavan", "pundaimavan", "pundaimagan",
+    "othalaka", "oththalaka",
+    # Malayalam script
+    "തായോളി", "പൂറി", "കുണ്ണ", "ഊമ്പ", "കഴുവേറി", "പൂറിമോൻ",
+    # Tamil script
+    "தேவிடியா", "தேவடியா", "தேவுடியா", "புண்டை", "ஓத்தா",
 )
 
 WHOLE_WORD = (
@@ -47,19 +58,38 @@ WHOLE_WORD = (
     # Arabic script
     "كس", "زب", "زبي", "زبك", "كلب", "حمار", "حيوان", "غبي", "عبيط", "خول", "عرص", "خرا", "تفو",
     "لعنة", "لعنه", "قحبة",
+    # Malayalam typed in English letters (short, so whole words only: "Kunnath" and
+    # "Kunnamkulam" stay fine). "sunni" is left out on purpose: it would block Sunni Islam.
+    "kunna", "kunne", "pooru", "poore", "poorr", "myre", "myru", "mairu", "maire", "myran",
+    "mairan", "oombi", "oombu", "oomb", "oombal", "kundi", "koothi", "thendi", "naayinte",
+    "nayinte", "pottan",
+    # Tamil typed in English letters
+    "otha", "oththa", "ommala", "punda", "pundai", "sootha", "soothu", "baadu", "naaye", "loosu",
+    "pottai", "mayiru", "mayir", "mayire", "koodhi",
+    # Malayalam script
+    "മൈര്", "മൈരെ", "മൈരേ", "മൈരൻ", "പൂറ്", "കൂതി", "നായിന്റെ",
+    # Tamil script
+    "மயிரு", "மயிர்", "கூதி", "சூத்து", "பொட்டை", "ஓம்பு", "ஒம்மால",
 )
 
 _LEET = str.maketrans({"0": "o", "1": "i", "!": "i", "|": "i", "3": "e", "4": "a", "@": "a",
                        "5": "s", "$": "s", "7": "t", "8": "b", "9": "g", "+": "t", "€": "e"})
 _ARABIC_FOLD = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ى": "ي", "ة": "ه", "ؤ": "و",
                               "ئ": "ي", "ـ": ""})
-_WORD = re.compile(r"[a-z0-9ء-ي]+")
+# Malayalam chillu letters can be typed as one character or as consonant + virama (+ ZWJ):
+# fold them to one form so both spellings match.
+_CHILLU = str.maketrans({"ൺ": "ണ്", "ൻ": "ന്", "ർ": "ര്", "ൽ": "ല്", "ൾ": "ള്", "ൿ": "ക്",
+                         "\u200c": "", "\u200d": ""})
+_INDIC = ("\u0b80", "\u0d7f")   # Tamil to Malayalam: their vowel signs are part of the word
+_WORD = re.compile(r"[a-z0-9ء-ي\u0b80-\u0bff\u0d00-\u0d7f]+")
 
 
 def _plain(text):
-    """Lower case, no accents, no Arabic diacritics, Arabic letter variants folded."""
-    text = unicodedata.normalize("NFKD", (text or "").lower())
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    """Lower case, no accents, no Arabic diacritics, Arabic letter variants folded.
+    Tamil and Malayalam vowel signs are kept (dropping them would change the word)."""
+    text = unicodedata.normalize("NFKD", (text or "").lower().translate(_CHILLU))
+    text = "".join(ch for ch in text
+                   if not unicodedata.combining(ch) or _INDIC[0] <= ch <= _INDIC[1])
     text = re.sub(r"[ً-ٰٟـ]", "", text)
     return text.translate(_ARABIC_FOLD)
 
