@@ -1511,3 +1511,7 @@ button.side-link { border: 0; background: none; color: inherit; font: inherit; c
 .reaper-switch { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
   padding: 12px 14px; margin: 12px 0; border-radius: 16px; background: var(--white); }
 .reaper-switch div { display: flex; flex-direction: column; min-width: 0; flex: 1 1 200px; }
+.unblock-day { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.unblock-day label { flex: 1 1 100%; font-weight: 600; }
+.unblock-day select { flex: 1 1 200px; }
+
