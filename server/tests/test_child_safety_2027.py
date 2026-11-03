@@ -225,3 +225,17 @@ def test_only_the_owner_switches_the_reaper_popup(school, monkeypatch):
     assert "data-reaper-toast" in home and "steps to go today" in home
     client(owner).post("/admin", data={"csrf": "x", "action": "reaper_notice", "on": "0"})
     assert "data-reaper-toast" not in client(ids["amal"]).get("/").get_data(as_text=True)
+
+
+def test_reaper_popup_shows_once_a_day(school, monkeypatch):
+    client, path, ids = school
+    conn = db.connect(path)
+    data.set_reaper_notice(conn, True)
+    conn.close()
+    amal = client(ids["amal"])
+    assert "data-reaper-toast" in amal.get("/").get_data(as_text=True)          # first Home today
+    assert "data-reaper-toast" not in amal.get("/").get_data(as_text=True)      # not again today
+    with amal.session_transaction() as s:
+        s["reaper_day"] = "2026-01-01"                                           # a new day
+    assert "data-reaper-toast" in amal.get("/").get_data(as_text=True)
+

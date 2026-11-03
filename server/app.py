@@ -932,6 +932,11 @@ def add_routes(app):
         board = cached_leaderboard(conn, view, t)
         mine = next((r for r in board if r.get("user_id") == uid), None)
         preview = with_builds(conn, board[:3] + ([mine] if mine and mine["rank"] > 3 else []))
+        # The Stride Reaper pop-up shows once a day: the first time Home opens that day.
+        reaper = None
+        if data.reaper_notice_on(conn) and session.get("reaper_day") != str(t):
+            reaper = data.reaper_message(d["today_steps"], d["daily_goal"])
+            session["reaper_day"] = str(t)
         return render_template("dashboard.html", d=d, week=week, preview=preview,
                                preview_view=view, my_rank=mine,
                                tier_progress=tier_progress(d["weekly_total"]),
@@ -940,8 +945,7 @@ def add_routes(app):
                                water_due=water_due(d["water_today"]),
                                app_update=android_app_update(),
                                reward=data.reward_status(conn, uid, t),
-                               reaper=data.reaper_message(d["today_steps"], d["daily_goal"])
-                               if data.reaper_notice_on(conn) else None)
+                               reaper=reaper)
 
     @app.route("/reward", methods=["POST"])
     def claim_reward():
