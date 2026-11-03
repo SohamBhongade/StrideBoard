@@ -246,7 +246,7 @@
 <section class="card card-soft" id="people" style="margin-top:16px" aria-labelledby="users-h">
   <div class="card-title-row">
     <h2 id="users-h" class="card-title">People</h2>
-    <span class="right muted"><span data-people-count>{{ shown|length }}</span> of {{ users|length }}</span>
+    <span class="right muted"><span data-people-count>{{ shown|length }}</span> of {{ people_total }}</span>
   </div>
   <nav class="pills" aria-label="Show people by role" style="margin-top:12px">
     {% for key, label in people_tabs %}
@@ -258,7 +258,8 @@
     <input type="hidden" name="people" value="{{ people_role }}">
     <label class="visually-hidden" for="people-q">Search people</label>
     <input class="input" id="people-q" name="q" value="{{ people_q }}" type="search" autocomplete="off"
-           placeholder="Search by full name, username or class" data-people-search>
+           placeholder="Search by full name, username or class{{ ' (Enter searches everyone)' if not people_all else '' }}"
+           data-people-search data-people-partial="{{ '0' if people_all else '1' }}">
   </form>
   {% if users %}
   <div class="table-wrap">
@@ -298,6 +299,10 @@
     <span><strong data-pick-count>0</strong> selected</span>
     <button class="btn btn-danger btn-sm" type="submit">Delete forever</button>
   </form>
+  {% endif %}
+  {% if not people_all and people_total > shown|length %}
+  <p class="small muted people-more" style="margin-top:12px">Showing the first {{ shown|length }} of {{ people_total }}.
+    <a href="{{ url_for('admin', people=people_role, show='all') }}#people">Show everyone</a> or search above.</p>
   {% endif %}
   <p class="small muted" data-people-none {% if shown %}hidden{% endif %} style="margin-top:12px">{{ 'No one is banned or timed out right now.' if people_role == 'blocked' and not people_q else 'No one matches that search.' }}</p>
   {% else %}

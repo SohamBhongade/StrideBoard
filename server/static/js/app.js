@@ -368,7 +368,8 @@ document.querySelectorAll("form[data-autosubmit]").forEach(function (form) {
   var count = document.querySelector("[data-people-count]");
   var none = document.querySelector("[data-people-none]");
   var all = Array.prototype.slice.call(rows.querySelectorAll("tr"));
-  box.form.addEventListener("submit", function (e) { e.preventDefault(); });
+  var partial = box.getAttribute("data-people-partial") === "1";
+  box.form.addEventListener("submit", function (e) { if (!partial) e.preventDefault(); });   // Enter searches everyone
   box.addEventListener("input", function () {
     var words = box.value.toLowerCase().split(/\s+/).filter(Boolean);
     var n = 0;
@@ -420,6 +421,32 @@ document.querySelectorAll("form[data-autosubmit]").forEach(function (form) {
   }
   toast.querySelector("[data-reaper-close]").addEventListener("click", hide);
   setTimeout(hide, 9000);
+})();
+
+// ---- Faster taps: start loading a page the moment a finger (or mouse button) goes down on its
+// link, so it's often ready by the time the finger lifts (the server is ~0.25 s away from Dubai).
+// Only plain pages: never Home (it would use up the once-a-day pop-up), downloads, or with
+// Data Saver on. Browsers without prefetch (Safari) simply ignore it.
+(function () {
+  var link = document.createElement("link");
+  if (!link.relList || !link.relList.supports || !link.relList.supports("prefetch")) return;
+  if (navigator.connection && navigator.connection.saveData) return;
+  var skip = /^\/(?:$|logout|static\/|admin\/backup|settings\/my-|iphone-shortcut|parent\/|sw\.js|ping)/;
+  var done = {};
+  function warm(e) {
+    var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+    if (!a || a.target || a.hasAttribute("download") || a.hasAttribute("data-no-prefetch")) return;
+    var url = new URL(a.href, location.href);
+    if (url.origin !== location.origin || skip.test(url.pathname)) return;
+    var key = url.pathname + url.search;
+    if (done[key] || key === location.pathname + location.search) return;
+    done[key] = true;
+    var l = document.createElement("link");
+    l.rel = "prefetch";
+    l.href = key;
+    document.head.appendChild(l);
+  }
+  document.addEventListener("pointerdown", warm, {passive: true});
 })();
 
 // ---- Buttons that ask "are you sure?" (e.g. Delete forever)

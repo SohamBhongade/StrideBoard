@@ -66,7 +66,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "67"
+ASSET_VERSION = "68"
 
 # Pages that still work after a parent's daily time limit is used up.
 TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
@@ -180,6 +180,8 @@ def cached_impact_stats(conn):
 
 _BOARD_CACHE = {}           # (database, view, day, role, period) -> (time made, rows)
 BOARD_CACHE_SECONDS = 30
+BOARD_CACHE_SECONDS_ALL_TIME = 300
+PEOPLE_PAGE = 50                     # Admin > People rows shown before "Show everyone"   # lifetime totals barely move minute to minute
 
 
 def cached_leaderboard(conn, view, day, role=None, period="week"):
@@ -194,7 +196,8 @@ def cached_leaderboard(conn, view, day, role=None, period="week"):
     key = (current_app.config.get("DATABASE") or config.DATABASE, view, str(day), role, period)
     now = datetime.now().timestamp()
     hit = _BOARD_CACHE.get(key)
-    if not hit or now - hit[0] >= BOARD_CACHE_SECONDS:
+    keep = BOARD_CACHE_SECONDS_ALL_TIME if period == "all" else BOARD_CACHE_SECONDS
+    if not hit or now - hit[0] >= keep:
         if len(_BOARD_CACHE) > 64:
             _BOARD_CACHE.clear()
         hit = (now, data.leaderboard(conn, view, day, role=role, period=period))
@@ -1458,9 +1461,16 @@ def add_routes(app):
                  if (people_role == "all" or u["role"] == people_role
                      or (people_role == "blocked" and u["blocked"]))
                  and (not needle or needle in f"{u['display_name']} {u['username']} {u['department'] or ''}".lower())]
+        # A full school is 1,000+ rows (half a megabyte of page): show the first PEOPLE_PAGE
+        # unless searching or asked for everyone.
+        people_total = len(shown)
+        people_all = request.args.get("show") == "all" or bool(needle)
+        if not people_all:
+            shown = shown[:PEOPLE_PAGE]
         per_day = data.suggested_distance_target(conn, 1)
         return render_template("admin.html", report_count=len(data.open_reports(conn)) + len(data.name_reviews(conn)), board_code=data.board_key(conn), app_downloads=BOARD_APP_DOWNLOADS,
                                users=users, shown=shown, people_role=people_role,
+                               people_total=people_total, people_all=people_all,
                                people_q=people_q, role_counts=role_counts,
                                challenges=data.active_challenges(conn, today()),
                                stats=cached_impact_stats(conn), result=result,
