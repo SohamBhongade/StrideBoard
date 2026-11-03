@@ -66,7 +66,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "65"
+ASSET_VERSION = "67"
 
 # Pages that still work after a parent's daily time limit is used up.
 TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
@@ -932,9 +932,15 @@ def add_routes(app):
         board = cached_leaderboard(conn, view, t)
         mine = next((r for r in board if r.get("user_id") == uid), None)
         preview = with_builds(conn, board[:3] + ([mine] if mine and mine["rank"] > 3 else []))
-        # The Stride Reaper pop-up shows once a day: the first time Home opens that day.
-        reaper = None
-        if data.reaper_notice_on(conn) and session.get("reaper_day") != str(t):
+        # The Strider's "good job" pop-up: once a day, the first Home visit after reaching the goal.
+        # The Stride Reaper pop-up: once a day, the first time Home opens that day.
+        # Never both at once: The Strider wins on a goal day.
+        reaper = strider = None
+        if (d["today_steps"] >= d["daily_goal"] and data.strider_notice_on(conn)
+                and session.get("strider_day") != str(t)):
+            strider = data.strider_message(d["today_steps"], d["daily_goal"])
+            session["strider_day"] = str(t)
+        elif data.reaper_notice_on(conn) and session.get("reaper_day") != str(t):
             reaper = data.reaper_message(d["today_steps"], d["daily_goal"])
             session["reaper_day"] = str(t)
         return render_template("dashboard.html", d=d, week=week, preview=preview,
@@ -945,7 +951,8 @@ def add_routes(app):
                                water_due=water_due(d["water_today"]),
                                app_update=android_app_update(),
                                reward=data.reward_status(conn, uid, t),
-                               reaper=reaper)
+                               reaper=reaper, strider=strider, strider_look=config.STRIDER_LOOK,
+                               reaper_look=config.REAPER_LOOK)
 
     @app.route("/reward", methods=["POST"])
     def claim_reward():
@@ -1341,6 +1348,19 @@ def add_routes(app):
                     data.set_reaper_notice(conn, on)
                     flash("The Stride Reaper pop-up is on for everyone." if on else
                           "The Stride Reaper pop-up is off.", "ok")
+                elif action == "owner_look":
+                    if not is_owner(g.user):
+                        abort(403)
+                    strider = request.form.get("look") == "strider"
+                    data.set_avatar_look(conn, g.user["id"], config.STRIDER_LOOK if strider else config.REAPER_LOOK)
+                    flash("You're The Strider now. ⚡" if strider else "You're the Stride Reaper again. 💀", "ok")
+                elif action == "strider_notice":
+                    if not is_owner(g.user):
+                        abort(403)
+                    on = request.form.get("on") == "1"
+                    data.set_strider_notice(conn, on)
+                    flash("The Strider's good-job pop-up is on for everyone." if on else
+                          "The Strider's good-job pop-up is off.", "ok")
                 elif action in ("email_unblock_row", "email_unblock_day"):
                     if not is_owner(g.user):
                         abort(403)
@@ -1414,6 +1434,8 @@ def add_routes(app):
             except ValueError as e:
                 flash(first_upper(str(e)), "error")
             if result is None:
+                if request.form.get("back") == "fun":
+                    return redirect(url_for("admin_fun"))
                 if request.form.get("back", "").startswith("people-"):
                     tab = request.form["back"].removeprefix("people-")
                     return redirect(url_for("admin", people=tab if tab in ("all", "student", "teacher", "admin", "blocked") else "all") + "#people")
@@ -1452,6 +1474,7 @@ def add_routes(app):
                                blocked_email_days=sorted(Counter((e["at"] or "")[:10] for e in emails).items(),
                                                          reverse=True),
                                reaper_on=data.reaper_notice_on(conn),
+                               strider_on=data.strider_notice_on(conn),
                                blocked=data.blocked_people(conn) if is_owner(g.user) else [],
                                last_backup=backup.latest(current_app.config["DATABASE"])
                                if is_owner(g.user) else None)
@@ -1464,6 +1487,19 @@ def add_routes(app):
         return render_template("admin_reports.html", reports=data.open_reports(conn) + data.name_reviews(conn),
                                report_reasons=data.REPORT_REASONS + (("real_name", "Possible real name"),),
                                owner=is_owner(g.user))
+
+    @app.route("/admin/fun")
+    def admin_fun():
+        """The owner's Fun tab: the Reaper / Strider avatar switch and the two pop-ups."""
+        if not is_owner(g.user):
+            abort(403)
+        conn = db.get_db()
+        build = data.avatar_build(conn, g.user["id"])
+        return render_template("admin_fun.html", owner=True,
+                               report_count=len(data.open_reports(conn)) + len(data.name_reviews(conn)),
+                               is_strider=build.get("extra") == config.STRIDER_LOOK["extra"],
+                               reaper_look=config.REAPER_LOOK, strider_look=config.STRIDER_LOOK,
+                               reaper_on=data.reaper_notice_on(conn), strider_on=data.strider_notice_on(conn))
 
     @app.route("/admin/backup")
     def admin_backup():

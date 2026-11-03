@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Fun · Admin{% endblock %}
+{% block content %}
+
+{{ m.page_head("School", "fun", "Only you see this: your Stride Reaper look and the two characters' pop-ups.") }}
+{{ m.admin_tabs('fun', report_count, fun=True) }}
+
+{% macro toggle(action, on, title, text, name=None, value_on='1', value_off='0') -%}
+<form method="post" action="{{ url_for('admin') }}" class="fast-toggle fun-toggle" data-autosubmit>
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <input type="hidden" name="action" value="{{ action }}">
+  <input type="hidden" name="back" value="fun">
+  <input type="hidden" name="{{ name or 'on' }}" value="{{ value_off if on else value_on }}">
+  <div class="fast-text"><strong>{{ title }}</strong><span class="small muted">{{ text }}</span></div>
+  <button class="switch{% if on %} on{% endif %}" type="submit" role="switch" aria-checked="{{ 'true' if on else 'false' }}" aria-label="{{ title }}"><span></span></button>
+</form>
+{%- endmacro %}
+
+<section class="card card-soft fun-card" aria-labelledby="look-h">
+  <div class="card-head"><span class="icon-circle">{{ m.icon('spark') }}</span><h2 id="look-h">Your look</h2></div>
+  <div class="fun-looks" aria-hidden="true">
+    <span class="fun-look{% if not is_strider %} on{% endif %}">{{ creature(reaper_look, 84) }}<b>Stride Reaper</b></span>
+    <span class="fun-look{% if is_strider %} on{% endif %}">{{ creature(strider_look, 84) }}<b>The Strider</b></span>
+  </div>
+  {{ toggle("owner_look", is_strider, "Be The Strider", "Switch your avatar to the Reaper's alter ego. Turn it off to be the Stride Reaper again.", name="look", value_on="strider", value_off="reaper") }}
+</section>
+
+<section class="card card-soft fun-card" style="margin-top:16px" aria-labelledby="pop-h">
+  <div class="card-head"><span class="icon-circle">{{ m.icon('bulb') }}</span><h2 id="pop-h">Pop-ups on everyone's Home</h2></div>
+  {{ toggle("reaper_notice", reaper_on, "Stride Reaper pop-up", "A playful \"move or else\" notification, once a day. Turn it off for the official launch.") }}
+  {{ toggle("strider_notice", strider_on, "The Strider pop-up", "A \"good job\" notification, once a day, when someone reaches their step goal.") }}
+</section>
+
+{% endblock %}

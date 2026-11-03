@@ -1514,4 +1514,11 @@ button.side-link { border: 0; background: none; color: inherit; font: inherit; c
 .unblock-day { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
 .unblock-day label { flex: 1 1 100%; font-weight: 600; }
 .unblock-day select { flex: 1 1 200px; }
+.strider-toast { background: rgba(22, 52, 112, .95); }
+.strider-toast .reaper-toast-from { color: #FFE27A; }
+.strider-toast .reaper-toast-from span { color: #A9C6F2; }
+.fun-looks { display: flex; gap: 14px; margin: 4px 0 2px; }
+.fun-look { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; opacity: .45; transition: opacity .2s; }
+.fun-look.on { opacity: 1; }
+.fun-look .creature { border-radius: 18px; }
 

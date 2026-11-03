@@ -217,8 +217,9 @@ def test_only_the_owner_switches_the_reaper_popup(school, monkeypatch):
     monkeypatch.setattr(A.config, "OWNER_USERNAME", "reaper")
     home = client(ids["amal"]).get("/").get_data(as_text=True)
     assert "data-reaper-toast" not in home                                   # off by default
-    assert "Stride Reaper pop-up" in client(owner).get("/admin").get_data(as_text=True)
-    assert "Stride Reaper pop-up" not in client(other_admin).get("/admin").get_data(as_text=True)
+    assert "Stride Reaper pop-up" in client(owner).get("/admin/fun").get_data(as_text=True)
+    assert "/admin/fun" not in client(other_admin).get("/admin").get_data(as_text=True)        # no Fun tab
+    assert client(other_admin).get("/admin/fun").status_code == 403
     assert client(other_admin).post("/admin", data={"csrf": "x", "action": "reaper_notice", "on": "1"}).status_code == 403
     client(owner).post("/admin", data={"csrf": "x", "action": "reaper_notice", "on": "1"})
     home = client(ids["amal"]).get("/").get_data(as_text=True)
@@ -238,4 +239,59 @@ def test_reaper_popup_shows_once_a_day(school, monkeypatch):
     with amal.session_transaction() as s:
         s["reaper_day"] = "2026-01-01"                                           # a new day
     assert "data-reaper-toast" in amal.get("/").get_data(as_text=True)
+
+
+
+def test_strider_cheers_once_a_day_after_the_goal(school, monkeypatch):
+    client, path, ids = school
+    conn = db.connect(path)
+    owner = data.create_user(conn, "reaper", "Stride Reaper", "admin", "Staff", "adult_18_39", "4826")
+    goal = data.get_user(conn, ids["omar"])["daily_goal"]
+    data.save_steps(conn, ids["omar"], A.today(), goal, "android_app")         # Omar reached his goal
+    conn.close()
+    monkeypatch.setattr(A.config, "OWNER_USERNAME", "reaper")
+    assert data.strider_message(6000, 6000)[0] == "Good job!"
+    assert data.strider_message(9000, 6000)[0] == "Unstoppable!"
+    omar, amal = client(ids["omar"]), client(ids["amal"])
+    assert "The Strider pop-up" in client(owner).get("/admin/fun").get_data(as_text=True)
+    assert client(ids["teacher"]).post("/admin", data={"csrf": "x", "action": "strider_notice",
+                                                       "on": "1"}).status_code in (302, 403)
+    assert "strider-toast" not in omar.get("/").get_data(as_text=True)          # off by default
+    client(owner).post("/admin", data={"csrf": "x", "action": "strider_notice", "on": "1"})
+    client(owner).post("/admin", data={"csrf": "x", "action": "reaper_notice", "on": "1"})
+    first = omar.get("/").get_data(as_text=True)
+    assert "strider-toast" in first and "Good job!" in first and "Stride Reaper <span>" not in first
+    assert "strider-toast" not in omar.get("/").get_data(as_text=True)          # once a day
+    page = amal.get("/").get_data(as_text=True)                                  # Amal is under her goal
+    assert "strider-toast" not in page and "Stride Reaper <span>" in page
+
+
+def test_strider_items_are_owner_only(conn, monkeypatch):
+    monkeypatch.setattr(data.config, "OWNER_USERNAME", "reaper")
+    owner = data.create_user(conn, "reaper", "Stride Reaper", "admin", "Staff", "adult_18_39", "4826")
+    kid = data.create_user(conn, "kid", "Kid Young", "student", "Grade 9A", "teen_13_17", "4826")
+    for key in ("eyes_strider_mask", "extra_strider_cape", "shoes_strider_bolt", "bg_strider_city"):
+        data.wear_avatar_item(conn, owner, key)
+        with pytest.raises(ValueError):
+            data.wear_avatar_item(conn, kid, key)
+    assert data.avatar_build(conn, owner)["shoes"] == "shoes_strider_bolt"
+
+
+def test_fun_tab_switches_the_owner_between_reaper_and_strider(school, monkeypatch):
+    client, path, ids = school
+    conn = db.connect(path)
+    owner = data.create_user(conn, "reaper", "Stride Reaper", "admin", "Staff", "adult_18_39", "4826")
+    conn.close()
+    monkeypatch.setattr(A.config, "OWNER_USERNAME", "reaper")
+    me = client(owner)
+    assert "/admin/fun" in me.get("/admin").get_data(as_text=True)                  # the owner has the tab
+    r = me.post("/admin", data={"csrf": "x", "action": "owner_look", "look": "strider", "back": "fun"})
+    assert r.headers["Location"].endswith("/admin/fun")
+    conn = db.connect(path)
+    assert data.avatar_build(conn, owner)["extra"] == "extra_strider_cape"
+    assert 'aria-label="Be The Strider"' in me.get("/admin/fun").get_data(as_text=True)
+    me.post("/admin", data={"csrf": "x", "action": "owner_look", "look": "reaper", "back": "fun"})
+    assert data.avatar_build(conn, owner)["hat"] == "hat_reaper_hood"
+    assert client(ids["teacher"]).post("/admin", data={"csrf": "x", "action": "owner_look",
+                                                       "look": "strider"}).status_code in (302, 403)
 

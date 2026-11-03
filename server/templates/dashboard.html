@@ -7,10 +7,21 @@
   <a class="btn btn-soft" href="{{ url_for('log') }}">{{ m.icon('plus', 18) }} Log your day</a>
 {% endcall %}
 
+{% if strider %}
+{# The Strider (the Reaper's alter ego): a "good job" pop-up once a day after the goal is reached #}
+<div class="reaper-toast strider-toast" role="status" aria-live="polite" data-reaper-toast>
+  <span class="reaper-toast-icon">{{ creature(strider_look, 52, "The Strider") }}</span>
+  <div class="reaper-toast-text">
+    <span class="reaper-toast-from">The Strider <span>· now</span></span>
+    <strong>{{ strider[0] }}</strong>
+    <span>{{ strider[1] }}</span>
+  </div>
+  <button class="reaper-toast-close" type="button" aria-label="Dismiss" data-reaper-close>{{ m.icon('x', 18) }}</button>
+</div>
+{% endif %}
+
 {% if reaper %}
 {# Stride Reaper's playful pop-up (the owner switches it on/off in Admin). Looks like a phone notification. #}
-{% set reaper_look = {"color": "color_midnight", "eyes": "eyes_dots", "mouth": "mouth_skull", "hat": "hat_reaper_hood",
-                      "extra": "extra_reaper_scythe", "shoes": "shoes_black", "bg": "bg_reaper_night"} %}
 <div class="reaper-toast" role="status" aria-live="polite" data-reaper-toast>
   <span class="reaper-toast-icon">{{ creature(reaper_look, 52, "Stride Reaper") }}</span>
   <div class="reaper-toast-text">

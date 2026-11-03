@@ -28,6 +28,16 @@ def _sparkle(x, y, r):
 
 
 def _bg(key, uid):
+    if key == "bg_strider_city":
+        towers = "".join(f'<rect x="{x}" y="{y}" width="{w}" height="{100 - y}" fill="#1E3A6E"/>'
+                         for x, y, w in ((0, 62, 14), (12, 52, 12), (26, 68, 10), (64, 58, 12), (78, 46, 12), (90, 64, 10)))
+        lights = "".join(f'<rect x="{x}" y="{y}" width="2" height="2" fill="#FFE27A" opacity=".85"/>'
+                         for x, y in ((4, 68), (16, 58), (16, 66), (82, 52), (82, 62), (68, 64), (93, 70)))
+        return (f'<defs><linearGradient id="sc{uid}" x1="0" y1="0" x2="0" y2="1">'
+                '<stop offset="0" stop-color="#2F6FE0"/><stop offset=".65" stop-color="#8FC4FF"/>'
+                '<stop offset="1" stop-color="#FFD27A"/></linearGradient></defs>'
+                f'<rect width="100" height="100" fill="url(#sc{uid})"/>{towers}{lights}'
+                '<path d="M20 6l-6 13h5l-4 11 10-15h-5l4-9z" fill="#FFE27A" stroke="#C99B2E" stroke-width=".8"/>')
     if key == "bg_reaper_night":
         stars = "".join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#fff" opacity="{o}"/>'
                         for x, y, r, o in ((86, 40, 1.3, .9), (36, 8, .9, .7), (12, 46, 1, .6), (90, 62, 1.2, .8),
@@ -69,10 +79,17 @@ SHOES = {
     "shoes_sky": ("#8EC3F2", "#FFFFFF"), "shoes_neon": ("#C8F25A", INK),
     "shoes_pink": ("#F7A8CF", "#FFFFFF"), "shoes_court": ("#FFFFFF", "#3FA66B"),
     "shoes_black": ("#2A2B33", "#FFFFFF"), "shoes_gold": ("#E8C15A", "#FFFFFF"),
+    "shoes_strider_bolt": ("#2F6FE0", "#FFE27A"),   # drawn with lightning bolts in _feet
 }
 
 
 def _feet(key, shade):
+    if key == "shoes_strider_bolt":
+        bolt = "M{x} 82.6l-2.6 3h2l-1.6 2.8 4-3.6h-2l1.6-2.2z"
+        return (f'<ellipse cx="39" cy="86" rx="9" ry="5" fill="#2F6FE0" stroke="{INK}" stroke-width="1.4"/>'
+                f'<ellipse cx="61" cy="86" rx="9" ry="5" fill="#2F6FE0" stroke="{INK}" stroke-width="1.4"/>'
+                f'<path d="{bolt.format(x=40)}" fill="#FFE27A" stroke="{INK}" stroke-width=".5"/>'
+                f'<path d="{bolt.format(x=62)}" fill="#FFE27A" stroke="{INK}" stroke-width=".5"/>')
     shoe, stripe_colour = SHOES.get(key, (shade, None))
     if isinstance(stripe_colour, list):
         stripe = "".join(f'<path d="M34 {y}h8M54 {y}h8" stroke="{c}" stroke-width="1.2" stroke-linecap="round"/>'
@@ -86,6 +103,15 @@ def _feet(key, shade):
 
 
 def _eyes(key):
+    if key == "eyes_strider_mask":
+        mask = ("M28 47Q30 40 40 41Q47 42 50 45Q53 42 60 41Q70 40 72 47Q72 55 63 56Q55 56 50 51"
+                "Q45 56 37 56Q28 55 28 47Z")
+        return (f'<path d="{mask}" fill="#2F6FE0" stroke="{INK}" stroke-width="1.4" stroke-linejoin="round"/>'
+                f'<path d="M72 46l7-3M28 46l-7-3" stroke="#2F6FE0" stroke-width="2.6" stroke-linecap="round"/>'
+                f'<ellipse cx="40.5" cy="48.5" rx="5" ry="3.8" fill="#fff" stroke="{INK}" stroke-width="1"/>'
+                f'<ellipse cx="59.5" cy="48.5" rx="5" ry="3.8" fill="#fff" stroke="{INK}" stroke-width="1"/>'
+                f'<circle cx="41.5" cy="49" r="2.1" fill="{INK}"/><circle cx="60.5" cy="49" r="2.1" fill="{INK}"/>'
+                '<path d="M33 44q4-2.5 9-2" stroke="#fff" stroke-width="1.1" opacity=".7" fill="none" stroke-linecap="round"/>')
     if key == "eyes_happy":
         return f'<path d="M37 51q4-6 8 0M55 51q4-6 8 0" stroke="{INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
     if key == "eyes_big":
@@ -134,6 +160,8 @@ def _mouth(key):
 
 
 def _extra(key):
+    if key == "extra_strider_cape":
+        return _strider_clasp()
     if key == "extra_glasses":
         return (f'<g fill="none" stroke="{INK}" stroke-width="1.8"><circle cx="41" cy="49" r="7"/>'
                 '<circle cx="59" cy="49" r="7"/><path d="M48 49h4M34 48l-8-2M66 48l8-2"/></g>')
@@ -177,8 +205,22 @@ def _scythe(main, shade):
             'transform="rotate(12 82 14)"/>')
 
 
+def _strider_cape():
+    return (f'<path d="M30 48Q50 54 70 48L88 92Q70 86 50 94Q30 86 12 92Z" fill="#2F6FE0" stroke="{INK}" '
+            'stroke-width="1.4" stroke-linejoin="round"/>'
+            '<path d="M16 88Q30 84 34 70M84 88Q70 84 66 70" stroke="#E5574B" stroke-width="3" fill="none" stroke-linecap="round"/>'
+            '<path d="M33 51Q42 55 50 55" stroke="#fff" stroke-width="1.2" opacity=".6" fill="none"/>')
+
+
+def _strider_clasp():
+    return (f'<circle cx="50" cy="77.5" r="4.2" fill="#FFE27A" stroke="{INK}" stroke-width="1.1"/>'
+            f'<path d="M50.8 74.6l-2.5 3.3h1.8l-1.3 2.8 3.4-3.8h-1.8l1.3-2.3z" fill="{INK}"/>')
+
+
 def _wings(key):
-    """Extras drawn behind the body: Silver wings, Gold cape."""
+    """Extras drawn behind the body: Silver wings, Gold cape, the Strider's cape."""
+    if key == "extra_strider_cape":
+        return _strider_cape()
     if key == "extra_gold_cape":
         return (f'<path d="M31 46Q50 52 69 46L86 90Q50 97 14 90Z" fill="{GOLD}" stroke="{INK}" stroke-width="1.4" stroke-linejoin="round"/>'
                 f'<path d="M27 70Q24 82 22 89M73 70Q76 82 78 89" stroke="{GOLD_SHADE}" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
