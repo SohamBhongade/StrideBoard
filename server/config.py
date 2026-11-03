@@ -205,6 +205,7 @@ AVATAR_ITEMS = {
     "eyes_dots": ("eyes", "Dots", 0), "eyes_happy": ("eyes", "Happy", 0),
     "eyes_big": ("eyes", "Big", 50), "eyes_sleepy": ("eyes", "Sleepy", 50),
     "eyes_wink": ("eyes", "Wink", 150), "eyes_stars": ("eyes", "Starry", 400),
+    "eyes_strider_mask": ("eyes", "Strider mask", 1000),
 
     "mouth_smile": ("mouth", "Smile", 0), "mouth_o": ("mouth", "Ooh", 0),
     "mouth_grin": ("mouth", "Grin", 50), "mouth_smirk": ("mouth", "Smirk", 50),
@@ -221,17 +222,17 @@ AVATAR_ITEMS = {
     "extra_scarf": ("extra", "Scarf", 150), "extra_shades": ("extra", "Shades", 150),
     "extra_whistle": ("extra", "Coach whistle", 150), "extra_medal": ("extra", "Medal", 400),
     "extra_silver_wings": ("extra", "Silver wings", 100), "extra_gold_cape": ("extra", "Gold cape", 150),
-    "extra_reaper_scythe": ("extra", "Reaper scythe", 1000),
+    "extra_reaper_scythe": ("extra", "Reaper scythe", 1000), "extra_strider_cape": ("extra", "Strider cape", 1000),
 
     "shoes_plain": ("shoes", "Bare feet", 0), "shoes_sneakers": ("shoes", "Sneakers", 150),
     "shoes_runners": ("shoes", "Red runners", 50), "shoes_sky": ("shoes", "Sky trainers", 50),
     "shoes_neon": ("shoes", "Neon", 150), "shoes_pink": ("shoes", "Pink pops", 150),
     "shoes_court": ("shoes", "Court classics", 150), "shoes_black": ("shoes", "Midnight", 400),
-    "shoes_gold": ("shoes", "Gold sneakers", 1000),
+    "shoes_gold": ("shoes", "Gold sneakers", 1000), "shoes_strider_bolt": ("shoes", "Lightning shoes", 1000),
 
     "bg_plain": ("bg", "Plain", 0), "bg_sage": ("bg", "Sage", 0), "bg_sky": ("bg", "Sky", 50),
     "bg_track": ("bg", "Running track", 150), "bg_sunrise": ("bg", "Sunrise", 400),
-    "bg_reaper_night": ("bg", "Reaper night", 1000),
+    "bg_reaper_night": ("bg", "Reaper night", 1000), "bg_strider_city": ("bg", "Strider city", 1000),
     "bg_stars": ("bg", "Night sky", 400), "bg_platinum_glow": ("bg", "Platinum glow", 200),
 }
 # The "Glass" tab of the studio: the colour field behind the frosted glass look, which only
@@ -291,7 +292,13 @@ EXCLUSIVE_ITEMS = {"hat_silver_visor": "Silver", "extra_silver_wings": "Silver",
 
 # Owner-only items: never sold or given by rewards. Only the owner account (OWNER_USERNAME)
 # sees them in the studio and can wear them; anyone else wearing one shows the default.
-OWNER_ITEMS = ("hat_reaper_hood", "extra_reaper_scythe", "mouth_skull", "bg_reaper_night")
+OWNER_ITEMS = ("hat_reaper_hood", "extra_reaper_scythe", "mouth_skull", "bg_reaper_night",
+               # The Strider, the Reaper's alter ego (the "good job" pop-up)
+               "eyes_strider_mask", "extra_strider_cape", "shoes_strider_bolt", "bg_strider_city")
+REAPER_LOOK = {"color": "color_midnight", "eyes": "eyes_dots", "mouth": "mouth_skull", "hat": "hat_reaper_hood",
+               "extra": "extra_reaper_scythe", "shoes": "shoes_black", "bg": "bg_reaper_night"}
+STRIDER_LOOK = {"color": "color_sky", "eyes": "eyes_strider_mask", "mouth": "mouth_grin", "hat": "hat_none",
+                "extra": "extra_strider_cape", "shoes": "shoes_strider_bolt", "bg": "bg_strider_city"}
 
 REWARD_TRACKS = {
     "Bronze": _calendar(

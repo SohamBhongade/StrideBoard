@@ -3,7 +3,7 @@
 {% block content %}
 
 {{ m.page_head("School", "reports", "Things people have flagged on the leaderboards, and new names to check. Handle each one.") }}
-{{ m.admin_tabs('reports', reports|length) }}
+{{ m.admin_tabs('reports', reports|length, fun=owner) }}
 
 {# ---- Reports from people (Child Digital Safety Law: an easy way to report) ---- #}
 <section class="card card-soft reports-card" id="reports" aria-labelledby="reports-h" >

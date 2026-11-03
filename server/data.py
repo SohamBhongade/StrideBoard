@@ -110,6 +110,36 @@ def reaper_notice_on(conn):
     return _get_meta(conn, "reaper_notice") == "on"
 
 
+def strider_notice_on(conn):
+    """Is The Strider's "good job" pop-up switched on? (Off by default; the owner flips it.)"""
+    return _get_meta(conn, "strider_notice") == "on"
+
+
+def set_strider_notice(conn, on):
+    _set_meta(conn, "strider_notice", "on" if on else "off")
+    conn.commit()
+
+
+def strider_message(today_steps, daily_goal):
+    """The Strider's cheer for reaching today's goal: (title, text)."""
+    if today_steps >= daily_goal * 1.5:
+        return "Unstoppable!", (f"{today_steps:,} steps: way past your {daily_goal:,} goal. "
+                                "The Strider salutes you. ⚡")
+    return "Good job!", (f"You hit your {daily_goal:,}-step goal today. "
+                         "Every step makes you stronger. ⚡")
+
+
+def set_avatar_look(conn, user_id, look):
+    """Wear a whole look at once (the owner's Reaper / Strider switch)."""
+    _require_user(conn, user_id)
+    for slot, key in look.items():
+        if key not in config.AVATAR_ITEMS:
+            raise ValueError("that item doesn't exist")
+        conn.execute("INSERT INTO avatar_equipped (user_id, slot, item_key) VALUES (?, ?, ?) "
+                     "ON CONFLICT (user_id, slot) DO UPDATE SET item_key = excluded.item_key", (user_id, slot, key))
+    conn.commit()
+
+
 def set_reaper_notice(conn, on):
     _set_meta(conn, "reaper_notice", "on" if on else "off")
     conn.commit()

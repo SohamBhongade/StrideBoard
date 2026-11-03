@@ -124,6 +124,7 @@ def test_only_the_owner_sees_and_wears_the_reaper_set(conn, monkeypatch):
     mine = {i["key"]: i for i in data.avatar_shop(conn, owner)["items"]}
     for key in data.config.OWNER_ITEMS:
         assert mine[key]["owned"] and mine[key]["exclusive"] == "Owner"
+    for key in ("hat_reaper_hood", "extra_reaper_scythe", "mouth_skull", "bg_reaper_night"):
         data.wear_avatar_item(conn, owner, key)
     build = data.avatar_build(conn, owner)
     assert (build["hat"], build["extra"], build["mouth"], build["bg"]) == (

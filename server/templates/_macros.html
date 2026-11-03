@@ -74,10 +74,11 @@
 {%- endmacro %}
 
 {# The tabs at the top of the Admin pages: Overview and Reports (with the open count) #}
-{% macro admin_tabs(active, report_count=0) -%}
+{% macro admin_tabs(active, report_count=0, fun=False) -%}
 <nav class="pills admin-tabs" aria-label="Admin sections">
   <a class="pill{% if active == 'overview' %} active{% endif %}" href="{{ url_for('admin') }}"{% if active == 'overview' %} aria-current="page"{% endif %}>{{ icon('users', 18) }} Overview</a>
   <a class="pill{% if active == 'reports' %} active{% endif %}" href="{{ url_for('admin_reports') }}"{% if active == 'reports' %} aria-current="page"{% endif %}>{{ icon('report', 18) }} Reports{% if report_count %} <span class="tab-count">{{ report_count }}</span>{% endif %}</a>
+  {% if fun %}<a class="pill{% if active == 'fun' %} active{% endif %}" href="{{ url_for('admin_fun') }}"{% if active == 'fun' %} aria-current="page"{% endif %}>{{ icon('spark', 18) }} Fun</a>{% endif %}
 </nav>
 {%- endmacro %}
 
