@@ -7,6 +7,7 @@ movement itself is CSS (style.css, "Mini challenge scenes"), so it costs no Java
 stops for people who ask their phone for less motion.
 """
 import itertools
+import json
 import math
 
 from markupsafe import Markup, escape
@@ -15,6 +16,16 @@ import workout_rig
 
 _ids = itertools.count(1)
 POSES = {"pushups": "pushup", "squats": "squat", "planks": "plank", "jumping_jacks": "jacks"}
+
+
+# ------------------------------------------------------------------ the WebGL version
+
+def _gl(build, kind, poses, size, **extra):
+    """data-gl: everything static/js/scene-gl.js needs to redraw this scene in WebGL (the SVG stays
+    as the fallback): which scene, the athlete's movement from the same rig, and where it stands."""
+    info = {"kind": kind, "size": size, "poses": {name: workout_rig.pose_data(build, name) for name in poses}}
+    info.update(extra)
+    return Markup(f' data-gl="{escape(json.dumps(info, separators=(",", ":")))}"')
 
 
 # ------------------------------------------------------------------ the athlete
@@ -99,7 +110,8 @@ def scene(build, track, label, exp):
         return Markup("")
     uid = next(_ids)
     player = _player(build, pose)
-    return Markup(f'<div class="game game-{pose}">{_world(uid, player, _hud(label, exp))}</div>')
+    gl = _gl(build, "work", [pose], 128)
+    return Markup(f'<div class="game game-{pose}"{gl}>{_world(uid, player, _hud(label, exp))}</div>')
 
 
 def celebration(build):
@@ -125,7 +137,8 @@ def celebration(build):
     player = _player(build, "cheer", 96)
     middle = (f'<g transform="translate(160 96)">{burst}</g>'
               f'<g transform="translate(160 112)">{fountain}</g>{player}{confetti}')
-    return Markup(f'<div class="game game-cheer">{_world(uid, middle)}</div>')
+    gl = _gl(build, "cheer", ["cheer"], 96)
+    return Markup(f'<div class="game game-cheer"{gl}>{_world(uid, middle)}</div>')
 
 
 # ------------------------------------------------------------------ walks: a course with checkpoints
@@ -176,12 +189,14 @@ def walk_scene(build, label, exp, walked, amount):
              f'<text x="300" y="30" text-anchor="end" class="g-hud-steps"><tspan data-walk-done>{walked:,}</tspan>'
              f'<tspan class="g-hud-of"> / {amount:,}</tspan></text>')
     middle = _course(amount) + _walker(build, STAND_X[reached])
+    gl = _gl(build, "walk", ["walk", "stand"], 92, course=[round(x, 1) for x in COURSE_X])
     return Markup(f'<div class="game game-walk" data-course="{",".join(f"{x:.1f}" for x in STAND_X)}" '
-                  f'data-reached="{reached}">{_world(uid, middle, _hud(label, exp, steps))}</div>')
+                  f'data-reached="{reached}"{gl}>{_world(uid, middle, _hud(label, exp, steps))}</div>')
 
 
 def walk_finish(build, amount):
     """Over the finish line: from the last checkpoint, past the checkered flag and off the screen."""
     uid = next(_ids)
     middle = _course(amount) + _walker(build, STAND_X[4], finish=True)
-    return Markup(f'<div class="game game-walk game-finish">{_world(uid, middle)}</div>')
+    gl = _gl(build, "finish", ["walk"], 92, course=[round(x, 1) for x in COURSE_X])
+    return Markup(f'<div class="game game-walk game-finish"{gl}>{_world(uid, middle)}</div>')

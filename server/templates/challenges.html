@@ -138,3 +138,7 @@
   {% endfor %}
 </div>
 {% endblock %}
+{% block scripts %}
+{# The mini challenge scenes in WebGL (our own small renderer); only on this page #}
+<script src="{{ url_for('static', filename='js/scene-gl.js') }}?v={{ ASSET_VERSION }}" defer></script>
+{% endblock %}

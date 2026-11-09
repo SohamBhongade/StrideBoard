@@ -251,12 +251,41 @@ def _head(view, main, extra):
             f'{headband}{face}{extra}')
 
 
-def figure(build, exercise):
-    """The animated athlete for one exercise, as the inside of a 100x100 <svg>."""
+def colours(build):
+    """(main, shade, shoe) for a build: the athlete wears the avatar's colours and shoes."""
     from avatar_art import COLORS, SHOES
     build = build or {}
     main, shade = COLORS.get(build.get("color"), COLORS["color_mint"])
     shoe = SHOES.get(build.get("shoes"), ("#E5786B",))[0]
+    return main, shade, shoe
+
+
+def pose_data(build, exercise):
+    """One exercise's movement for the WebGL scenes (static/js/scene-gl.js), from the same rig.
+
+    {"view", "dur", "head_after": index of the torso, "segs": [[key, width, colour]],
+     "frames": [[x1, y1, x2, y2 for each segment..., head x, head y, lift]]} in the 100x100 box.
+    The cycle loops, so the last frame isn't repeated.
+    """
+    fn, dur = EXERCISES[exercise]
+    cols = colours(build)
+    poses = [fn(i / FRAMES) for i in range(FRAMES)]
+    first = _segments(poses[0], cols)
+    frames = []
+    for pose in poses:
+        row = []
+        for _key, p, q, _w, _c in _segments(pose, cols):
+            row += [round(p[0], 2), round(p[1], 2), round(q[0], 2), round(q[1], 2)]
+        row += [round(pose["head"][0], 2), round(pose["head"][1], 2), round(pose.get("lift", 0), 2)]
+        frames.append(row)
+    return {"view": poses[0]["view"], "dur": dur,
+            "head_after": [k for k, *_ in first].index("torso"),
+            "segs": [[k, w, c] for k, _p, _q, w, c in first], "frames": frames}
+
+
+def figure(build, exercise):
+    """The animated athlete for one exercise, as the inside of a 100x100 <svg>."""
+    main, shade, shoe = colours(build)
     fn, dur = EXERCISES[exercise]
     poses = [fn(i / FRAMES) for i in range(FRAMES + 1)]
     first = _segments(poses[0], (main, shade, shoe))

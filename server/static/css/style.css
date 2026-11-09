@@ -1522,3 +1522,14 @@ button.side-link { border: 0; background: none; color: inherit; font: inherit; c
 .fun-look.on { opacity: 1; }
 .fun-look .creature { border-radius: 18px; }
 
+/* ---------- WebGL scenes (scene-gl.js): the canvas draws the world and the athlete; the SVG keeps
+   only its text on top (timer, labels, checkpoint numbers). The SVG is the fallback. */
+.game canvas.gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.game.gl-on .game-svg { position: relative; z-index: 1; }
+.game.gl-on .game-svg * { visibility: hidden; }
+.game.gl-on .game-svg .g-hud, .game.gl-on .game-svg .g-hud *, .game.gl-on .game-svg text,
+.game.gl-on .game-svg text * { visibility: visible; }
+.game.gl-on .ath, .game.gl-on .walker svg { display: none; }
+.game.gl-on .g-clouds, .game.gl-on .g-far, .game.gl-on .g-near, .game.gl-on .g-sun, .game.gl-on .g-gem,
+.game.gl-on .g-burst, .game.gl-on .g-fountain, .game.gl-on .g-confetti, .game.gl-on .g-flag { animation: none; }
+
