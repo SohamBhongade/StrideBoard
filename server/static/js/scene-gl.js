@@ -29,7 +29,7 @@
     "uniform vec3 u_skyA, u_skyB, u_sun, u_far, u_near, u_grass, u_soil, u_scroll;",
     "uniform vec4 u_seg[" + MAX_SEG + "]; uniform vec4 u_col[" + MAX_SEG + "];",
     "uniform float u_n, u_headAt, u_front, u_ol, u_course, u_passed, u_hop;",
-    "uniform vec3 u_head, u_main; uniform vec4 u_shadow, u_cxa; uniform vec2 u_cxb;",
+    "uniform vec3 u_head, u_main; uniform vec4 u_shadow, u_cxa, u_box; uniform vec2 u_cxb;",
     "const vec3 INK = vec3(0.090, 0.094, 0.110);",
     "const float TAU = 6.2831853;",
     // signed distance helpers; fill() turns a distance into smooth (anti-aliased) coverage
@@ -89,11 +89,12 @@
     // sky and sun
     "  vec3 col = mix(u_skyA, u_skyB, smoothstep(0.0, 150.0, p.y));",
     "  vec2 sp = p - vec2(196.0, 40.0); float sd = length(sp);",
-    "  float rays = (0.5 + 0.5 * sin(atan(sp.y, sp.x) * 12.0 + u_t * 0.25)) * exp(-sd / 70.0) * 0.1;",
-    "  col += u_sun * (exp(-sd / 24.0) * 0.45 + rays);",
+    "  if (sd < 150.0) {",                                                 // the sun's glow and rays fade out by here
+    "    float rays = (0.5 + 0.5 * sin(atan(sp.y, sp.x) * 12.0 + u_t * 0.25)) * exp(-sd / 70.0) * 0.1;",
+    "    col += u_sun * (exp(-sd / 24.0) * 0.45 + rays); }",
     "  col = mix(col, u_sun, fill(sd - 13.0 - 0.6 * sin(u_t * 1.6)));",
     // clouds: soft white puffs drifting left, two copies so they wrap around seamlessly
-    "  for (int i = 0; i < 4; i++) {",
+    "  if (p.y < 74.0) for (int i = 0; i < 4; i++) {",                      // clouds only live up in the sky
     "    vec3 c = i == 0 ? vec3(22.0, 34.0, 1.0) : i == 1 ? vec3(128.0, 22.0, 0.8) : i == 2 ? vec3(226.0, 50.0, 1.1) : vec3(300.0, 30.0, 0.7);",
     "    float x = mod(c.x - u_scroll.x, 320.0);",
     "    for (int k = 0; k < 2; k++) { vec2 o = (p - vec2(x - float(k) * 320.0, c.y)) / c.z;",
@@ -101,6 +102,7 @@
     "      col = mix(col, mix(col, vec3(0.0), 0.06), (1.0 - smoothstep(-2.0, 6.0, d - 2.0)) * 0.4 * step(0.0, o.y));",
     "      col = mix(col, mix(vec3(1.0), u_skyB, clamp((o.y + 8.0) / 30.0, 0.0, 0.35)), fill(d) * 0.94); } }",
     // far and near hills: smooth repeating ridges that scroll at different speeds (parallax)
+    "  if (p.y > 76.0) {",                                                  // hills and ground: the lower part only
     "  float xf = p.x + u_scroll.y;",
     "  float hf = 100.0 - 12.0 * sin(xf * TAU * 2.0 / 320.0 + 0.6) - 7.0 * sin(xf * TAU * 5.0 / 320.0 + 2.1) - 3.0 * sin(xf * TAU * 11.0 / 320.0 + 0.4);",
     "  vec3 far = mix(u_far, u_skyB, 0.18) * (1.04 - 0.1 * clamp((p.y - hf) / 40.0, 0.0, 1.0));",
@@ -115,19 +117,20 @@
     "  float gt = 144.0 - 0.9 * abs(sin(p.x * 1.7)) * (0.6 + 0.4 * sin(p.x * 0.31));",
     "  vec3 soil = u_soil * (1.0 - 0.28 * clamp((p.y - 150.0) / 30.0, 0.0, 1.0));",
     "  col = mix(col, soil, smoothstep(149.0, 150.0, p.y));",
-    "  for (int i = 0; i < 8; i++) { vec3 pb = i == 0 ? vec3(18.0, 166.0, 3.0) : i == 1 ? vec3(64.0, 172.0, 2.0) : i == 2 ? vec3(104.0, 162.0, 2.5) : i == 3 ? vec3(150.0, 174.0, 3.0) :",
+    "  if (p.y > 157.0) for (int i = 0; i < 8; i++) { vec3 pb = i == 0 ? vec3(18.0, 166.0, 3.0) : i == 1 ? vec3(64.0, 172.0, 2.0) : i == 2 ? vec3(104.0, 162.0, 2.5) : i == 3 ? vec3(150.0, 174.0, 3.0) :",
     "      i == 4 ? vec3(196.0, 165.0, 2.0) : i == 5 ? vec3(238.0, 171.0, 3.0) : i == 6 ? vec3(282.0, 163.0, 2.5) : vec3(312.0, 175.0, 2.0);",
     "    vec2 o = (p - pb.xy) / vec2(pb.z, pb.z * 0.6); col = mix(col, u_soil * 0.72, fill((length(o) - 1.0) * pb.z * 0.6) * 0.7); }",
     "  vec3 grass = u_grass * (1.14 - 0.24 * clamp((p.y - gt) / 12.0, 0.0, 1.0));",
     "  col = mix(col, grass, smoothstep(gt - u_px, gt + u_px, p.y) * (1.0 - smoothstep(gb - u_px, gb + u_px, p.y)));",
     "  col += 0.1 * (1.0 - smoothstep(0.0, 1.6, abs(p.y - gt - 0.6))) * step(p.y, gb);",
-    "  for (int i = 0; i < 4; i++) { vec2 f = i == 0 ? vec2(40.0, 1.0) : i == 1 ? vec2(120.0, 0.0) : i == 2 ? vec2(262.0, 1.0) : vec2(300.0, 0.0);",
+    "  if (p.y > 133.0 && p.y < 147.5) for (int i = 0; i < 4; i++) { vec2 f = i == 0 ? vec2(40.0, 1.0) : i == 1 ? vec2(120.0, 0.0) : i == 2 ? vec2(262.0, 1.0) : vec2(300.0, 0.0);",
     "    float sw = 0.7 * sin(u_t * 1.4 + f.x); vec2 top = vec2(f.x + sw, 138.0);",
     "    col = mix(col, vec3(0.184, 0.541, 0.278), fill(seg(p, vec2(f.x, 146.0), top) - 0.7));",
     "    vec3 petal = f.y > 0.5 ? vec3(1.0) : vec3(0.969, 0.761, 0.855);",
     "    col = mix(col, petal, fill(length(p - top) - 2.6)); col = mix(col, vec3(1.0, 0.89, 0.43), fill(length(p - top) - 1.0)); }",
     // the walk course: dashed trail, start line, four checkpoint posts and the finish flag
-    "  if (u_course > 0.5) {",
+    "  }",
+    "  if (u_course > 0.5 && p.y > 101.0 && p.y < 159.0) {",
     "    float c0 = cx(0), c5 = cx(5);",
     "    float dash = 1.0 - smoothstep(1.9, 2.3, mod(p.x - c0, 7.0));",
     "    col = mix(col, vec3(1.0), 0.55 * dash * fill(abs(p.y - 157.0) - 1.0) * step(c0, p.x) * step(p.x, c5));",
@@ -148,7 +151,8 @@
     "    col = mix(col, INK, fill(fd - 0.6)); col = mix(col, fc, fill(fd)); }",
     // the athlete's soft shadow, then the body: each limb a lit rounded capsule with an ink outline
     "  vec2 so = (p - u_shadow.xy) / u_shadow.zw;",
-    "  col = mix(col, vec3(0.0), 0.2 * (1.0 - smoothstep(0.35, 1.0, length(so))));",
+    "  if (abs(so.y) < 1.0) col = mix(col, vec3(0.0), 0.2 * (1.0 - smoothstep(0.35, 1.0, length(so))));",
+    "  if (p.x > u_box.x && p.x < u_box.z && p.y > u_box.y && p.y < u_box.w)",   // the athlete only inside their box
     "  for (int i = 0; i < " + MAX_SEG + "; i++) {",
     "    if (float(i) >= u_n) break;",
     "    vec4 s = u_seg[i]; vec4 c = u_col[i];",
@@ -158,7 +162,7 @@
     "    col = mix(col, INK, fill(d - c.w - u_ol));",
     "    vec2 nn = dv / max(c.w, 1e-3); vec3 n = vec3(nn, sqrt(max(0.0, 1.0 - dot(nn, nn))));",
     "    col = mix(col, lit(c.rgb, n), fill(d - c.w));",
-    "    if (abs(float(i) - u_headAt) < 0.5) col = headPart(col, p);",
+    "    if (abs(float(i) - u_headAt) < 0.5 && length(p - u_head.xy) < u_head.z * 1.65) col = headPart(col, p);",
     "  }",
     "  vec2 vg = uv - 0.5; col *= 1.0 - 0.18 * dot(vg, vg);",
     "  gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);",
@@ -296,7 +300,7 @@
 
     var seg = new Float32Array(MAX_SEG * 4), col = new Float32Array(MAX_SEG * 4), tmp = [];
     var colours = {}, frame = 0, tick = 0, quality = 1, slow = 0, last = 0, visible = true, alive = true, faded = false;
-    var burstsDone = 0;
+    var burstsDone = 0, odd = 0;
     var t0 = performance.now() + (game.closest(".win-walk .win-stage2") ? 3200 : 0);
     var particles = [], lastPhase = 0, lastLift = 0, grounded = {}, passed = -1, passedAt = -9, finished = false;
     var headPos = [0, 0], torsoMid = [160, 100];
@@ -345,12 +349,15 @@
     function gemPop(x, y) { add(x, y, rand(-8, 8), -46, 30, 1.1, 13, [.435, .827, .941], 1, 0, rand(-2, 2), 0, 1.2); }
 
     // ---- what each kind of scene does, every frame
+    var walkerX = null;
     function athletePlacement(t) {
       if (kind === "walk" || kind === "finish") {
-        var x = course[0], m = /matrix\(([^)]+)\)/.exec(getComputedStyle(walker).transform || "");
-        if (m) x = parseFloat(m[1].split(",")[4]);
-        else if (walker && walker.style.transform) x = parseFloat(walker.style.transform.replace(/[^\d.-]+/g, " ")) || x;
         var walking = kind === "finish" || walker.classList.contains("walking");
+        if (walking || walkerX === null || frame % 15 === 0) {        // reading styles costs: only when it moves
+          var m = /matrix\(([^)]+)\)/.exec(getComputedStyle(walker).transform || "");
+          walkerX = m ? parseFloat(m[1].split(",")[4]) : course[0];
+        }
+        var x = walkerX;
         return {x: x - size / 2, pose: walking ? info.poses.walk : info.poses.stand, walking: walking, wx: x};
       }
       return {x: 160 - size / 2, pose: mainPose};
@@ -385,7 +392,7 @@
             grounded[i] = down;
           });
         }
-        var p = kind === "finish" ? 4 : game.querySelectorAll(".g-cp.passed").length;   // the finish: all passed
+        var p = kind === "finish" ? 4 : (frame % 10 === 0 || passed < 0 ? game.querySelectorAll(".g-cp.passed").length : passed);
         if (passed >= 0 && p > passed) {
           passedAt = t;
           var px = course[Math.min(p, 4)];
@@ -430,9 +437,10 @@
       if (!visible || document.hidden) { last = 0; return; }
       if (stage && (tick++ % 20 === 0)) faded = parseFloat(getComputedStyle(stage).opacity) < .02;
       if (faded) return;          // not showing: the finish line after its fade, or the celebration before it
-      var dt = last ? Math.min(.05, (now - last) / 1000) : 1 / 60;
+      if (LITE && (++odd & 1)) return;           // Lite phones: 30 frames a second, half the battery
+      var dt = last ? Math.min(.07, (now - last) / 1000) : 1 / 60;
       // A slow phone draws at a lower resolution instead of stuttering
-      if (last && now - last > 26) { if (++slow > 45 && quality > .55) { quality *= .8; slow = 0; } } else slow = Math.max(0, slow - 1);
+      if (last && now - last > (LITE ? 50 : 26)) { if (++slow > 45 && quality > .55) { quality *= .8; slow = 0; } } else slow = Math.max(0, slow - 1);
       last = now;
       frame++;
       if (frame % 90 === 0) readColours();
@@ -450,6 +458,12 @@
         col[i * 4] = c[0]; col[i * 4 + 1] = c[1]; col[i * 4 + 2] = c[2]; col[i * 4 + 3] = pose.segs[i][1] / 2 * s;
       }
       var hx = place.x + v[n * 4] * s, hy = oy + v[n * 4 + 1] * s, lift = v[n * 4 + 2];
+      // A box around the athlete (limbs, outline, head, headband tail): the shader skips them elsewhere
+      var bx0 = hx - 12.5 * s, by0 = hy - 9.5 * s, bx1 = hx + 9.5 * s, by1 = hy + 9.5 * s, pad = 9 * s;
+      for (i = 0; i < n * 4; i += 2) {
+        bx0 = Math.min(bx0, seg[i] - pad); bx1 = Math.max(bx1, seg[i] + pad);
+        by0 = Math.min(by0, seg[i + 1] - pad); by1 = Math.max(by1, seg[i + 1] + pad);
+      }
       headPos = [hx, hy];
       var ti = pose.head_after;
       torsoMid = [(seg[ti * 4] + seg[ti * 4 + 2]) / 2, (seg[ti * 4 + 1] + seg[ti * 4 + 3]) / 2];
@@ -474,6 +488,7 @@
       gl.uniform1f(U.u_n, n); gl.uniform1f(U.u_headAt, ti); gl.uniform1f(U.u_front, pose.view === "front" ? 1 : 0);
       gl.uniform1f(U.u_ol, 1.3 * s);
       gl.uniform3f(U.u_head, hx, hy, 7.8 * s); gl.uniform3fv(U.u_main, pose.main);
+      gl.uniform4f(U.u_box, bx0, by0, bx1, by1);
       var shrink = 1 - Math.min(.4, lift / 20);
       gl.uniform4f(U.u_shadow, place.x + 50 * s, GROUND + .5, (pose.view === "front" ? 18 : 30) * s * shrink, 2.8 * s * shrink);
       gl.uniform1f(U.u_course, info.course ? 1 : 0);
@@ -487,10 +502,8 @@
 
       // particles on top
       var count = 0, k;
-      for (k = 0; k + 8 < drawList.length && count < MAX_DOTS; k += 9) {
-        dotData.set([drawList[k], drawList[k + 1], drawList[k + 2], drawList[k + 3], drawList[k + 4], drawList[k + 5],
-                     drawList[k + 6], drawList[k + 7], drawList[k + 8]], count * 9);
-        count++;
+      for (k = 0; k + 8 < drawList.length && count < MAX_DOTS; k += 9, count++) {
+        for (var m = 0; m < 9; m++) dotData[count * 9 + m] = drawList[k + m];
       }
       for (k = 0; k < particles.length && count < MAX_DOTS; k++) {
         var p = particles[k], f = p.life / p.max, fade = Math.min(1, f * 3);
