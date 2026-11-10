@@ -59,14 +59,13 @@
    waiting for an admin, or not approved and asked to use their real name. #}
 {% macro name_review_notice(person, home=False) -%}
 {% if person.name_review %}
-{% set group = 'class' if person.role == 'student' else 'department' %}
 <div class="nudge nudge-pink name-review" role="status">
   <span class="icon-circle">{{ icon('report') }}</span>
   <div class="nudge-text">
     <strong>Your name is waiting to be approved</strong>
-    <span>A school admin needs to check it before it shows on the leaderboards. Please tell an admin at
-      school so they can approve it. If it isn't approved, this account is deleted; ask an admin to let
-      you sign up again with your real name. Your steps still count for your {{ group }}.</span>
+    <span>An admin needs to check it before it shows on the leaderboards. Please tell a StrideBoard
+      admin so they can approve it. If it isn't approved, this account is deleted; ask an admin to let
+      you sign up again with your real name. Your steps still count while you wait.</span>
   </div>
   {% if home %}<a class="btn btn-dark btn-sm" href="{{ url_for('settings') }}#your-data">Settings</a>{% endif %}
 </div>

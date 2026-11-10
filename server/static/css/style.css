@@ -1104,7 +1104,7 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .board-clock { justify-self: end; display: flex; flex-direction: column; align-items: flex-end; }
 .board-clock strong { font-size: clamp(24px, 2.4vw, 42px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
 .board-clock span { color: #A7B2CF; font-size: 13px; margin-top: 4px; }
-.board-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(14px, 2vw, 28px); }
+.board-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(14px, 2vw, 28px); }
 .board-panel {
   background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); border-radius: 26px;
   padding: clamp(12px, 2vh, 28px) clamp(16px, 1.8vw, 28px); display: flex; flex-direction: column; gap: clamp(8px, 1.4vh, 20px); min-width: 0; min-height: 0; overflow: hidden;
@@ -1125,7 +1125,8 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; 
 .board-block-rank { font-size: clamp(20px, 4.4vh, 44px); font-weight: 800; line-height: 1; }
 .board-block-val { font-size: clamp(14px, 1.25vw, 20px); font-weight: 700; font-variant-numeric: tabular-nums; }
 .board-block-val small { font-size: .7em; font-weight: 600; opacity: .75; }
-.board-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: clamp(3px, .6vh, 8px); }
+.board-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: column; grid-template-rows: repeat(5, auto); column-gap: clamp(10px, 1.5vw, 24px); row-gap: clamp(3px, .6vh, 8px); }
+@media (max-width: 900px) { .board-list { grid-template-columns: minmax(0, 1fr); grid-auto-flow: row; grid-template-rows: none; } }
 .board-row { display: flex; align-items: center; gap: 12px; padding: clamp(3px, .75vh, 10px) 14px; border-radius: 14px; background: rgba(255, 255, 255, .05); }
 .board-rank { width: 30px; text-align: center; font-weight: 700; color: #A7B2CF; font-variant-numeric: tabular-nums; }
 .board-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }

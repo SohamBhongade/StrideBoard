@@ -237,7 +237,7 @@ def test_admin_approves_a_possible_real_name_from_the_reports_tab(school):
     omar = client(ids["Omar Saeed"])
     for url in ("/settings", "/"):                                   # told on Home and in Settings
         assert "Your name is waiting to be approved" in omar.get(url).get_data(as_text=True)
-        assert "Please tell an admin at" in omar.get(url).get_data(as_text=True)
+        assert "Please tell a StrideBoard" in omar.get(url).get_data(as_text=True)
     r = admin.post("/admin", data={"csrf": "x", "action": "name_approve", "user_id": ids["Omar Saeed"]})
     assert r.headers["Location"].endswith("/admin/reports")
     assert 'data-reason="real_name"' not in admin.get("/admin/reports").get_data(as_text=True)

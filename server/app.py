@@ -34,14 +34,12 @@ SHORTCUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static
 # Display settings. The game rules themselves live in data.py / calc.py.
 TIERS = list(config.TIERS)  # from Agent 1's config.py, so the rules live in one place
 LEADERBOARD_PERIODS = [("day", "Today"), ("week", "This week"), ("month", "This month"), ("all", "All time")]
-LEADERBOARD_VIEWS = [("student", "Students"), ("teacher", "Teachers"),
-                     ("department", "Classes & departments"), ("effort", "Effort"),
-                     ("improvement", "Most improved")]
+LEADERBOARD_VIEWS = [("everyone", "Everyone"), ("effort", "Effort"), ("improvement", "Most improved")]
 AGE_BANDS = [("under_13", "Under 13"), ("teen_13_17", "13 to 17"),
              ("adult_18_39", "18 to 39"), ("adult_40_59", "40 to 59"),
              ("senior_60_plus", "60 and over")]
 BOARD_APP_DOWNLOADS = "https://github.com/SohamBhongade/StrideBoard/releases/download/leaderboard-app-latest/"
-BOARD_ROWS = 8            # people per board on the leaderboard screen
+BOARD_ROWS = 13           # people on the leaderboard screen (podium of 3 + 10 in two columns)
 LEADERBOARD_TOP = 50       # rows shown before "Show everyone"
 MOODS = [(1, "Low"), (2, "Meh"), (3, "Okay"), (4, "Good"), (5, "Great")]
 # badge key -> (name, icon, colour, how to earn it). Names come from config.BADGES below.
@@ -66,7 +64,7 @@ RECORD_VERB = {"steps": "Walk {n} steps in one day", "pushups": "Do {n} push-ups
 WATER_TARGET = 8  # glasses a day: placeholder suggestion, team to verify like the step goals
 # Bump this whenever style.css, app.js or the font change, so phones load the new
 # files instead of their saved copy (the service worker picks it up automatically).
-ASSET_VERSION = "70"
+ASSET_VERSION = "71"
 
 # Pages that still work after a parent's daily time limit is used up.
 TIME_FREE = {"logout", "static", "service_worker", "offline", "privacy", "parent", "board"}
@@ -931,8 +929,7 @@ def add_routes(app):
         d = data.dashboard(conn, uid, t)
         week = this_week(data.history(conn, uid, 7, t), d["daily_goal"])
         # A small leaderboard preview: top 3 plus where you are
-        view = g.user["role"] if g.user["role"] in ("student", "teacher") else "student"
-        board = cached_leaderboard(conn, view, t)
+        board = cached_leaderboard(conn, "everyone", t)
         mine = next((r for r in board if r.get("user_id") == uid), None)
         preview = with_builds(conn, board[:3] + ([mine] if mine and mine["rank"] > 3 else []))
         # The Strider's "good job" pop-up: once a day, the first Home visit after reaching the goal.
@@ -947,7 +944,7 @@ def add_routes(app):
             reaper = data.reaper_message(d["today_steps"], d["daily_goal"])
             session["reaper_day"] = str(t)
         return render_template("dashboard.html", d=d, week=week, preview=preview,
-                               preview_view=view, my_rank=mine,
+                               preview_view="everyone", my_rank=mine,
                                tier_progress=tier_progress(d["weekly_total"]),
                                badge_summary=badge_summary(all_badges(conn, uid, d["badges"])),
                                water_target=WATER_TARGET,
@@ -1000,18 +997,11 @@ def add_routes(app):
     # ---------- Leaderboards
     @app.route("/leaderboard")
     def leaderboard():
-        # Students only see student boards and teachers only see teacher boards;
-        # admins see everything.
-        role = g.user["role"] if g.user["role"] in ("student", "teacher") else None
-        if role:
-            other = "teacher" if role == "student" else "student"
-            group = "Classes" if role == "student" else "Departments"
-            allowed = [(k, group if k == "department" else label)
-                       for k, label in LEADERBOARD_VIEWS if k != other]
-        else:
-            allowed = LEADERBOARD_VIEWS
+        # One board for everyone (no more students, teachers, classes or departments).
+        role = None
+        allowed = LEADERBOARD_VIEWS
         views = dict(allowed)
-        default = role or "student"
+        default = "everyone"
         view = request.args.get("view", default)
         if view not in views:
             view = default
@@ -1024,7 +1014,7 @@ def add_routes(app):
             period = "week"
         rows = cached_leaderboard(db.get_db(), view, today(), role=role, period=period)
         total = len(rows)
-        # Search: matching names (or class/department) from the whole board, ranks unchanged
+        # Search: matching names from the whole board, ranks unchanged
         q = (request.args.get("q") or "").strip()[:60]
         if q:
             rows = data.board_search(rows, q)
@@ -1037,9 +1027,8 @@ def add_routes(app):
         show_all = request.args.get("all") == "1"
         mine = []
         if not show_all and total > LEADERBOARD_TOP:
-            me_id, my_group = g.user["id"], g.user["department"]
-            mine = [r for r in rows[LEADERBOARD_TOP:]
-                    if r.get("user_id") == me_id or (r.get("user_id") is None and r["name"] == my_group)]
+            me_id = g.user["id"]
+            mine = [r for r in rows[LEADERBOARD_TOP:] if r.get("user_id") == me_id]
             rows = rows[:LEADERBOARD_TOP]
         with_builds(db.get_db(), rows + mine)
         return render_template("leaderboard.html", rows=rows, mine=mine, total=total,
@@ -1119,8 +1108,7 @@ def add_routes(app):
             action = request.form.get("action")
             try:
                 if action == "my_details":
-                    data.update_my_details(conn, uid, request.form.get("display_name"),
-                                           request.form.get("department"))
+                    data.update_my_details(conn, uid, request.form.get("display_name"), None)
                     clear_leaderboard_cache()
                     flash("Your details are saved.", "ok")
                 elif action == "delete_me":
@@ -1254,8 +1242,8 @@ def add_routes(app):
     # ---------- Leaderboard screen (the Mac app, or any browser on a school TV)
     @app.route("/board")
     def board():
-        """Students and Teachers boards side by side, for a big screen. Needs the screen code
-        from Admin (?key=...), so pupils' names are never public. Refreshes itself every minute."""
+        """The Everyone board, for a big screen. Needs the screen code from Admin (?key=...),
+        so names are never public. Refreshes itself every minute."""
         conn = db.get_db()
         if not data.board_key_ok(conn, request.args.get("key")):
             return render_template("board_locked.html", tried=bool(request.args.get("key"))), 403
@@ -1266,10 +1254,10 @@ def add_routes(app):
             period = "week"
         q = (request.args.get("q") or "").strip()[:60]
         boards = []
-        for view, title in (("student", "Students"), ("teacher", "Teachers")):
+        for view, title in (("everyone", "Everyone"),):
             rows = cached_leaderboard(conn, view, t, period=period)
             shown = rows
-            if q:   # matching names (or classes/departments), ranks unchanged
+            if q:   # matching names, ranks unchanged
                 shown = data.board_search(rows, q)
             boards.append({"title": title, "rows": with_builds(conn, shown[:BOARD_ROWS]), "count": len(rows),
                            "matches": len(shown), "total": sum(r["value"] for r in rows)})

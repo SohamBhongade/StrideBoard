@@ -30,10 +30,11 @@ def test_screen_needs_the_code(site):
     assert r.status_code == 403 and b"didn't work" in r.data and b"Amal" not in r.data
 
 
-def test_screen_shows_students_and_teachers(site):
+def test_screen_shows_one_board_for_everyone(site):
     c, key, _ = site
     page = c.get(f"/board?key={key.lower()}").get_data(as_text=True)     # not fussy about capitals
-    assert "Students" in page and "Teachers" in page and "Amal K." in page and "Amal Khan" not in page and "Ms Rossi" in page
+    assert "Everyone" in page and "Students" not in page and "Teachers" not in page
+    assert "Amal K." in page and "Amal Khan" not in page and "Ms Rossi" in page
     assert "9,000" in page and "7,000" in page
 
 
@@ -58,3 +59,16 @@ def test_admin_page_shows_the_screen_card(site):
     html = page.get_data(as_text=True)
     assert "Leaderboard screen" in html and key in html and "Make a new code" in html
     assert "Today" in html and "This week" in html and "Last sync" in html
+
+
+def test_leaderboard_page_is_one_board_for_everyone(site):
+    c, key, path = site
+    conn = db.connect(path)
+    uid = conn.execute("SELECT id FROM users WHERE role = 'student' LIMIT 1").fetchone()[0]
+    conn.close()
+    with c.session_transaction() as s:
+        s["user_id"] = uid
+    page = c.get("/leaderboard").get_data(as_text=True)
+    assert ">Everyone<" in page and "Classes" not in page and ">Teachers<" not in page and ">Students<" not in page
+    assert "Ms Rossi" in page                          # teachers and students on the same board
+    assert c.get("/leaderboard?view=teacher").status_code == 200   # old links still open (Everyone)

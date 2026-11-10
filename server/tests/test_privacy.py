@@ -92,17 +92,16 @@ def test_download_needs_login(tmp_path):
 
 def test_correct_my_details(me):
     c, path, uid = me
-    c.post("/settings", data={"csrf": "x", "action": "my_details", "display_name": "Amal  Khan Ali",
-                              "department": "Grade 11B"})
+    c.post("/settings", data={"csrf": "x", "action": "my_details", "display_name": "Amal  Khan Ali"})
     conn = db.connect(path)
     row = conn.execute("SELECT display_name, department FROM users WHERE id = ?", (uid,)).fetchone()
-    assert (row["display_name"], row["department"]) == ("Amal Khan Ali", "Grade 11B")
-    c.post("/settings", data={"csrf": "x", "action": "my_details", "display_name": "Omar Saeed",
-                              "department": "Grade 11B"})                      # taken
+    assert row["display_name"] == "Amal Khan Ali"
+    before = row["department"]
+    c.post("/settings", data={"csrf": "x", "action": "my_details", "display_name": "Omar Saeed"})   # taken
     assert conn.execute("SELECT display_name FROM users WHERE id = ?", (uid,)).fetchone()[0] == "Amal Khan Ali"
-    c.post("/settings", data={"csrf": "x", "action": "my_details", "display_name": "Amal",
-                              "department": "Made Up Class"})                  # not on the list
-    assert conn.execute("SELECT department FROM users WHERE id = ?", (uid,)).fetchone()[0] == "Grade 11B"
+    c.post("/settings", data={"csrf": "x", "action": "my_details", "display_name": "Amal Khan",
+                              "department": "Made Up Class"})                  # no class any more: ignored
+    assert conn.execute("SELECT department FROM users WHERE id = ?", (uid,)).fetchone()[0] == before
 
 
 def test_delete_my_account(me):

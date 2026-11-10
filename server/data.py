@@ -374,12 +374,12 @@ def start_signup(conn, secret, email, display_name, role, department, age_band, 
     Only student or teacher. Returns (pending_id, email_to_send_to, code).
     """
     now = _now(now)
-    role = (role or "").strip().lower()
+    # Everyone is a plain member now: no Student/Teacher choice and no class. Stored as
+    # 'student' with no class until the database is tidied (the role column is internal).
+    role = (role or "").strip().lower() or "student"
     if role not in config.SIGNUP_ROLES:
         raise ValueError("please choose Student or Teacher")
-    choices = config.SIGNUP_CLASSES if role == "student" else config.SIGNUP_DEPARTMENTS
-    if (department or "").strip() not in choices:
-        raise ValueError("please choose your " + ("class" if role == "student" else "department"))
+    department = (department or "").strip() or None
     display_name = clean_name(display_name)
     if len(display_name.split()) < 2:
         raise ValueError("please type your full name: first and last name, like Amal Khan")
@@ -1243,7 +1243,8 @@ def period_bounds(period, today):
 
 
 def leaderboard(conn, view, today, role=None, period="week"):
-    """A ranking. view: teacher | student | department | effort | improvement.
+    """A ranking. view: everyone | effort | improvement (what the site shows), or the older
+    teacher | student | department boards (kept until the school parts are removed).
     period: day | week (default, Monday to Sunday) | month | all (lifetime).
     Effort and improvement have no all-time version.
 
@@ -1262,8 +1263,9 @@ def leaderboard(conn, view, today, role=None, period="week"):
     word = {"day": "daily", "week": "weekly", "month": "monthly"}.get(period)
     items = []
 
-    if view in ("teacher", "student"):
-        for p in _player_totals(conn, start, end, roles=(view,)).values():
+    if view in ("everyone", "teacher", "student"):
+        who = PLAYER_ROLES if view == "everyone" else (view,)
+        for p in _player_totals(conn, start, end, roles=who).values():
             items.append({"name": p["display_name"], "department": p["department"],
                           "value": p["total"], "label": f"{p['total']:,} steps",
                           "user_id": p["id"], "_sort": p["total"],
@@ -1301,8 +1303,11 @@ def leaderboard(conn, view, today, role=None, period="week"):
                           "avatar": p["avatar"], "avatar_color": p["avatar_color"],
                           "_last": p["last_update"], "_tiebreak": uid})
     else:
-        raise ValueError("view must be teacher, student, department, effort or improvement")
+        raise ValueError("view must be everyone, teacher, student, department, effort or improvement")
 
+    if view in ("everyone", "effort", "improvement"):
+        for row in items:
+            row["department"] = None   # no classes or departments on the boards any more
     return _ranked(items)
 
 
@@ -2204,13 +2209,9 @@ def update_my_details(conn, user_id, display_name, department):
     if conn.execute("SELECT 1 FROM users WHERE lower(display_name) = lower(?) AND id != ?",
                     (name, user_id)).fetchone():
         raise ValueError("someone already uses that name. Add your last name or initial")
-    choices = {"student": list(config.SIGNUP_CLASSES), "teacher": list(config.SIGNUP_DEPARTMENTS)}
-    dept = (department or "").strip() or None
-    allowed = choices.get(user["role"])
-    if allowed is not None:
-        if dept not in allowed and dept != user["department"]:
-            raise ValueError("choose your class or department from the list")
-    elif dept and len(dept) > 50:
+    # The page no longer asks for a class or department: None keeps whatever is stored.
+    dept = user["department"] if department is None else ((department or "").strip() or None)
+    if dept and len(dept) > 50:
         raise ValueError("department must be at most 50 characters")
     conn.execute("UPDATE users SET display_name = ?, department = ? WHERE id = ?", (name, dept, user_id))
     if name != user["display_name"]:
