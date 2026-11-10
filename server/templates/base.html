@@ -86,7 +86,7 @@
     {{ nav_link('dashboard', 'Dashboard', 'home') }}
     {{ nav_link('log', 'Log mood, water and activity', 'plus') }}
     {{ nav_link('leaderboard', 'Leaderboards', 'trophy') }}
-    {{ nav_link('challenges', 'Challenges', 'flag') }}
+    {{ nav_link('challenges', 'Challenges', 'star') }}
     {{ nav_link('insights', 'Weekly Wrap-Up', 'chart') }}
     <span class="side-spacer"></span>
     <form method="post" action="{{ url_for('logout') }}" class="logout-form">
@@ -168,7 +168,7 @@
 {% if user %}
 {# Phone navigation (the sidebar is hidden on small screens) #}
 <nav class="bottom-nav" aria-label="Main">
-  {% for ep, label, ic in [('dashboard','Home','home'), ('log','Log','plus'), ('leaderboard','Ranks','trophy'), ('challenges','Challenges','flag'), ('insights','Wrap-Up','chart')] %}
+  {% for ep, label, ic in [('dashboard','Home','home'), ('log','Log','plus'), ('leaderboard','Ranks','trophy'), ('challenges','Challenges','star'), ('insights','Wrap-Up','chart')] %}
   <a href="{{ url_for(ep) }}" class="{% if request.endpoint == ep %}active{% endif %}" {% if request.endpoint == ep %}aria-current="page"{% endif %}>
     {{ m.icon(ic, 22) }}<span>{{ label }}</span>
   </a>

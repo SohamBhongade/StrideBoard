@@ -3,7 +3,7 @@
 {% block content %}
 
 {% call m.page_head("Your", "badges", summary.earned ~ " of " ~ summary.total ~ " earned. The ones still to earn are at the top.") %}
-  <a class="btn btn-outline" href="{{ url_for('challenges') }}">{{ m.icon('flag', 18) }} Challenges</a>
+  <a class="btn btn-outline" href="{{ url_for('challenges') }}">{{ m.icon('star', 18) }} Challenges</a>
 {% endcall %}
 
 {% for title, groups, earned, empty_title, empty_text in [
