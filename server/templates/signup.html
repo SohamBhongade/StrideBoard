@@ -35,36 +35,10 @@
   <form method="post" class="card card-soft form signup-form" novalidate>
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
 
-    <fieldset class="role-pick">
-      <legend class="label-text">I am a…</legend>
-      <div class="role-options">
-        {% for value, label, ic, note in [('student', 'Student', 'users', 'On the Students board'), ('teacher', 'Teacher', 'star', 'On the Teachers board')] %}
-        <label class="role-option">
-          <input type="radio" name="role" value="{{ value }}" required {% if form.get('role', 'student') == value %}checked{% endif %}>
-          <span class="role-card">{{ m.icon(ic, 22) }}<strong>{{ label }}</strong><span class="small muted">{{ note }}</span></span>
-        </label>
-        {% endfor %}
-      </div>
-    </fieldset>
-
     <div class="field">
       <label for="display_name">Full name</label>
       <input class="input" id="display_name" name="display_name" value="{{ form.get('display_name', '') }}" maxlength="50" autocomplete="name" autocapitalize="words" placeholder="e.g. Amal Khan" required>
       <span class="hint">Your first and last name. You log in with it, and it shows on the leaderboards.</span>
-    </div>
-    <div class="field for-student">
-      <label for="class">Class</label>
-      <select class="input" id="class" name="class">
-        <option value="">Choose your class</option>
-        {% for c in classes %}<option value="{{ c }}" {% if form.get('class') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="field for-teacher">
-      <label for="department">Department</label>
-      <select class="input" id="department" name="department">
-        <option value="">Choose your department</option>
-        {% for d in departments %}<option value="{{ d }}" {% if form.get('department') == d %}selected{% endif %}>{{ d }}</option>{% endfor %}
-      </select>
     </div>
     <div class="field">
       <label for="age_band">Age</label>

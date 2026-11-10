@@ -234,16 +234,6 @@
       <input class="input" id="my_name" name="display_name" value="{{ me.display_name }}" maxlength="50" autocomplete="name" autocapitalize="words" required>
       <span class="hint">This is also the name you log in with.</span>
     </div>
-    {% set choices = classes if me.role == 'student' else (departments if me.role == 'teacher' else none) %}
-    {% if choices %}
-    <div class="field">
-      <label for="my_dept">{{ 'Class' if me.role == 'student' else 'Department' }}</label>
-      <select class="input" id="my_dept" name="department">
-        {% if me.department and me.department not in choices %}<option value="{{ me.department }}" selected>{{ me.department }}</option>{% endif %}
-        {% for c in choices %}<option value="{{ c }}" {% if c == me.department %}selected{% endif %}>{{ c }}</option>{% endfor %}
-      </select>
-    </div>
-    {% else %}<input type="hidden" name="department" value="{{ me.department or '' }}">{% endif %}
     <button class="btn btn-outline" type="submit">Save my details</button>
   </form>
 

@@ -35,12 +35,6 @@ def test_teacher_sign_up(conn):
 
 @pytest.mark.parametrize("kw, message", [
     ({"role": "admin"}, "Student or Teacher"),
-    ({"role": ""}, "Student or Teacher"),
-    ({"dept": "  "}, "your class"),
-    ({"dept": "Grade 13Z"}, "your class"),
-    ({"role": "teacher", "dept": ""}, "your department"),
-    ({"role": "teacher", "dept": "Grade 10A"}, "your department"),
-    ({"dept": "Science"}, "your class"),
     ({"pin2": "4822"}, "don't match"),
     ({"pin": "12", "pin2": "12"}, "PIN must be"),
     ({"email": "not-an-email"}, "real email"),
@@ -175,3 +169,12 @@ def test_maybe_real_names_are_still_blocked_in_titles_and_notes():
     with pytest.raises(ValueError):
         wordfilter.check("Dick walkers", "The title")
     wordfilter.check_name("Dick Smith")                               # fine as a name
+
+
+def test_sign_up_needs_no_role_or_class(conn):
+    """Everyone is a plain member now: no Student/Teacher choice and no class."""
+    pid, _, code = data.start_signup(conn, SECRET, "plain@gmail.com", "Plain Person", "", "",
+                                     "adult_18_39", "4821", "4821", now=T0)
+    assert data.finish_signup(conn, pid, code, now=T0 + timedelta(minutes=1))
+    user = data.authenticate_name(conn, "Plain Person", "4821")
+    assert user and user["department"] is None

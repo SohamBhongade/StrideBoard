@@ -59,10 +59,9 @@
       {% if rows and not q %}
         <div class="board-podium">
           {% for i in [1, 0, 2] %}{% if rows|length > i %}{% set r = rows[i] %}
-          <div class="board-spot board-spot-{{ r.rank }}" data-name="{{ r.name|lower }}" data-dept="{{ (r.department or '')|lower }}">
+          <div class="board-spot board-spot-{{ r.rank }}" data-name="{{ r.name|lower }}">
             {{ m.avatar(r.name, r.avatar, r.avatar_color, 74 if r.rank == 1 else 60, r.build) }}
             <strong class="board-spot-name">{{ r.name }}</strong>
-            <span class="board-spot-dept">{{ r.department or '' }}</span>
             <div class="board-block"><span class="board-block-rank">{{ r.rank }}</span>
               <span class="board-block-val">{{ r.value|num }} <small>steps</small></span></div>
           </div>
@@ -71,10 +70,10 @@
         {% if rows|length > 3 %}
         <ol class="board-list">
           {% for r in rows[3:] %}
-          <li class="board-row" data-name="{{ r.name|lower }}" data-dept="{{ (r.department or '')|lower }}">
+          <li class="board-row" data-name="{{ r.name|lower }}">
             <span class="board-rank">{{ r.rank }}</span>
             {{ m.avatar(r.name, r.avatar, r.avatar_color, 38, r.build) }}
-            <span class="board-who"><strong>{{ r.name }}</strong><span>{{ r.department or '' }}</span></span>
+            <span class="board-who"><strong>{{ r.name }}</strong></span>
             <span class="board-val">{{ r.value|num }}</span>
           </li>
           {% endfor %}
@@ -84,10 +83,10 @@
         {# A search: the matches as a list, each with its real rank #}
         <ol class="board-list">
           {% for r in rows %}
-          <li class="board-row" data-name="{{ r.name|lower }}" data-dept="{{ (r.department or '')|lower }}">
+          <li class="board-row" data-name="{{ r.name|lower }}">
             <span class="board-rank">{{ r.rank }}</span>
             {{ m.avatar(r.name, r.avatar, r.avatar_color, 38, r.build) }}
-            <span class="board-who"><strong>{{ r.name }}</strong><span>{{ r.department or '' }}</span></span>
+            <span class="board-who"><strong>{{ r.name }}</strong></span>
             <span class="board-val">{{ r.value|num }}</span>
           </li>
           {% endfor %}
